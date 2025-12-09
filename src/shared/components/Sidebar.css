@@ -382,15 +382,15 @@
     margin-left: 240px;
   }
 
-  /* Adjust footer for proper position */
+  /* Adjust footer for proper position - higher on mobile */
   .sidebar__footer {
-    margin-top: auto;
+    margin-top: 16px;
     margin-bottom: 0;
-    padding-bottom: env(safe-area-inset-bottom, 10px);
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
   }
 
   .sidebar__profile-card {
-    margin-bottom: 5px;
+    margin-bottom: 0;
   }
 }
 
