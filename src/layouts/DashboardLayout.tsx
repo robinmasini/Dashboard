@@ -9,7 +9,7 @@ import logoDs from '../assets/logo-ds.png'
 import robinAvatar from '../assets/robin-avatar.png'
 
 // Composant pour afficher le profil du client connecté
-function ClientProfileSection({ user }: { user: any }) {
+function ClientProfileSection({ user, onAvatarClick }: { user: any; onAvatarClick?: () => void }) {
   const { clients } = useClients()
 
   // Trouver le client associé à l'utilisateur connecté
@@ -36,7 +36,11 @@ function ClientProfileSection({ user }: { user: any }) {
 
   return (
     <div className="sidebar__profile-card">
-      <div className="sidebar__profile-image">
+      <div
+        className="sidebar__profile-image"
+        onClick={onAvatarClick}
+        style={{ cursor: onAvatarClick ? 'pointer' : 'default' }}
+      >
         {clientInfo?.avatar_url ? (
           <img
             src={clientInfo.avatar_url.startsWith('http') || clientInfo.avatar_url.startsWith('/')
@@ -201,7 +205,11 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
           {role === UserRole.FREELANCE ? (
             <>
               <div className="sidebar__profile-card">
-                <div className="sidebar__profile-image">
+                <div
+                  className="sidebar__profile-image"
+                  onClick={isMobile ? toggleSidebar : undefined}
+                  style={{ cursor: isMobile ? 'pointer' : 'default' }}
+                >
                   <img src={robinAvatar} alt="Robin Masini" className="sidebar__profile-img" />
                 </div>
                 {!isCollapsed && (
@@ -221,7 +229,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
             </>
           ) : (
             <>
-              <ClientProfileSection user={user} />
+              <ClientProfileSection user={user} onAvatarClick={isMobile ? toggleSidebar : undefined} />
               <button
                 onClick={handleLogout}
                 className="ghost-button logout-button"
