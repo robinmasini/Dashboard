@@ -130,28 +130,56 @@
 /* Mobile responsive */
 @media (max-width: 768px) {
     .landing-hero {
-        padding: 40px 16px 24px;
+        padding: 24px 16px 8px;
     }
 
     .landing-hero-card {
-        max-width: 350px;
+        max-width: 320px;
     }
 
     .landing-logo {
-        max-width: 150px;
+        max-width: 130px;
+        margin-bottom: 16px;
+    }
+
+    .landing-bottom {
+        padding: 16px 16px 32px;
+        justify-content: flex-start;
+    }
+
+    .landing-message {
+        margin-bottom: 20px;
     }
 
     .landing-message p {
-        font-size: 1.1rem;
+        font-size: 1rem;
+    }
+
+    .landing-badge {
+        padding: 6px 12px;
+        font-size: 0.8rem;
+        margin-bottom: 10px;
     }
 
     .landing-cta {
-        padding: 14px 24px;
-        font-size: 1rem;
+        padding: 12px 20px;
+        font-size: 0.95rem;
+    }
+
+    .landing-contact {
+        margin-top: 24px;
+    }
+
+    .landing-contact a {
+        font-size: 0.85rem;
+    }
+
+    .landing-address {
+        font-size: 0.75rem;
     }
 
     .landing-bg-gradient {
         width: 100%;
-        height: 400px;
+        height: 300px;
     }
 }
