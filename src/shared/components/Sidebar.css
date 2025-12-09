@@ -206,3 +206,190 @@
   color: #ff6b6b;
   border-color: rgba(255, 0, 0, 0.2);
 }
+
+/* =============================================
+   COLLAPSED SIDEBAR
+   ============================================= */
+
+.sidebar.collapsed {
+  width: 80px;
+  padding: 24px 12px;
+  gap: 24px;
+}
+
+.sidebar.collapsed .sidebar__logo-container {
+  padding: 0;
+}
+
+.sidebar.collapsed .sidebar__logo {
+  max-width: 50px;
+}
+
+.sidebar.collapsed .sidebar__nav-item {
+  justify-content: center;
+  padding: 14px;
+  gap: 0;
+}
+
+.sidebar.collapsed .sidebar__nav-icon {
+  font-size: 1.4rem;
+}
+
+.sidebar.collapsed .sidebar__profile-card {
+  padding: 12px;
+}
+
+.sidebar.collapsed .sidebar__profile-image {
+  width: 50px;
+  height: 50px;
+}
+
+/* Toggle Button */
+.sidebar__toggle {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  color: white;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.sidebar__toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Workspace expanded when sidebar collapsed */
+.app-shell.sidebar-collapsed .workspace {
+  margin-left: 80px;
+}
+
+.workspace--expanded {
+  margin-left: 80px;
+}
+
+/* =============================================
+   MOBILE RESPONSIVE
+   ============================================= */
+
+@media (max-width: 768px) {
+  .sidebar {
+    width: 80px;
+    padding: 24px 12px;
+    gap: 24px;
+  }
+
+  .sidebar__logo-container {
+    padding: 0;
+    margin-top: 40px;
+  }
+
+  .sidebar__logo {
+    max-width: 50px;
+  }
+
+  .sidebar__nav-item {
+    justify-content: center;
+    padding: 14px;
+    gap: 0;
+  }
+
+  .sidebar__nav-icon {
+    font-size: 1.4rem;
+  }
+
+  .sidebar__nav-label {
+    display: none;
+  }
+
+  .sidebar__profile-card {
+    padding: 12px;
+    background: transparent;
+    border: none;
+  }
+
+  .sidebar__profile-image {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 0;
+  }
+
+  .sidebar__profile-text {
+    display: none;
+  }
+
+  .logout-button {
+    display: none;
+  }
+
+  .workspace {
+    margin-left: 80px;
+    padding: 16px;
+  }
+
+  /* When expanded on mobile */
+  .sidebar:not(.collapsed) {
+    width: 240px;
+    padding: 32px 20px;
+  }
+
+  .sidebar:not(.collapsed) .sidebar__logo-container {
+    margin-top: 40px;
+  }
+
+  .sidebar:not(.collapsed) .sidebar__logo {
+    max-width: 140px;
+  }
+
+  .sidebar:not(.collapsed) .sidebar__nav-item {
+    justify-content: flex-start;
+    gap: 12px;
+  }
+
+  .sidebar:not(.collapsed) .sidebar__nav-label {
+    display: inline;
+  }
+
+  .sidebar:not(.collapsed) .sidebar__profile-card {
+    padding: 20px;
+    background: #121318;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .sidebar:not(.collapsed) .sidebar__profile-image {
+    width: 70px;
+    height: 70px;
+  }
+
+  .sidebar:not(.collapsed) .sidebar__profile-text {
+    display: flex;
+  }
+
+  .sidebar:not(.collapsed) .logout-button {
+    display: block;
+  }
+
+  .sidebar:not(.collapsed)~.workspace {
+    margin-left: 240px;
+  }
+}
+
+/* Small mobile */
+@media (max-width: 480px) {
+  .workspace {
+    padding: 12px;
+  }
+
+  .workspace__content {
+    padding: 16px;
+  }
+}

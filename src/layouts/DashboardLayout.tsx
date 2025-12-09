@@ -1,3 +1,4 @@
+import { useState, useEffect } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { UserRole } from '../shared/types/roles'
 import { useAuth } from '../shared/hooks/useAuth'
@@ -93,6 +94,23 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   const location = useLocation()
   const { logout, user } = useAuth()
 
+  // Mobile detection & collapsed state
+  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768)
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth <= 768
+      setIsMobile(mobile)
+      setIsCollapsed(mobile)
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
+
+  const toggleSidebar = () => setIsCollapsed(!isCollapsed)
+
+
   // Navigation différente selon le rôle
   const navItems: NavItem[] = role === UserRole.FREELANCE ? [
     { id: 'performance', label: 'Performance', icon: '📊', path: '/admin/performance' },
@@ -146,8 +164,19 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   const { age, days } = calculateAgeAndDays()
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
+    <div className={`app-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+        {/* Toggle Button - Mobile */}
+        {isMobile && (
+          <button
+            className="sidebar__toggle"
+            onClick={toggleSidebar}
+            aria-label={isCollapsed ? 'Ouvrir menu' : 'Fermer menu'}
+          >
+            {isCollapsed ? '☰' : '✕'}
+          </button>
+        )}
+
         {/* Logo Section */}
         <div className="sidebar__logo-container">
           <img src={logoDs} alt="Logo Digital Radicalz" className="sidebar__logo" />
@@ -159,9 +188,10 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
               key={item.id}
               className={`sidebar__nav-item ${isActive(item.path) ? 'active' : ''}`}
               onClick={() => navigate(item.path)}
+              title={isCollapsed ? item.label : undefined}
             >
               <span className="sidebar__nav-icon">{item.icon}</span>
-              <span>{item.label}</span>
+              {!isCollapsed && <span className="sidebar__nav-label">{item.label}</span>}
             </button>
           ))}
         </nav>
@@ -174,35 +204,46 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
                 <div className="sidebar__profile-image">
                   <img src={robinAvatar} alt="Robin Masini" className="sidebar__profile-img" />
                 </div>
-                <div className="sidebar__profile-text">
-                  {/* Âge et Jours depuis le dernier anniversaire */}
-                  <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px', fontWeight: 500 }}>
-                    {age} ans • {days} jours
+                {!isCollapsed && (
+                  <div className="sidebar__profile-text">
+                    <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px', fontWeight: 500 }}>
+                      {age} ans • {days} jours
+                    </div>
+                    <div className="sidebar__contact">EI Robin MASINI</div>
+                    <div className="sidebar__siret">99268512300018</div>
+                    <div className="sidebar__domain">robinmasini.com</div>
                   </div>
-                  <div className="sidebar__contact">EI Robin MASINI</div>
-                  <div className="sidebar__siret">99268512300018</div>
-                  <div className="sidebar__domain">robinmasini.com</div>
-                </div>
+                )}
               </div>
-              <button onClick={handleLogout} className="logout-button">
-                Se déconnecter
-              </button>
+              {!isCollapsed && (
+                <button onClick={handleLogout} className="logout-button">
+                  Se déconnecter
+                </button>
+              )}
             </>
           ) : (
             <>
-              <ClientProfileSection user={user} />
-              <button
-                onClick={handleLogout}
-                className="ghost-button logout-button"
-              >
-                Se déconnecter
-              </button>
+              {isCollapsed ? (
+                <div className="sidebar__profile-card sidebar__profile-card--collapsed">
+                  <ClientProfileSection user={user} />
+                </div>
+              ) : (
+                <>
+                  <ClientProfileSection user={user} />
+                  <button
+                    onClick={handleLogout}
+                    className="ghost-button logout-button"
+                  >
+                    Se déconnecter
+                  </button>
+                </>
+              )}
             </>
           )}
         </div>
       </aside>
 
-      <main className="workspace">
+      <main className={`workspace ${isCollapsed ? 'workspace--expanded' : ''}`}>
         {children || <Outlet />}
       </main>
     </div>
