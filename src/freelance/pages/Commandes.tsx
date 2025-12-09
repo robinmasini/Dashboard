@@ -8,9 +8,9 @@ import { actionSchemas } from '../../data/dashboard'
 import '../../App.css'
 
 const commandesTabs = [
-  { id: 'tickets', label: 'Tickets', path: '/dashboard/commandes/tickets' },
-  { id: 'devis', label: 'Devis', path: '/dashboard/commandes/devis' },
-  { id: 'facturation', label: 'Facturation', path: '/dashboard/commandes/facturation' },
+  { id: 'tickets', label: 'Tickets', path: '/admin/commandes/tickets' },
+  { id: 'devis', label: 'Devis', path: '/admin/commandes/devis' },
+  { id: 'facturation', label: 'Facturation', path: '/admin/commandes/facturation' },
 ]
 
 /**

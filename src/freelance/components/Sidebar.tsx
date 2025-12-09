@@ -10,9 +10,9 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  { id: 'projet', label: 'Votre Projet', icon: '📁', path: '/dashboard/projet' },
-  { id: 'commandes', label: 'Commandes', icon: '📋', path: '/dashboard/commandes' },
-  { id: 'planning', label: 'Planning', icon: '📅', path: '/dashboard/planning' },
+  { id: 'projet', label: 'Votre Projet', icon: '📁', path: '/admin/projet' },
+  { id: 'commandes', label: 'Commandes', icon: '📋', path: '/admin/commandes' },
+  { id: 'planning', label: 'Planning', icon: '📅', path: '/admin/planning' },
 ]
 
 /**
