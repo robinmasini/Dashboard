@@ -336,60 +336,61 @@
   }
 
   /* When expanded on mobile */
-  .sidebar:not(.collapsed) {
+  .sidebar.expanded {
     width: 240px;
     padding: 32px 20px;
   }
 
-  .sidebar:not(.collapsed) .sidebar__logo-container {
+  .sidebar.expanded .sidebar__logo-container {
     margin-top: 40px;
   }
 
-  .sidebar:not(.collapsed) .sidebar__logo {
+  .sidebar.expanded .sidebar__logo {
     max-width: 140px;
   }
 
-  .sidebar:not(.collapsed) .sidebar__nav-item {
+  .sidebar.expanded .sidebar__nav-item {
     justify-content: flex-start;
     gap: 12px;
   }
 
-  .sidebar:not(.collapsed) .sidebar__nav-label {
+  .sidebar.expanded .sidebar__nav-label {
     display: inline;
   }
 
-  .sidebar:not(.collapsed) .sidebar__profile-card {
+  .sidebar.expanded .sidebar__profile-card {
     padding: 20px;
     background: #121318;
     border: 1px solid rgba(255, 255, 255, 0.05);
+    margin-bottom: 0;
   }
 
-  .sidebar:not(.collapsed) .sidebar__profile-image {
+  .sidebar.expanded .sidebar__profile-image {
     width: 70px;
     height: 70px;
   }
 
-  .sidebar:not(.collapsed) .sidebar__profile-text {
+  .sidebar.expanded .sidebar__profile-text {
     display: flex;
   }
 
-  .sidebar:not(.collapsed) .logout-button {
+  .sidebar.expanded .logout-button {
     display: block;
   }
 
-  .sidebar:not(.collapsed)~.workspace {
+  .sidebar.expanded~.workspace {
     margin-left: 240px;
   }
 
-  /* Raise avatar in sidebar - avoid iOS URL bar */
+  /* Adjust footer for proper position */
   .sidebar__footer {
     margin-top: auto;
     margin-bottom: 0;
-    padding-bottom: env(safe-area-inset-bottom, 20px);
+    padding-bottom: env(safe-area-inset-bottom, 10px);
   }
 
   .sidebar__profile-card {
-    margin-bottom: 20px;
+    margin-bottom: 5px;
   }
 }
 

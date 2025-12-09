@@ -169,7 +169,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
 
   return (
     <div className={`app-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobile && !isCollapsed ? 'expanded' : ''}`}>
         {/* Toggle Button - Mobile */}
         {isMobile && (
           <button
