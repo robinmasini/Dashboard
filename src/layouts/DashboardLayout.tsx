@@ -182,7 +182,11 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
         )}
 
         {/* Logo Section */}
-        <div className="sidebar__logo-container">
+        <div
+          className="sidebar__logo-container"
+          onClick={isMobile && isCollapsed ? toggleSidebar : undefined}
+          style={{ cursor: isMobile && isCollapsed ? 'pointer' : 'default' }}
+        >
           <img src={logoDs} alt="Logo Digital Radicalz" className="sidebar__logo" />
         </div>
 
