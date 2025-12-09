@@ -1110,3 +1110,144 @@ td {
 .agenda-calendar__event-resize-handle--bottom {
   bottom: 0;
 }
+
+/* =============================================
+   MOBILE RESPONSIVE - GENERAL
+   ============================================= */
+
+@media (max-width: 768px) {
+
+  /* Section Header - Stack tabs and actions */
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .section-header__actions {
+    width: 100%;
+  }
+
+  .section-header__actions .primary-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Tab Pills - Smaller on mobile */
+  .tab-pill {
+    padding: 8px 14px;
+    font-size: 0.85rem;
+  }
+
+  .tab-group {
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  /* Panels - Less padding */
+  .panel {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  /* Tables - Smaller text */
+  table {
+    font-size: 0.85rem;
+  }
+
+  th {
+    font-size: 0.7rem;
+    padding-bottom: 8px;
+  }
+
+  td {
+    padding: 10px 0;
+  }
+
+  /* Workspace content */
+  .workspace__content {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  /* Status Pills - Smaller */
+  .status-pill {
+    padding: 3px 10px;
+    font-size: 0.7rem;
+  }
+
+  /* Primary Button */
+  .primary-button {
+    padding: 10px 16px;
+    font-size: 0.9rem;
+    border-radius: 12px;
+  }
+
+  /* Performance Grid */
+  .performance-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .col-span-4,
+  .col-span-8 {
+    grid-column: span 1;
+  }
+
+  /* Floating Cards */
+  .floating-card {
+    height: auto;
+    min-height: 100px;
+  }
+
+  /* Hero Panel */
+  .hero-panel {
+    flex-direction: column;
+    text-align: center;
+    gap: 16px;
+  }
+
+  .hero-panel h2 {
+    font-size: 1.4rem;
+  }
+
+  /* Wallet Panel */
+  .wallet-panel__amount {
+    font-size: 1.8rem;
+  }
+
+  /* Forecast Grid */
+  .forecast-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+
+  /* Even smaller mobile */
+  .section-header__label {
+    font-size: 0.65rem;
+  }
+
+  .tab-pill {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+  }
+
+  .panel {
+    padding: 12px;
+  }
+
+  table {
+    font-size: 0.8rem;
+  }
+
+  .forecast-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-panel h2 {
+    font-size: 1.2rem;
+  }
+}

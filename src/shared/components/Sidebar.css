@@ -380,6 +380,17 @@
   .sidebar:not(.collapsed)~.workspace {
     margin-left: 240px;
   }
+
+  /* Raise avatar in sidebar - avoid iOS URL bar */
+  .sidebar__footer {
+    margin-top: auto;
+    margin-bottom: 0;
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+
+  .sidebar__profile-card {
+    margin-bottom: 60px;
+  }
 }
 
 /* Small mobile */
@@ -390,5 +401,10 @@
 
   .workspace__content {
     padding: 16px;
+  }
+
+  /* Even higher avatar for smaller screens */
+  .sidebar__profile-card {
+    margin-bottom: 80px;
   }
 }
