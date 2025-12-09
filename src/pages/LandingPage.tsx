@@ -37,6 +37,7 @@ export default function LandingPage() {
                 {/* Contact */}
                 <div className="landing-contact">
                     <a href="mailto:contact@robinmasini.com">contact@robinmasini.com</a>
+                    <p className="landing-address">520 Rue Frédéric Joliot - 13100 Aix-en-Provence</p>
                 </div>
             </div>
 

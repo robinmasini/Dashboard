@@ -93,6 +93,12 @@
     color: rgba(255, 255, 255, 0.7);
 }
 
+.landing-address {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 0.8rem;
+    margin-top: 8px;
+}
+
 /* Background gradient effect */
 .landing-bg-gradient {
     position: absolute;
