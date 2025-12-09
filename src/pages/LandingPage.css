@@ -19,7 +19,7 @@
 }
 
 .landing-hero-card {
-    max-width: 350px;
+    max-width: 550px;
     width: 100%;
     height: auto;
 }
@@ -134,7 +134,7 @@
     }
 
     .landing-hero-card {
-        max-width: 100%;
+        max-width: 350px;
     }
 
     .landing-logo {
