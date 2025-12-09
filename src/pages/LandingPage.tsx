@@ -14,13 +14,13 @@ export default function LandingPage() {
         <div className="landing-page">
             {/* Section haute avec fond noir */}
             <div className="landing-hero">
+                {/* Logo au-dessus */}
+                <img src={logo} alt="Robin Masini" className="landing-logo" />
                 <img src={heroCard} alt="Robin Masini - Concepteur Product UX/UI Design, IA Développeur Full Stack JavaScript" className="landing-hero-card" />
             </div>
 
             {/* Section basse avec gradient */}
             <div className="landing-bottom">
-                {/* Logo */}
-                <img src={logo} alt="Robin Masini" className="landing-logo" />
 
                 {/* Message temporaire */}
                 <div className="landing-message">
