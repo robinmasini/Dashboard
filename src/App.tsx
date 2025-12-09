@@ -52,7 +52,7 @@ function AppRoutes() {
                 <Route path="commandes/tickets" element={<ClientTickets />} />
                 <Route path="commandes/devis" element={<ClientDevis />} />
                 <Route path="commandes/facturation" element={<ClientFacturation />} />
-                <Route path="commandes" element={<Navigate to="commandes/tickets" replace />} />
+                <Route path="commandes" element={<Navigate to="/dashboard/commandes/tickets" replace />} />
                 <Route path="planning" element={<ClientPlanning />} />
               </Routes>
             </DashboardLayout>
