@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réinitialiser le code d'accès</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 400px;
+        }
+        h1 {
+            margin: 0 0 20px;
+            color: #333;
+        }
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-family: monospace;
+        }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+        button:hover {
+            transform: scale(1.05);
+        }
+        button.danger {
+            background: #e74c3c;
+        }
+        button.success {
+            background: #27ae60;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: bold;
+        }
+        .status.success {
+            background: #d4edda;
+            color: #155724;
+        }
+        .status.info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Gestion du code d'accès</h1>
+        
+        <div class="info">
+            <strong>Code actuel :</strong><br>
+            <span id="currentCode">Vérification...</span>
+        </div>
+
+        <button onclick="resetCode()" class="success">
+            Définir le code à 1234
+        </button>
+
+        <button onclick="clearAll()" class="danger">
+            Effacer tout le localStorage
+        </button>
+
+        <button onclick="checkStatus()" style="background: #3498db;">
+            Vérifier l'état
+        </button>
+
+        <div id="status"></div>
+
+        <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee;">
+            <a href="/" style="color: #667eea; text-decoration: none; font-weight: bold;">
+                ← Retour au Dashboard
+            </a>
+        </div>
+    </div>
+
+    <script>
+        function checkStatus() {
+            const code = localStorage.getItem('dashboard-client-auth-code');
+            const verified = localStorage.getItem('dashboard-client-verified');
+            
+            document.getElementById('currentCode').innerHTML = 
+                code ? `<span style="color: green;">${code}</span>` : 
+                '<span style="color: orange;">Aucun code défini</span>';
+            
+            const status = document.getElementById('status');
+            status.className = 'status info';
+            status.innerHTML = `
+                <strong>État actuel :</strong><br>
+                Code enregistré : ${code || 'Non défini'}<br>
+                Authentifié : ${verified === 'true' ? 'Oui ✅' : 'Non ❌'}
+            `;
+        }
+
+        function resetCode() {
+            localStorage.setItem('dashboard-client-auth-code', '1234');
+            localStorage.removeItem('dashboard-client-verified');
+            
+            const status = document.getElementById('status');
+            status.className = 'status success';
+            status.innerHTML = '✅ Code réinitialisé à 1234 !<br>Vous pouvez maintenant vous connecter avec ce code.';
+            
+            checkStatus();
+        }
+
+        function clearAll() {
+            if (confirm('Êtes-vous sûr de vouloir effacer toutes les données ?')) {
+                localStorage.clear();
+                
+                const status = document.getElementById('status');
+                status.className = 'status success';
+                status.innerHTML = '✅ Toutes les données ont été effacées !<br>Le prochain code à 4 chiffres que vous entrerez sera le nouveau code.';
+                
+                checkStatus();
+            }
+        }
+
+        // Vérifier l'état au chargement
+        checkStatus();
+    </script>
+</body>
+</html>
+

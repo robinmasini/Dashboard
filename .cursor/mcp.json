@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "UIPro by Locofy": {
+      "args": [
+        "-y",
+        "@locofy/uipro-mcp@latest"
+      ],
+      "command": "npx",
+      "env": {
+        "IDE_SOURCE": "cursor"
+      }
+    },
+    "Dashboard Image Importer": {
+      "command": "node",
+      "args": [
+        "mcp-server/index.js"
+      ],
+      "cwd": "/Users/robinmasini/Desktop/dashboard"
+    }
+  }
+}
+

@@ -1,0 +1,106 @@
+.landing-page {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #05060d;
+    position: relative;
+    overflow: hidden;
+}
+
+.landing-content {
+    text-align: center;
+    z-index: 1;
+    padding: 40px;
+}
+
+.landing-logo {
+    max-width: 280px;
+    height: auto;
+    margin-bottom: 16px;
+}
+
+.landing-subtitle {
+    font-size: 1.1rem;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 40px;
+    font-weight: 300;
+    line-height: 1.6;
+}
+
+.landing-message {
+    margin-bottom: 40px;
+}
+
+.landing-badge {
+    display: inline-block;
+    padding: 8px 16px;
+    background: rgba(104, 35, 255, 0.15);
+    border: 1px solid rgba(104, 35, 255, 0.3);
+    border-radius: 999px;
+    font-size: 0.85rem;
+    color: #a78bfa;
+    margin-bottom: 16px;
+}
+
+.landing-message p {
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0;
+}
+
+.landing-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 32px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: white;
+    background: linear-gradient(135deg, #6823ff, #3b4fff);
+    border: none;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.landing-cta:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(104, 35, 255, 0.4);
+}
+
+.landing-arrow {
+    font-size: 1.3rem;
+    transition: transform 0.2s;
+}
+
+.landing-cta:hover .landing-arrow {
+    transform: translateX(4px);
+}
+
+.landing-contact {
+    margin-top: 48px;
+}
+
+.landing-contact a {
+    color: rgba(255, 255, 255, 0.4);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.landing-contact a:hover {
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* Background gradient effect */
+.landing-bg-gradient {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(104, 35, 255, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+}
