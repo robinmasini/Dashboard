@@ -28,7 +28,7 @@ export default function LandingPage() {
                 {/* Bouton d'accès au dashboard */}
                 <button
                     className="landing-cta"
-                    onClick={() => navigate('/dashboard')}
+                    onClick={() => navigate('/auth/client')}
                 >
                     Accéder au Dashboard Client
                     <span className="landing-arrow">→</span>
