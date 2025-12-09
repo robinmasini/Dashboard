@@ -15,8 +15,8 @@ export default function LandingPage() {
                 {/* Logo */}
                 <img src={logo} alt="Robin Masini" className="landing-logo" />
                 <p className="landing-subtitle">
-                    UX/UI & Product Designer Web & Mobile<br />
-                    IA Développeur Full-Stack Javascript Web & Mobile
+                    <strong>UX/UI</strong> & <strong>Product</strong> Designer Web & Mobile<br />
+                    <strong>IA Développeur</strong> Full-Stack Javascript Web & Mobile
                 </p>
 
                 {/* Message temporaire */}
