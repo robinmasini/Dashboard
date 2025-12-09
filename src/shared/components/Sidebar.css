@@ -212,9 +212,9 @@
    ============================================= */
 
 .sidebar.collapsed {
-  width: 80px;
-  padding: 24px 12px;
-  gap: 24px;
+  width: 60px;
+  padding: 16px 8px;
+  gap: 16px;
 }
 
 .sidebar.collapsed .sidebar__logo-container {
@@ -222,7 +222,7 @@
 }
 
 .sidebar.collapsed .sidebar__logo {
-  max-width: 50px;
+  max-width: 40px;
 }
 
 .sidebar.collapsed .sidebar__nav-item {
@@ -240,28 +240,27 @@
 }
 
 .sidebar.collapsed .sidebar__profile-image {
-  width: 50px;
-  height: 50px;
+  width: 40px;
+  height: 40px;
 }
 
 /* Toggle Button */
 .sidebar__toggle {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  width: 36px;
-  height: 36px;
+  position: relative;
+  width: 32px;
+  height: 32px;
   border: none;
   background: rgba(255, 255, 255, 0.1);
   border-radius: 8px;
   color: white;
-  font-size: 1.2rem;
+  font-size: 1rem;
   cursor: pointer;
   z-index: 20;
   display: flex;
   align-items: center;
   justify-content: center;
   transition: background 0.2s;
+  margin: 0 auto 16px auto;
 }
 
 .sidebar__toggle:hover {
@@ -270,11 +269,11 @@
 
 /* Workspace expanded when sidebar collapsed */
 .app-shell.sidebar-collapsed .workspace {
-  margin-left: 80px;
+  margin-left: 60px;
 }
 
 .workspace--expanded {
-  margin-left: 80px;
+  margin-left: 60px;
 }
 
 /* =============================================
@@ -283,18 +282,18 @@
 
 @media (max-width: 768px) {
   .sidebar {
-    width: 80px;
-    padding: 24px 12px;
-    gap: 24px;
+    width: 60px;
+    padding: 16px 8px;
+    gap: 16px;
   }
 
   .sidebar__logo-container {
     padding: 0;
-    margin-top: 40px;
+    margin-top: 8px;
   }
 
   .sidebar__logo {
-    max-width: 50px;
+    max-width: 40px;
   }
 
   .sidebar__nav-item {
@@ -318,8 +317,8 @@
   }
 
   .sidebar__profile-image {
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     margin-bottom: 0;
   }
 
@@ -332,8 +331,8 @@
   }
 
   .workspace {
-    margin-left: 80px;
-    padding: 16px;
+    margin-left: 60px;
+    padding: 12px;
   }
 
   /* When expanded on mobile */
