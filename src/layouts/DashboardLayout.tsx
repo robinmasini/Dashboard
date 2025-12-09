@@ -215,29 +215,19 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
                   </div>
                 )}
               </div>
-              {!isCollapsed && (
-                <button onClick={handleLogout} className="logout-button">
-                  Se déconnecter
-                </button>
-              )}
+              <button onClick={handleLogout} className="logout-button">
+                Se déconnecter
+              </button>
             </>
           ) : (
             <>
-              {isCollapsed ? (
-                <div className="sidebar__profile-card sidebar__profile-card--collapsed">
-                  <ClientProfileSection user={user} />
-                </div>
-              ) : (
-                <>
-                  <ClientProfileSection user={user} />
-                  <button
-                    onClick={handleLogout}
-                    className="ghost-button logout-button"
-                  >
-                    Se déconnecter
-                  </button>
-                </>
-              )}
+              <ClientProfileSection user={user} />
+              <button
+                onClick={handleLogout}
+                className="ghost-button logout-button"
+              >
+                Se déconnecter
+              </button>
             </>
           )}
         </div>
