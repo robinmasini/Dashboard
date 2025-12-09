@@ -1,23 +1,26 @@
 import { useNavigate } from 'react-router-dom'
+import heroCard from '../assets/hero-card.png'
 import logo from '../assets/logo-ds.png'
 import './LandingPage.css'
 
 /**
- * Landing Page temporaire pour robinmasini.com
- * Affiche un message "Site vitrine bientôt disponible" avec accès au dashboard
+ * Landing Page pour robinmasini.com
+ * Affiche la carte de présentation avec accès au dashboard
  */
 export default function LandingPage() {
     const navigate = useNavigate()
 
     return (
         <div className="landing-page">
-            <div className="landing-content">
+            {/* Section haute avec fond noir */}
+            <div className="landing-hero">
+                <img src={heroCard} alt="Robin Masini - Concepteur Product UX/UI Design, IA Développeur Full Stack JavaScript" className="landing-hero-card" />
+            </div>
+
+            {/* Section basse avec gradient */}
+            <div className="landing-bottom">
                 {/* Logo */}
                 <img src={logo} alt="Robin Masini" className="landing-logo" />
-                <p className="landing-subtitle">
-                    <strong>UX/UI</strong> & <strong>Product</strong> Designer Web & Mobile<br />
-                    <strong>IA Développeur</strong> Full-Stack Javascript Web & Mobile
-                </p>
 
                 {/* Message temporaire */}
                 <div className="landing-message">
@@ -41,7 +44,7 @@ export default function LandingPage() {
                 </div>
             </div>
 
-            {/* Background effect */}
+            {/* Background gradient effect - positioned lower */}
             <div className="landing-bg-gradient"></div>
         </div>
     )
