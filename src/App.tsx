@@ -22,9 +22,8 @@ import FreelanceClients from './freelance/pages/Clients'
 import FreelancePerformance from './freelance/pages/performance'
 import FreelanceTimeTracking from './freelance/pages/time-tracking'
 
-// Admin activé en développement OU si variable VITE_ENABLE_ADMIN définie
-// En production sur Vercel, DEV sera false et la variable non définie → admin désactivé
-const ADMIN_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_ADMIN === 'true'
+// Note: L'accès admin est non-référencé publiquement mais accessible via /admin
+// La protection se fait via l'authentification Supabase (login freelance requis)
 
 function AppRoutes() {
   return (
@@ -35,10 +34,8 @@ function AppRoutes() {
       {/* Routes d'authentification */}
       <Route path="/auth/client" element={<ClientLogin />} />
 
-      {/* Login Freelance - seulement si admin activé */}
-      {ADMIN_ENABLED && (
-        <Route path="/auth/freelance" element={<FreelanceLogin />} />
-      )}
+      {/* Login Freelance - accessible via /auth/freelance */}
+      <Route path="/auth/freelance" element={<FreelanceLogin />} />
 
       {/* ROUTING CLIENT - Accessible publiquement après login */}
       <Route
@@ -60,26 +57,24 @@ function AppRoutes() {
         }
       />
 
-      {/* ROUTING ADMIN/FREELANCE - Seulement si activé via env */}
-      {ADMIN_ENABLED && (
-        <Route
-          path="/admin/*"
-          element={
-            <ProtectedRoute allowedRole={UserRole.FREELANCE}>
-              <DashboardLayout role={UserRole.FREELANCE}>
-                <Routes>
-                  <Route index element={<Navigate to="performance" replace />} />
-                  <Route path="performance" element={<FreelancePerformance />} />
-                  <Route path="commandes/*" element={<FreelanceCommandes />} />
-                  <Route path="time-tracking" element={<FreelanceTimeTracking />} />
-                  <Route path="planning" element={<FreelancePlanning />} />
-                  <Route path="clients" element={<FreelanceClients />} />
-                </Routes>
-              </DashboardLayout>
-            </ProtectedRoute>
-          }
-        />
-      )}
+      {/* ROUTING ADMIN/FREELANCE - Accessible via /admin, protégé par login */}
+      <Route
+        path="/admin/*"
+        element={
+          <ProtectedRoute allowedRole={UserRole.FREELANCE}>
+            <DashboardLayout role={UserRole.FREELANCE}>
+              <Routes>
+                <Route index element={<Navigate to="performance" replace />} />
+                <Route path="performance" element={<FreelancePerformance />} />
+                <Route path="commandes/*" element={<FreelanceCommandes />} />
+                <Route path="time-tracking" element={<FreelanceTimeTracking />} />
+                <Route path="planning" element={<FreelancePlanning />} />
+                <Route path="clients" element={<FreelanceClients />} />
+              </Routes>
+            </DashboardLayout>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Catch all - retour à la landing page */}
       <Route path="*" element={<Navigate to="/" replace />} />
