@@ -66,6 +66,7 @@
 
 .sidebar__nav-item {
   border: none;
+  border-left: 3px solid transparent;
   background: transparent;
   color: rgba(255, 255, 255, 0.7);
   display: flex;
@@ -84,7 +85,6 @@
 .sidebar__nav-item:hover {
   background: rgba(255, 255, 255, 0.05);
   color: #fff;
-  transform: translateX(5px);
 }
 
 .sidebar__nav-item.active {
@@ -389,7 +389,7 @@
   }
 
   .sidebar__profile-card {
-    margin-bottom: 60px;
+    margin-bottom: 20px;
   }
 }
 
@@ -403,8 +403,8 @@
     padding: 16px;
   }
 
-  /* Even higher avatar for smaller screens */
+  /* Slightly higher avatar for smaller screens */
   .sidebar__profile-card {
-    margin-bottom: 80px;
+    margin-bottom: 25px;
   }
 }

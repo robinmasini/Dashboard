@@ -1237,10 +1237,12 @@ td {
 
   .panel {
     padding: 12px;
+    overflow-x: auto;
   }
 
   table {
-    font-size: 0.8rem;
+    font-size: 0.75rem;
+    min-width: 400px;
   }
 
   .forecast-grid {
@@ -1249,5 +1251,50 @@ td {
 
   .hero-panel h2 {
     font-size: 1.2rem;
+  }
+}
+
+/* =============================================
+   OVERFLOW HANDLING FOR ALL MOBILE
+   ============================================= */
+
+@media (max-width: 768px) {
+
+  /* Prevent horizontal overflow on page */
+  .workspace,
+  .workspace__content {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+
+  /* Table wrapper for horizontal scroll */
+  .panel {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  table {
+    min-width: 500px;
+    width: max-content;
+  }
+
+  /* Diagnostic panel smaller text */
+  div[style*="background: rgba(255, 200, 0"] {
+    font-size: 0.75rem !important;
+    padding: 12px !important;
+    word-break: break-word;
+  }
+
+  div[style*="background: rgba(255, 200, 0"] code {
+    font-size: 0.65rem !important;
+    word-break: break-all;
+  }
+
+  /* Hide long IDs */
+  td:first-child {
+    max-width: 60px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
