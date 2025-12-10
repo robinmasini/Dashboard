@@ -1,7 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import heroCard from '../assets/hero-card.png'
 import logo from '../assets/logo-ds.png'
-import bgDiagonal from '../assets/bg-diagonal.png'
 import './LandingPage.css'
 
 /**
@@ -13,11 +12,6 @@ export default function LandingPage() {
 
     return (
         <div className="landing-page">
-            {/* Background diagonal image */}
-            <div className="landing-bg-diagonal">
-                <img src={bgDiagonal} alt="" />
-            </div>
-
             {/* Section haute avec fond noir */}
             <div className="landing-hero">
                 {/* Logo au-dessus */}
