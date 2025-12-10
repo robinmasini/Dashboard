@@ -1,13 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
-import { useTimeEntries, useTimeHistory } from '../../../shared/hooks/useSupabaseHooks'
+import { useTimeEntries, useTimeHistory, useActiveTimers } from '../../../shared/hooks/useSupabaseHooks'
 import '../../../App.css'
-
-// Types pour le chronomètre
-type TimerState = {
-  startTime: number | null
-  accumulated: number
-  isRunning: boolean
-}
 
 const CATEGORIES = [
   { id: 'Sommeil', label: 'Sommeil', icon: '🌙', color: '#1e1b4b', iconColor: '#818cf8' },
@@ -56,20 +49,17 @@ export default function FreelanceTimeTracking() {
   const { entries, addEntry, deleteEntry } = useTimeEntries(isoDate)
   const { getDailyAverageForCategory, getHistoryByCategory, getUniqueDates } = useTimeHistory()
 
-  // État des chronomètres (persisté dans localStorage idéalement, ici state simple pour l'instant + effet)
-  const [timers, setTimers] = useState<Record<string, TimerState>>(() => {
-    const saved = localStorage.getItem('dashboard_timers')
-    return saved ? JSON.parse(saved) : {}
-  })
+  // État des chronomètres synchronisé via Supabase (cross-device)
+  const {
+    timers,
+    startTimer: startTimerDB,
+    pauseTimer: pauseTimerDB,
+    resetTimer: resetTimerDB
+  } = useActiveTimers()
 
   // Force update pour l'affichage temps réel
   const [, setTick] = useState(0)
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
-
-  // Sauvegarde localStorage
-  useEffect(() => {
-    localStorage.setItem('dashboard_timers', JSON.stringify(timers))
-  }, [timers])
 
   // Timer global loop
   useEffect(() => {
@@ -85,31 +75,13 @@ export default function FreelanceTimeTracking() {
     }
   }, [timers])
 
-  // Handlers Timer
+  // Handlers Timer - now using Supabase
   const startTimer = (categoryId: string) => {
-    setTimers(prev => ({
-      ...prev,
-      [categoryId]: {
-        startTime: Date.now(),
-        accumulated: prev[categoryId]?.accumulated || 0,
-        isRunning: true
-      }
-    }))
+    startTimerDB(categoryId)
   }
 
   const pauseTimer = (categoryId: string) => {
-    setTimers(prev => {
-      const timer = prev[categoryId]
-      if (!timer || !timer.startTime) return prev
-      return {
-        ...prev,
-        [categoryId]: {
-          startTime: null,
-          accumulated: timer.accumulated + (Date.now() - timer.startTime),
-          isRunning: false
-        }
-      }
-    })
+    pauseTimerDB(categoryId)
   }
 
   const validateTimer = async (categoryId: string) => {
@@ -143,25 +115,17 @@ export default function FreelanceTimeTracking() {
         entry_date: isoDate
       })
 
-      // Reset timer
-      setTimers(prev => {
-        const next = { ...prev }
-        delete next[categoryId]
-        return next
-      })
+      // Reset timer via Supabase
+      resetTimerDB(categoryId)
     } catch (error) {
       console.error("Error saving time entry:", error)
       alert("Erreur lors de l'enregistrement")
     }
   }
 
-  // Réinitialiser le timer (sans enregistrer) - les données sont aussi supprimées du localStorage
+  // Réinitialiser le timer (sans enregistrer) - via Supabase
   const resetTimer = (categoryId: string) => {
-    setTimers(prev => {
-      const next = { ...prev }
-      delete next[categoryId]
-      return next
-    })
+    resetTimerDB(categoryId)
   }
 
   // Calcul du temps total (DB + Timer en cours)

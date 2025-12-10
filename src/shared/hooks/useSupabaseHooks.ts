@@ -132,6 +132,16 @@ export type Client = {
   auth_user_id?: string
 }
 
+export type ActiveTimer = {
+  id: string
+  category_id: string
+  start_time: string | null
+  accumulated_ms: number
+  is_running: boolean
+  created_at?: string
+  updated_at?: string
+}
+
 // ============================================
 // TICKETS HOOK
 // ============================================
@@ -1028,3 +1038,151 @@ export function useClients() {
   }
 }
 
+// ============================================
+// ACTIVE TIMERS HOOK (Cross-device sync)
+// ============================================
+
+export function useActiveTimers() {
+  const [timers, setTimers] = useState<Record<string, { startTime: number | null; accumulated: number; isRunning: boolean }>>({})
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  // Fetch timers from Supabase
+  const fetchTimers = useCallback(async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('active_timers')
+        .select('*')
+
+      if (fetchError) throw fetchError
+
+      // Convert DB format to local format
+      const timerMap: Record<string, { startTime: number | null; accumulated: number; isRunning: boolean }> = {}
+
+      for (const row of (data || [])) {
+        timerMap[row.category_id] = {
+          startTime: row.start_time ? new Date(row.start_time).getTime() : null,
+          accumulated: row.accumulated_ms || 0,
+          isRunning: row.is_running || false
+        }
+      }
+
+      setTimers(timerMap)
+      setError(null)
+    } catch (err: any) {
+      console.error('Error fetching active timers:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchTimers()
+
+    // Refresh when tab/window becomes visible (cross-device sync)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTimers()
+      }
+    }
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+    }
+  }, [fetchTimers])
+
+  // Start timer
+  const startTimer = useCallback(async (categoryId: string) => {
+    const now = new Date()
+    const currentTimer = timers[categoryId]
+    const accumulated = currentTimer?.accumulated || 0
+
+    // Optimistic update
+    setTimers(prev => ({
+      ...prev,
+      [categoryId]: {
+        startTime: now.getTime(),
+        accumulated,
+        isRunning: true
+      }
+    }))
+
+    try {
+      await supabase
+        .from('active_timers')
+        .upsert({
+          category_id: categoryId,
+          start_time: now.toISOString(),
+          accumulated_ms: accumulated,
+          is_running: true
+        }, { onConflict: 'category_id' })
+    } catch (err) {
+      console.error('Error starting timer:', err)
+      fetchTimers() // Revert on error
+    }
+  }, [timers, fetchTimers])
+
+  // Pause timer
+  const pauseTimer = useCallback(async (categoryId: string) => {
+    const timer = timers[categoryId]
+    if (!timer || !timer.startTime) return
+
+    const newAccumulated = timer.accumulated + (Date.now() - timer.startTime)
+
+    // Optimistic update
+    setTimers(prev => ({
+      ...prev,
+      [categoryId]: {
+        startTime: null,
+        accumulated: newAccumulated,
+        isRunning: false
+      }
+    }))
+
+    try {
+      await supabase
+        .from('active_timers')
+        .update({
+          start_time: null,
+          accumulated_ms: newAccumulated,
+          is_running: false
+        })
+        .eq('category_id', categoryId)
+    } catch (err) {
+      console.error('Error pausing timer:', err)
+      fetchTimers() // Revert on error
+    }
+  }, [timers, fetchTimers])
+
+  // Reset timer (delete from DB)
+  const resetTimer = useCallback(async (categoryId: string) => {
+    // Optimistic update
+    setTimers(prev => {
+      const next = { ...prev }
+      delete next[categoryId]
+      return next
+    })
+
+    try {
+      await supabase
+        .from('active_timers')
+        .delete()
+        .eq('category_id', categoryId)
+    } catch (err) {
+      console.error('Error resetting timer:', err)
+      fetchTimers() // Revert on error
+    }
+  }, [fetchTimers])
+
+  return {
+    timers,
+    loading,
+    error,
+    startTimer,
+    pauseTimer,
+    resetTimer,
+    refresh: fetchTimers,
+  }
+}
