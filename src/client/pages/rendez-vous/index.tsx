@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react'
-import { useAvailabilitySlots, useAppointments } from '../../../shared/hooks/useSupabaseHooks'
-import { getClientInfo } from '../../../shared/utils/auth'
+import { useState, useMemo, useEffect } from 'react'
+import { useAvailabilitySlots, useAppointments, useClients, useInvoices } from '../../../shared/hooks/useSupabaseHooks'
+import { useAuth } from '../../../shared/hooks/useAuth'
 import robinAvatar from '../../../assets/robin-avatar.png'
 import '../../../App.css'
 
@@ -26,7 +26,34 @@ function generateTimeSlots(startTime: string, endTime: string, duration: number)
 }
 
 export default function ClientRendezVous() {
-    const clientInfo = getClientInfo()
+    const { user } = useAuth()
+    const { clients } = useClients()
+    const [clientId, setClientId] = useState<string | undefined>(undefined)
+
+    // Find the client associated with the current user
+    useEffect(() => {
+        if (user && clients.length > 0) {
+            const client = clients.find(c =>
+                c.auth_user_id === user.id ||
+                c.email?.toLowerCase() === user.email?.toLowerCase()
+            )
+            if (client) {
+                setClientId(client.id)
+                console.log('✅ Client found:', client.name, client.id)
+            } else {
+                console.warn('⚠️ No client found for user:', user.email)
+            }
+        }
+    }, [user, clients])
+
+    // Check for unpaid invoices
+    const { invoices } = useInvoices(clientId)
+    const unpaidInvoices = useMemo(() => {
+        return invoices.filter(inv => inv.status === 'À envoyer' || inv.status === 'Envoyée')
+    }, [invoices])
+    const hasUnpaidInvoices = unpaidInvoices.length > 0
+    const [showUnpaidModal, setShowUnpaidModal] = useState(false)
+
     const { slots: availabilitySlots, loading: slotsLoading } = useAvailabilitySlots()
     const {
         appointments,
@@ -34,7 +61,7 @@ export default function ClientRendezVous() {
         cancelAppointment,
         loading: appointmentsLoading,
         getBookedSlotsForDate
-    } = useAppointments(clientInfo?.id)
+    } = useAppointments(clientId)
 
     const [selectedDate, setSelectedDate] = useState<Date | null>(null)
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
@@ -84,7 +111,24 @@ export default function ClientRendezVous() {
     }, [selectedDate, availabilitySlots, getBookedSlotsForDate])
 
     const handleBookAppointment = async () => {
-        if (!selectedDate || !selectedSlot || !clientInfo?.id) return
+        console.log('📅 Booking attempt:', { clientId, selectedDate, selectedSlot })
+
+        if (!selectedDate || !selectedSlot) {
+            alert('Veuillez sélectionner une date et un créneau')
+            return
+        }
+
+        if (!clientId) {
+            console.error('❌ No client ID found')
+            alert('Erreur: Impossible de récupérer votre identifiant client. Veuillez vous reconnecter.')
+            return
+        }
+
+        // Check for unpaid invoices
+        if (hasUnpaidInvoices) {
+            setShowUnpaidModal(true)
+            return
+        }
 
         setIsSubmitting(true)
         try {
@@ -96,7 +140,7 @@ export default function ClientRendezVous() {
             const endTime = `${Math.floor(endMinutes / 60).toString().padStart(2, '0')}:${(endMinutes % 60).toString().padStart(2, '0')}`
 
             await addAppointment({
-                client_id: clientInfo.id,
+                client_id: clientId,
                 appointment_date: dateStr,
                 start_time: selectedSlot,
                 end_time: endTime,
@@ -119,9 +163,10 @@ export default function ClientRendezVous() {
             setSelectedDate(null)
             setSelectedSlot(null)
             setNotes('')
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error booking appointment:', error)
-            alert('Erreur lors de la réservation')
+            const errorMsg = error?.message || error?.code || 'Erreur inconnue'
+            alert(`Erreur lors de la réservation:\n${errorMsg}\n\nClient ID: ${clientId}`)
         } finally {
             setIsSubmitting(false)
         }
@@ -349,6 +394,169 @@ export default function ClientRendezVous() {
                         >
                             Parfait !
                         </button>
+                    </div>
+                </div>
+            )}
+
+            {/* Unpaid Invoice Blocking Modal */}
+            {showUnpaidModal && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.85)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+                        borderRadius: '20px',
+                        padding: '40px',
+                        maxWidth: '500px',
+                        width: '90%',
+                        textAlign: 'center',
+                        border: '1px solid rgba(239, 68, 68, 0.3)',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                    }}>
+                        {/* Header with avatar */}
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '16px',
+                            marginBottom: '24px'
+                        }}>
+                            <img
+                                src={robinAvatar}
+                                alt="Robin MASINI"
+                                style={{
+                                    width: '64px',
+                                    height: '64px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '3px solid rgba(239, 68, 68, 0.5)'
+                                }}
+                            />
+                            <div style={{ textAlign: 'left' }}>
+                                <h2 style={{ margin: 0, fontSize: '1.3rem', fontWeight: 700 }}>
+                                    Rendez-vous impossible
+                                </h2>
+                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                    avec Robin MASINI
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Warning icon */}
+                        <div style={{
+                            width: '70px',
+                            height: '70px',
+                            borderRadius: '50%',
+                            background: 'rgba(239, 68, 68, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 20px',
+                            fontSize: '32px'
+                        }}>
+                            ⚠️
+                        </div>
+
+                        <p style={{ color: '#ef4444', fontWeight: 600, marginBottom: '8px' }}>
+                            Vous ne pouvez pas prendre rendez-vous
+                        </p>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '24px' }}>
+                            Car vous avez une ou plusieurs factures en attente de règlement :
+                        </p>
+
+                        {/* Unpaid invoices list */}
+                        <div style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            marginBottom: '24px',
+                            border: '1px solid rgba(239, 68, 68, 0.2)'
+                        }}>
+                            {unpaidInvoices.map((invoice, index) => (
+                                <div
+                                    key={invoice.id}
+                                    style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '12px 0',
+                                        borderBottom: index < unpaidInvoices.length - 1 ? '1px solid rgba(255,255,255,0.1)' : 'none'
+                                    }}
+                                >
+                                    <div style={{ textAlign: 'left' }}>
+                                        <p style={{ margin: 0, fontWeight: 600 }}>
+                                            Facture {invoice.invoice_number || invoice.id.slice(0, 8)}
+                                        </p>
+                                        <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                            Échéance : {new Date(invoice.due_date).toLocaleDateString('fr-FR')}
+                                        </p>
+                                    </div>
+                                    <div style={{ textAlign: 'right' }}>
+                                        <p style={{ margin: 0, fontWeight: 700, fontSize: '1.1rem', color: '#ef4444' }}>
+                                            {invoice.amount}
+                                        </p>
+                                        <span style={{
+                                            fontSize: '0.75rem',
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            background: invoice.status === 'Envoyée' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                                            color: invoice.status === 'Envoyée' ? '#fbbf24' : '#ef4444'
+                                        }}>
+                                            {invoice.status}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
+                        {/* Action buttons */}
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                onClick={() => setShowUnpaidModal(false)}
+                                style={{
+                                    flex: 1,
+                                    padding: '14px 24px',
+                                    borderRadius: '12px',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                    background: 'transparent',
+                                    color: 'white',
+                                    fontWeight: 600,
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                Fermer
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowUnpaidModal(false)
+                                    // Navigate to facturation page
+                                    window.location.href = '/dashboard/commandes/facturation'
+                                }}
+                                style={{
+                                    flex: 2,
+                                    padding: '14px 24px',
+                                    borderRadius: '12px',
+                                    border: 'none',
+                                    background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                                    color: 'white',
+                                    fontWeight: 700,
+                                    fontSize: '0.9rem',
+                                    cursor: 'pointer'
+                                }}
+                            >
+                                💳 Régler immédiatement
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
