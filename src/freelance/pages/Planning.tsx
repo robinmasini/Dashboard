@@ -3,14 +3,15 @@ import { useTodoItems, useClients, useAgendaEvents } from '../../shared'
 import TodoColumns from '../components/TodoColumns'
 import AgendaCalendar from '../components/AgendaCalendar'
 import ActionModal from '../components/ActionModal'
+import AppointmentsManager from '../components/AppointmentsManager'
 import { actionSchemas } from '../../data/dashboard'
 import '../../App.css'
 
 /**
- * Page Planning Freelance - To-do list interactive & Agenda
+ * Page Planning Freelance - To-do list interactive & Agenda & RDV
  */
 export default function Planning() {
-  const [activeTab, setActiveTab] = useState<'todo' | 'agenda'>('todo')
+  const [activeTab, setActiveTab] = useState<'todo' | 'agenda' | 'rdv'>('todo')
 
   // Todo Hooks
   const { items: todoItems, addItem, updateItem, moveItem, deleteItem } = useTodoItems()
@@ -330,20 +331,28 @@ export default function Planning() {
             >
               Agenda
             </button>
+            <button
+              className={`tab-pill ${activeTab === 'rdv' ? 'is-active' : ''}`}
+              onClick={() => setActiveTab('rdv')}
+            >
+              Rendez-vous
+            </button>
           </div>
         </div>
-        <div className="section-header__actions">
-          <button
-            type="button"
-            className="primary-button"
-            onClick={() => handleOpenModal()}
-            style={{
-              background: 'linear-gradient(135deg, #6823ff, #3b4fff)',
-            }}
-          >
-            {activeTab === 'todo' ? 'Ajouter une tâche' : 'Ajouter un événement'}
-          </button>
-        </div>
+        {activeTab !== 'rdv' && (
+          <div className="section-header__actions">
+            <button
+              type="button"
+              className="primary-button"
+              onClick={() => handleOpenModal()}
+              style={{
+                background: 'linear-gradient(135deg, #6823ff, #3b4fff)',
+              }}
+            >
+              {activeTab === 'todo' ? 'Ajouter une tâche' : 'Ajouter un événement'}
+            </button>
+          </div>
+        )}
       </div>
 
       <ActionModal
@@ -354,7 +363,7 @@ export default function Planning() {
         initialValues={getInitialValues()}
       />
 
-      {activeTab === 'todo' ? (
+      {activeTab === 'todo' && (
         <TodoColumns
           columns={getColumns()}
           onEdit={handleEditTodo}
@@ -362,7 +371,9 @@ export default function Planning() {
           onDeleteCard={handleDeleteCard}
           onAddCard={(colId) => handleOpenModal(colId)}
         />
-      ) : (
+      )}
+
+      {activeTab === 'agenda' && (
         <AgendaCalendar
           events={calendarEvents}
           onAddEvent={handleAddEvent}
@@ -374,6 +385,10 @@ export default function Planning() {
           onCellClick={handleCellClick}
           copiedEvent={copiedEvent}
         />
+      )}
+
+      {activeTab === 'rdv' && (
+        <AppointmentsManager />
       )}
     </div>
   )

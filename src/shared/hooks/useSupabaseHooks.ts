@@ -142,6 +142,30 @@ export type ActiveTimer = {
   updated_at?: string
 }
 
+export type AvailabilitySlot = {
+  id: string
+  day_of_week: number // 0=Dimanche, 1=Lundi... 6=Samedi
+  start_time: string
+  end_time: string
+  slot_duration: number
+  is_active: boolean
+  created_at?: string
+  updated_at?: string
+}
+
+export type Appointment = {
+  id: string
+  client_id: string
+  appointment_date: string
+  start_time: string
+  end_time: string
+  status: 'pending' | 'confirmed' | 'cancelled'
+  notes?: string
+  created_at?: string
+  updated_at?: string
+  client?: Client // For joined queries
+}
+
 // ============================================
 // TICKETS HOOK
 // ============================================
@@ -1184,5 +1208,195 @@ export function useActiveTimers() {
     pauseTimer,
     resetTimer,
     refresh: fetchTimers,
+  }
+}
+
+// ============================================
+// AVAILABILITY SLOTS HOOK
+// ============================================
+
+export function useAvailabilitySlots() {
+  const [slots, setSlots] = useState<AvailabilitySlot[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchSlots = useCallback(async () => {
+    try {
+      const { data, error: fetchError } = await supabase
+        .from('availability_slots')
+        .select('*')
+        .order('day_of_week', { ascending: true })
+        .order('start_time', { ascending: true })
+
+      if (fetchError) throw fetchError
+
+      setSlots(data || [])
+      setError(null)
+    } catch (err: any) {
+      console.error('Error fetching availability slots:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchSlots()
+  }, [fetchSlots])
+
+  const addSlot = useCallback(async (slot: Omit<AvailabilitySlot, 'id' | 'created_at' | 'updated_at'>) => {
+    const { data, error: insertError } = await supabase
+      .from('availability_slots')
+      .insert(slot)
+      .select()
+      .single()
+
+    if (insertError) throw insertError
+    await fetchSlots()
+    return data
+  }, [fetchSlots])
+
+  const updateSlot = useCallback(async (id: string, updates: Partial<AvailabilitySlot>) => {
+    const { data, error: updateError } = await supabase
+      .from('availability_slots')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+    await fetchSlots()
+    return data
+  }, [fetchSlots])
+
+  const deleteSlot = useCallback(async (id: string) => {
+    const { error: deleteError } = await supabase
+      .from('availability_slots')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) throw deleteError
+    await fetchSlots()
+  }, [fetchSlots])
+
+  const toggleSlot = useCallback(async (id: string, isActive: boolean) => {
+    return updateSlot(id, { is_active: isActive })
+  }, [updateSlot])
+
+  return {
+    slots,
+    loading,
+    error,
+    addSlot,
+    updateSlot,
+    deleteSlot,
+    toggleSlot,
+    refresh: fetchSlots,
+  }
+}
+
+// ============================================
+// APPOINTMENTS HOOK
+// ============================================
+
+export function useAppointments(clientId?: string) {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchAppointments = useCallback(async () => {
+    try {
+      let query = supabase
+        .from('appointments')
+        .select(`
+          *,
+          client:clients(id, name, contact_name)
+        `)
+        .order('appointment_date', { ascending: true })
+        .order('start_time', { ascending: true })
+
+      if (clientId) {
+        query = query.eq('client_id', clientId)
+      }
+
+      const { data, error: fetchError } = await query
+
+      if (fetchError) throw fetchError
+
+      setAppointments(data || [])
+      setError(null)
+    } catch (err: any) {
+      console.error('Error fetching appointments:', err)
+      setError(err.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [clientId])
+
+  useEffect(() => {
+    fetchAppointments()
+  }, [fetchAppointments])
+
+  const addAppointment = useCallback(async (appointment: Omit<Appointment, 'id' | 'created_at' | 'updated_at' | 'client'>) => {
+    const { data, error: insertError } = await supabase
+      .from('appointments')
+      .insert(appointment)
+      .select()
+      .single()
+
+    if (insertError) throw insertError
+    await fetchAppointments()
+    return data
+  }, [fetchAppointments])
+
+  const updateAppointment = useCallback(async (id: string, updates: Partial<Appointment>) => {
+    const { data, error: updateError } = await supabase
+      .from('appointments')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single()
+
+    if (updateError) throw updateError
+    await fetchAppointments()
+    return data
+  }, [fetchAppointments])
+
+  const deleteAppointment = useCallback(async (id: string) => {
+    const { error: deleteError } = await supabase
+      .from('appointments')
+      .delete()
+      .eq('id', id)
+
+    if (deleteError) throw deleteError
+    await fetchAppointments()
+  }, [fetchAppointments])
+
+  const confirmAppointment = useCallback(async (id: string) => {
+    return updateAppointment(id, { status: 'confirmed' })
+  }, [updateAppointment])
+
+  const cancelAppointment = useCallback(async (id: string) => {
+    return updateAppointment(id, { status: 'cancelled' })
+  }, [updateAppointment])
+
+  // Get booked slots for a specific date (to exclude from available slots)
+  const getBookedSlotsForDate = useCallback((date: string) => {
+    return appointments
+      .filter(a => a.appointment_date === date && a.status !== 'cancelled')
+      .map(a => ({ start: a.start_time, end: a.end_time }))
+  }, [appointments])
+
+  return {
+    appointments,
+    loading,
+    error,
+    addAppointment,
+    updateAppointment,
+    deleteAppointment,
+    confirmAppointment,
+    cancelAppointment,
+    getBookedSlotsForDate,
+    refresh: fetchAppointments,
   }
 }

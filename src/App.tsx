@@ -14,6 +14,7 @@ import ClientTickets from './client/pages/commandes/tickets'
 import ClientDevis from './client/pages/commandes/devis'
 import ClientFacturation from './client/pages/commandes/facturation'
 import ClientPlanning from './client/pages/planning/todo'
+import ClientRendezVous from './client/pages/rendez-vous'
 
 // Import des pages côté freelance
 import FreelanceCommandes from './freelance/pages/Commandes'
@@ -51,6 +52,7 @@ function AppRoutes() {
                 <Route path="commandes/facturation" element={<ClientFacturation />} />
                 <Route path="commandes" element={<Navigate to="/dashboard/commandes/tickets" replace />} />
                 <Route path="planning" element={<ClientPlanning />} />
+                <Route path="rendez-vous" element={<ClientRendezVous />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>
