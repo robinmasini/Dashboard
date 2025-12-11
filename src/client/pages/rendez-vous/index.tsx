@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useAvailabilitySlots, useAppointments } from '../../../shared/hooks/useSupabaseHooks'
 import { getClientInfo } from '../../../shared/utils/auth'
+import robinAvatar from '../../../assets/robin-avatar.png'
 import '../../../App.css'
 
 const DAYS_FR = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi']
@@ -30,6 +31,7 @@ export default function ClientRendezVous() {
     const {
         appointments,
         addAppointment,
+        cancelAppointment,
         loading: appointmentsLoading,
         getBookedSlotsForDate
     } = useAppointments(clientInfo?.id)
@@ -39,6 +41,9 @@ export default function ClientRendezVous() {
     const [notes, setNotes] = useState('')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [successMessage, setSuccessMessage] = useState('')
+    const [showConfirmationModal, setShowConfirmationModal] = useState(false)
+    const [lastBookedAppointment, setLastBookedAppointment] = useState<{ date: string, time: string } | null>(null)
+    const [rescheduleMode, setRescheduleMode] = useState<string | null>(null) // appointment ID being rescheduled
 
     // Generate next 14 days for date picker
     const availableDates = useMemo(() => {
@@ -95,22 +100,50 @@ export default function ClientRendezVous() {
                 appointment_date: dateStr,
                 start_time: selectedSlot,
                 end_time: endTime,
-                status: 'pending',
+                status: 'confirmed',
                 notes: notes || undefined
             })
 
-            setSuccessMessage('Rendez-vous demandé avec succès ! En attente de confirmation.')
+            // If rescheduling, cancel the old appointment
+            if (rescheduleMode) {
+                await cancelAppointment(rescheduleMode)
+                setRescheduleMode(null)
+            }
+
+            // Show confirmation modal
+            setLastBookedAppointment({
+                date: selectedDate.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' }),
+                time: selectedSlot
+            })
+            setShowConfirmationModal(true)
+            setSelectedDate(null)
             setSelectedSlot(null)
             setNotes('')
-
-            // Clear success message after 5 seconds
-            setTimeout(() => setSuccessMessage(''), 5000)
         } catch (error) {
             console.error('Error booking appointment:', error)
             alert('Erreur lors de la réservation')
         } finally {
             setIsSubmitting(false)
         }
+    }
+
+    const handleCancelAppointment = async (appointmentId: string) => {
+        if (confirm('Êtes-vous sûr de vouloir annuler ce rendez-vous ?')) {
+            try {
+                await cancelAppointment(appointmentId)
+                setSuccessMessage('Rendez-vous annulé avec succès')
+                setTimeout(() => setSuccessMessage(''), 3000)
+            } catch (error) {
+                console.error('Error cancelling:', error)
+                alert('Erreur lors de l\'annulation')
+            }
+        }
+    }
+
+    const handleReschedule = (appointmentId: string) => {
+        setRescheduleMode(appointmentId)
+        setSuccessMessage('Choisissez une nouvelle date et un nouveau créneau')
+        setTimeout(() => setSuccessMessage(''), 5000)
     }
 
     // Filter upcoming appointments
@@ -129,9 +162,36 @@ export default function ClientRendezVous() {
 
     return (
         <div className="workspace__content">
-            <div className="section-header">
-                <p className="section-header__label">Planifier</p>
-                <h1 style={{ margin: '8px 0', fontSize: '2rem', fontWeight: 700 }}>Prendre Rendez-vous</h1>
+            {/* Freelancer Profile Header */}
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                marginBottom: '32px',
+                padding: '24px',
+                background: 'linear-gradient(135deg, rgba(79, 157, 255, 0.1), rgba(99, 102, 241, 0.1))',
+                borderRadius: '16px',
+                border: '1px solid rgba(79, 157, 255, 0.2)'
+            }}>
+                <img
+                    src={robinAvatar}
+                    alt="Robin MASINI"
+                    style={{
+                        width: '64px',
+                        height: '64px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        border: '3px solid rgba(79, 157, 255, 0.5)'
+                    }}
+                />
+                <div>
+                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '4px' }}>
+                        Prendre rendez-vous avec
+                    </p>
+                    <h1 style={{ margin: 0, fontSize: '1.8rem', fontWeight: 700 }}>
+                        Robin MASINI
+                    </h1>
+                </div>
             </div>
 
             {successMessage && (
@@ -159,13 +219,15 @@ export default function ClientRendezVous() {
                                 display: 'flex',
                                 justifyContent: 'space-between',
                                 alignItems: 'center',
-                                padding: '12px 16px',
+                                padding: '16px 20px',
                                 background: 'rgba(255,255,255,0.03)',
-                                borderRadius: '8px',
-                                border: '1px solid rgba(255,255,255,0.05)'
+                                borderRadius: '12px',
+                                border: apt.status === 'confirmed'
+                                    ? '1px solid rgba(74, 222, 128, 0.2)'
+                                    : '1px solid rgba(255,255,255,0.05)'
                             }}>
                                 <div>
-                                    <p style={{ fontWeight: 600 }}>
+                                    <p style={{ fontWeight: 600, marginBottom: '4px' }}>
                                         {new Date(apt.appointment_date).toLocaleDateString('fr-FR', {
                                             weekday: 'long',
                                             day: 'numeric',
@@ -176,20 +238,117 @@ export default function ClientRendezVous() {
                                         {apt.start_time} - {apt.end_time}
                                     </p>
                                 </div>
-                                <span style={{
-                                    padding: '4px 12px',
-                                    borderRadius: '20px',
-                                    fontSize: '0.8rem',
-                                    fontWeight: 600,
-                                    background: apt.status === 'confirmed'
-                                        ? 'rgba(74, 222, 128, 0.2)'
-                                        : 'rgba(251, 191, 36, 0.2)',
-                                    color: apt.status === 'confirmed' ? '#4ade80' : '#fbbf24'
-                                }}>
-                                    {apt.status === 'confirmed' ? 'Confirmé' : 'En attente'}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                                    <span style={{
+                                        padding: '4px 12px',
+                                        borderRadius: '20px',
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        background: apt.status === 'confirmed'
+                                            ? 'rgba(74, 222, 128, 0.2)'
+                                            : 'rgba(251, 191, 36, 0.2)',
+                                        color: apt.status === 'confirmed' ? '#4ade80' : '#fbbf24'
+                                    }}>
+                                        {apt.status === 'confirmed' ? '✓ Confirmé' : 'En attente'}
+                                    </span>
+                                    <button
+                                        onClick={() => handleReschedule(apt.id)}
+                                        style={{
+                                            padding: '6px 12px',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(79, 157, 255, 0.3)',
+                                            background: 'rgba(79, 157, 255, 0.1)',
+                                            color: '#4f9dff',
+                                            cursor: 'pointer',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        Reporter
+                                    </button>
+                                    <button
+                                        onClick={() => handleCancelAppointment(apt.id)}
+                                        style={{
+                                            padding: '6px 12px',
+                                            borderRadius: '6px',
+                                            border: '1px solid rgba(239, 68, 68, 0.3)',
+                                            background: 'rgba(239, 68, 68, 0.1)',
+                                            color: '#ef4444',
+                                            cursor: 'pointer',
+                                            fontSize: '0.8rem',
+                                            fontWeight: 600
+                                        }}
+                                    >
+                                        Annuler
+                                    </button>
+                                </div>
                             </div>
                         ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Confirmation Modal */}
+            {showConfirmationModal && lastBookedAppointment && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: 'rgba(0, 0, 0, 0.8)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000
+                }}>
+                    <div style={{
+                        background: 'linear-gradient(135deg, #1a1a2e, #16213e)',
+                        borderRadius: '20px',
+                        padding: '40px',
+                        maxWidth: '400px',
+                        textAlign: 'center',
+                        border: '1px solid rgba(74, 222, 128, 0.3)',
+                        boxShadow: '0 20px 60px rgba(0,0,0,0.5)'
+                    }}>
+                        <div style={{
+                            width: '80px',
+                            height: '80px',
+                            borderRadius: '50%',
+                            background: 'rgba(74, 222, 128, 0.2)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            margin: '0 auto 24px',
+                            fontSize: '40px'
+                        }}>
+                            ✓
+                        </div>
+                        <h2 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '12px', color: '#4ade80' }}>
+                            Rendez-vous confirmé !
+                        </h2>
+                        <p style={{ color: 'var(--text-muted)', marginBottom: '8px' }}>
+                            {lastBookedAppointment.date}
+                        </p>
+                        <p style={{ fontSize: '1.3rem', fontWeight: 600, marginBottom: '32px' }}>
+                            à {lastBookedAppointment.time}
+                        </p>
+                        <button
+                            onClick={() => setShowConfirmationModal(false)}
+                            style={{
+                                width: '100%',
+                                padding: '14px 24px',
+                                borderRadius: '12px',
+                                border: 'none',
+                                background: 'linear-gradient(135deg, #4ade80, #22c55e)',
+                                color: '#000',
+                                fontWeight: 700,
+                                fontSize: '1rem',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            Parfait !
+                        </button>
                     </div>
                 </div>
             )}
