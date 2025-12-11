@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useInvoices, useAuth, useClients } from '../../../shared'
 import SectionTabs from '../../../shared/components/SectionTabs'
 import '../../../App.css'
@@ -12,6 +12,7 @@ const commandesTabs = [
 /**
  * Page Facturation - Liste des factures du client
  * Utilise les hooks Supabase pour charger les factures
+ * Avec style d'alerte rouge pour les factures impayées
  */
 export default function Facturation() {
   const { user } = useAuth()
@@ -33,6 +34,18 @@ export default function Facturation() {
   // Récupérer les factures depuis Supabase (filtrées automatiquement par RLS)
   const { invoices, loading } = useInvoices(clientId)
 
+  // Separate paid and unpaid invoices
+  const { unpaidInvoices, paidInvoices } = useMemo(() => {
+    const unpaid = invoices.filter(inv => inv.status === 'Envoyée' || inv.status === 'À envoyer')
+    const paid = invoices.filter(inv => inv.status === 'Payée')
+    return { unpaidInvoices: unpaid, paidInvoices: paid }
+  }, [invoices])
+
+  const handlePayInvoice = (invoiceId: string) => {
+    // Pour l'instant, afficher une alerte - à connecter à Stripe/Shine plus tard
+    alert(`Redirection vers le paiement de la facture ${invoiceId}...\n\nCette fonctionnalité sera bientôt connectée à votre solution de paiement.`)
+  }
+
   return (
     <div className="workspace__content">
       <SectionTabs label="Commandes" tabs={commandesTabs} />
@@ -43,35 +56,208 @@ export default function Facturation() {
             Chargement des factures...
           </div>
         ) : invoices.length > 0 ? (
-          <table>
-            <thead>
-              <tr>
-                <th>ID</th>
-                <th>Montant</th>
-                <th>Échéance</th>
-                <th>Statut</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoices.map((invoice) => (
-                <tr key={invoice.id}>
-                  <td style={{ fontWeight: 600 }}>{invoice.invoice_number || invoice.id.substring(0, 8)}</td>
-                  <td style={{ fontSize: '1.1rem', fontWeight: 600 }}>
-                    {(invoice.amount === '1500€' || invoice.amount === '1 500€' || invoice.amount === '1500') ? '1 040€' : invoice.amount}
-                  </td>
-                  <td style={{ color: 'var(--text-muted)' }}>{invoice.due_date}</td>
-                  <td>
-                    <span className={`status-pill status-pill--${invoice.status === 'À envoyer' ? 'pending' :
-                      invoice.status === 'Envoyée' ? 'sent' :
-                        'paid'
-                      }`}>
-                      {invoice.status}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+
+            {/* Unpaid Invoices - Red Alert Style */}
+            {unpaidInvoices.length > 0 && (
+              <div style={{ marginBottom: '24px' }}>
+                <h3 style={{
+                  fontSize: '0.85rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: '#ef4444',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  ⚠️ Factures en attente de règlement
+                </h3>
+
+                {unpaidInvoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    style={{
+                      background: 'rgba(239, 68, 68, 0.08)',
+                      border: '1px solid rgba(239, 68, 68, 0.3)',
+                      borderRadius: '16px',
+                      padding: '20px 24px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px',
+                      flexWrap: 'wrap'
+                    }}
+                  >
+                    {/* Invoice Info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1 }}>
+                      {/* Invoice Icon */}
+                      <div style={{
+                        width: '48px',
+                        height: '48px',
+                        borderRadius: '12px',
+                        background: 'rgba(239, 68, 68, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '24px'
+                      }}>
+                        📄
+                      </div>
+
+                      {/* Invoice Details */}
+                      <div>
+                        <p style={{
+                          margin: 0,
+                          fontWeight: 700,
+                          fontSize: '1.1rem',
+                          color: '#fff'
+                        }}>
+                          Facture {invoice.invoice_number || invoice.id.substring(0, 8)}
+                        </p>
+                        <p style={{
+                          margin: '4px 0 0',
+                          fontSize: '0.85rem',
+                          color: 'var(--text-muted)'
+                        }}>
+                          Échéance : {invoice.due_date}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Amount */}
+                    <div style={{ textAlign: 'center', minWidth: '100px' }}>
+                      <p style={{
+                        margin: 0,
+                        fontWeight: 700,
+                        fontSize: '1.4rem',
+                        color: '#ef4444'
+                      }}>
+                        {(invoice.amount === '1500€' || invoice.amount === '1 500€' || invoice.amount === '1500') ? '1 040€' : invoice.amount}
+                      </p>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        padding: '3px 10px',
+                        borderRadius: '12px',
+                        background: invoice.status === 'Envoyée' ? 'rgba(251, 191, 36, 0.2)' : 'rgba(239, 68, 68, 0.2)',
+                        color: invoice.status === 'Envoyée' ? '#fbbf24' : '#ef4444',
+                        fontWeight: 600
+                      }}>
+                        {invoice.status}
+                      </span>
+                    </div>
+
+                    {/* Pay Button - Right aligned */}
+                    <button
+                      onClick={() => handlePayInvoice(invoice.id)}
+                      style={{
+                        padding: '14px 28px',
+                        borderRadius: '12px',
+                        border: 'none',
+                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                        color: 'white',
+                        fontWeight: 700,
+                        fontSize: '0.95rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)'
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)'
+                      }}
+                    >
+                      💳 Régler immédiatement
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Paid Invoices - Normal Style */}
+            {paidInvoices.length > 0 && (
+              <div>
+                <h3 style={{
+                  fontSize: '0.85rem',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.1em',
+                  color: 'var(--text-muted)',
+                  marginBottom: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}>
+                  ✅ Factures réglées
+                </h3>
+
+                {paidInvoices.map((invoice) => (
+                  <div
+                    key={invoice.id}
+                    style={{
+                      background: 'rgba(74, 222, 128, 0.05)',
+                      border: '1px solid rgba(74, 222, 128, 0.2)',
+                      borderRadius: '16px',
+                      padding: '16px 24px',
+                      marginBottom: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '16px'
+                    }}
+                  >
+                    {/* Invoice Info */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '10px',
+                        background: 'rgba(74, 222, 128, 0.15)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '20px'
+                      }}>
+                        ✓
+                      </div>
+                      <div>
+                        <p style={{ margin: 0, fontWeight: 600 }}>
+                          Facture {invoice.invoice_number || invoice.id.substring(0, 8)}
+                        </p>
+                        <p style={{ margin: '2px 0 0', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Réglée le {invoice.due_date}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Amount & Status */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <p style={{ margin: 0, fontWeight: 600, fontSize: '1.1rem', color: '#4ade80' }}>
+                        {(invoice.amount === '1500€' || invoice.amount === '1 500€' || invoice.amount === '1500') ? '1 040€' : invoice.amount}
+                      </p>
+                      <span style={{
+                        fontSize: '0.75rem',
+                        padding: '3px 10px',
+                        borderRadius: '12px',
+                        background: 'rgba(74, 222, 128, 0.2)',
+                        color: '#4ade80',
+                        fontWeight: 600
+                      }}>
+                        Payée
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         ) : (
           <div className="page-placeholder">
             <div className="page-placeholder__icon">💰</div>
