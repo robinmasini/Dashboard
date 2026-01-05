@@ -163,6 +163,7 @@ export type Appointment = {
   start_time: string
   end_time: string
   status: 'pending' | 'confirmed' | 'cancelled'
+  meeting_type?: 'visio' | 'agence'
   notes?: string
   created_at?: string
   updated_at?: string

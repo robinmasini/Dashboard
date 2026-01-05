@@ -66,6 +66,7 @@ export default function ClientRendezVous() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null)
     const [selectedSlot, setSelectedSlot] = useState<string | null>(null)
     const [notes, setNotes] = useState('')
+    const [meetingType, setMeetingType] = useState<'visio' | 'agence'>('visio')
     const [isSubmitting, setIsSubmitting] = useState(false)
     const [successMessage, setSuccessMessage] = useState('')
     const [showConfirmationModal, setShowConfirmationModal] = useState(false)
@@ -145,6 +146,7 @@ export default function ClientRendezVous() {
                 start_time: selectedSlot,
                 end_time: endTime,
                 status: 'confirmed',
+                meeting_type: meetingType,
                 notes: notes || undefined
             })
 
@@ -163,6 +165,7 @@ export default function ClientRendezVous() {
             setSelectedDate(null)
             setSelectedSlot(null)
             setNotes('')
+            setMeetingType('visio')
         } catch (error: any) {
             console.error('Error booking appointment:', error)
             const errorMsg = error?.message || error?.code || 'Erreur inconnue'
@@ -279,8 +282,20 @@ export default function ClientRendezVous() {
                                             month: 'long'
                                         })}
                                     </p>
-                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                                    <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                                         {apt.start_time} - {apt.end_time}
+                                        <span style={{
+                                            padding: '2px 8px',
+                                            borderRadius: '12px',
+                                            fontSize: '0.75rem',
+                                            fontWeight: 600,
+                                            background: apt.meeting_type === 'agence'
+                                                ? 'rgba(74, 222, 128, 0.2)'
+                                                : 'rgba(79, 157, 255, 0.2)',
+                                            color: apt.meeting_type === 'agence' ? '#4ade80' : '#4f9dff'
+                                        }}>
+                                            {apt.meeting_type === 'agence' ? '🏢 En agence' : '📹 Visio'}
+                                        </span>
                                     </p>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -668,6 +683,65 @@ export default function ClientRendezVous() {
                     <h3 style={{ fontSize: '1.1rem', marginBottom: '16px', fontWeight: 600 }}>
                         3. Confirmer le rendez-vous
                     </h3>
+
+                    {/* Meeting Type Selection */}
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', marginBottom: '10px', color: 'var(--text-muted)' }}>
+                            Type de rendez-vous
+                        </label>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                            <button
+                                type="button"
+                                onClick={() => setMeetingType('visio')}
+                                style={{
+                                    flex: 1,
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    border: meetingType === 'visio'
+                                        ? '2px solid #4f9dff'
+                                        : '1px solid rgba(255,255,255,0.1)',
+                                    background: meetingType === 'visio'
+                                        ? 'rgba(79, 157, 255, 0.15)'
+                                        : 'rgba(255,255,255,0.03)',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <span style={{ fontSize: '1.5rem' }}>📹</span>
+                                <span style={{ fontWeight: 600 }}>Visio</span>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Appel vidéo</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setMeetingType('agence')}
+                                style={{
+                                    flex: 1,
+                                    padding: '16px',
+                                    borderRadius: '12px',
+                                    border: meetingType === 'agence'
+                                        ? '2px solid #4ade80'
+                                        : '1px solid rgba(255,255,255,0.1)',
+                                    background: meetingType === 'agence'
+                                        ? 'rgba(74, 222, 128, 0.15)'
+                                        : 'rgba(255,255,255,0.03)',
+                                    color: 'white',
+                                    cursor: 'pointer',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    gap: '8px'
+                                }}
+                            >
+                                <span style={{ fontSize: '1.5rem' }}>🏢</span>
+                                <span style={{ fontWeight: 600 }}>En agence</span>
+                                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Sur place</span>
+                            </button>
+                        </div>
+                    </div>
 
                     <div style={{ marginBottom: '16px' }}>
                         <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-muted)' }}>
