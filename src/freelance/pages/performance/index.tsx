@@ -5,8 +5,8 @@ import { useTodayDate } from '../../../shared/utils/date'
 import welcomeBg from '../../../assets/braden-collum-CBcS51cGoSw-unsplash.jpg'
 import ForecastPanel from '../../components/ForecastPanel'
 import SustainabilityPanel from '../../components/SustainabilityPanel'
-import { satisfactionGauge, walletSummary } from '../../../data/dashboard'
-import { useInvoices, useClients } from '../../../shared'
+import { walletSummary } from '../../../data/dashboard'
+import { useInvoices, useClients, useAppointments } from '../../../shared'
 
 // --- Helper Functions ---
 
@@ -20,7 +20,17 @@ const OverviewContent = () => {
   const formattedDate = useTodayDate()
   const { invoices } = useInvoices()
   const { clients } = useClients()
+  const { appointments } = useAppointments()
   // Note: useTickets available for future client activity visualization
+
+  // --- Upcoming Appointments (next 3) ---
+  const upcomingAppointments = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0]
+    return appointments
+      .filter(apt => apt.appointment_date >= today && apt.status !== 'cancelled')
+      .sort((a, b) => a.appointment_date.localeCompare(b.appointment_date) || a.start_time.localeCompare(b.start_time))
+      .slice(0, 3)
+  }, [appointments])
 
   // --- KPI Calculations ---
 
@@ -171,17 +181,36 @@ const OverviewContent = () => {
 
       {/* Row 2 Right: Stacked Sat & Wallet */}
       <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '350px' }}>
-        {/* Satisfaction */}
-        <article className="panel gauge-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', padding: '0 12px' }}>
-            <div>
-              <p className="panel__label" style={{ textAlign: 'left' }}>Satisfaction</p>
-              <p className="panel__sub" style={{ textAlign: 'left', marginBottom: 0 }}>{satisfactionGauge.baseline}</p>
+        {/* Rendez-vous à venir */}
+        <article className="panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
+          <p className="panel__label" style={{ marginBottom: '12px' }}>Rendez-vous à venir</p>
+          {upcomingAppointments.length === 0 ? (
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 'auto 0' }}>Aucun rendez-vous prévu</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, justifyContent: 'center' }}>
+              {upcomingAppointments.map((apt) => (
+                <div key={apt.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  padding: '8px 12px',
+                  background: 'rgba(255,255,255,0.05)',
+                  borderRadius: '8px',
+                  borderLeft: '3px solid #4f9dff'
+                }}>
+                  <span style={{ fontSize: '1.2rem' }}>📆</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {apt.client?.name || apt.notes || 'Rendez-vous'}
+                    </p>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                      {new Date(apt.appointment_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} • {apt.start_time}
+                    </p>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="gauge" style={{ width: '70px', height: '70px', margin: 0 }}>
-              <div className="gauge__value" style={{ fontSize: '1.1rem' }}>{satisfactionGauge.value}</div>
-            </div>
-          </div>
+          )}
         </article>
 
         {/* Wallet */}
