@@ -24,11 +24,11 @@ export default function Planning() {
   useEffect(() => {
     if (user && clients.length > 0) {
       // Find client associated with current user by ID (if linked) or Email
-      const client = clients.find(c => 
-        c.auth_user_id === user.id || 
+      const client = clients.find(c =>
+        c.auth_user_id === user.id ||
         (c.email && user.email && c.email.trim().toLowerCase() === user.email.trim().toLowerCase())
       )
-      
+
       if (client) {
         console.log("Client identified:", client.name)
         setClientId(client.id)
@@ -45,33 +45,33 @@ export default function Planning() {
         return
       }
 
-          await addTicket({
-            type: 'Planning', // Force type Planning for tasks
-            title: `Demande de tâche - ${category}`,
-            client_id: clientId,
-            description,
-            status: 'Ouvert',
-            price: 0,
-            eta: 'En attente'
-            // source removed
-          })
-      
+      await addTicket({
+        type: 'Planning', // Force type Planning for tasks
+        title: `Demande de tâche - ${category}`,
+        client_id: clientId,
+        description,
+        status: 'Ouvert',
+        price: 0,
+        eta: 'En attente'
+        // source removed
+      })
+
       setNotification('Votre demande de tâche a bien été envoyée.')
       setTimeout(() => setNotification(''), 3000)
       setIsModalOpen(false)
-        } catch (err: any) {
-          console.error('Erreur lors de la demande de tâche:', err)
-          
-          let message = "Erreur lors de la demande"
-          if (err.code === '42501') {
-            message = "🛑 Accès refusé (RLS). Vérifiez le lien entre votre compte et votre profil client (voir diagnostic)."
-          } else if (err.message) {
-             message = `Erreur: ${err.message}`
-          }
-          
-          setNotification(message)
-          setTimeout(() => setNotification(''), 10000)
-        }
+    } catch (err: any) {
+      console.error('Erreur lors de la demande de tâche:', err)
+
+      let message = "Erreur lors de la demande"
+      if (err.code === '42501') {
+        message = "🛑 Accès refusé (RLS). Vérifiez le lien entre votre compte et votre profil client (voir diagnostic)."
+      } else if (err.message) {
+        message = `Erreur: ${err.message}`
+      }
+
+      setNotification(message)
+      setTimeout(() => setNotification(''), 10000)
+    }
   }
 
   // Récupérer les todos depuis Supabase (filtrés par client si connecté)
@@ -140,27 +140,27 @@ export default function Planning() {
       <div style={{ padding: '16px', marginBottom: '24px', background: 'rgba(255, 200, 0, 0.1)', border: '1px solid rgba(255, 200, 0, 0.3)', borderRadius: '8px', fontSize: '0.85rem' }}>
         <p style={{ fontWeight: 'bold', color: '#fbbf24' }}>🔧 Diagnostic de connexion</p>
         <p><strong>Email connecté :</strong> {user?.email || 'Non connecté'}</p>
-        <p><strong>ID Utilisateur (Supabase) :</strong> <code style={{userSelect: 'all'}}>{user?.id}</code></p>
+        <p><strong>ID Utilisateur (Supabase) :</strong> <code style={{ userSelect: 'all' }}>{user?.id}</code></p>
         <p><strong>Clients chargés :</strong> {clients.length}</p>
-        <p><strong>Client identifié :</strong> {clientId && clientId !== '00000000-0000-0000-0000-000000000000' 
-          ? (clients.find(c => c.id === clientId)?.name + ' (ID trouvé)') 
+        <p><strong>Client identifié :</strong> {clientId && clientId !== '00000000-0000-0000-0000-000000000000'
+          ? (clients.find(c => c.id === clientId)?.name + ' (ID trouvé)')
           : 'Aucun client associé'}
         </p>
         {clients.length === 0 && (
-           <div style={{ marginTop: '8px', color: '#f87171' }}>
-             <p>⚠️ <strong>Attention : Impossible de charger votre profil client.</strong></p>
-             <p>Cela est dû à une restriction de sécurité. Pour corriger cela :</p>
-             <ol style={{ paddingLeft: '20px', marginTop: '4px' }}>
-               <li>Copiez votre <strong>ID Utilisateur</strong> ci-dessus ({user?.id}).</li>
-               <li>Connectez-vous au <strong>Dashboard Freelance</strong> (Admin).</li>
-               <li>Allez dans l'onglet <strong>Clients</strong>, modifiez votre fiche client.</li>
-               <li>Collez cet ID dans le champ <strong>"ID Utilisateur (Auth Supabase)"</strong>.</li>
-             </ol>
-           </div>
+          <div style={{ marginTop: '8px', color: '#f87171' }}>
+            <p>⚠️ <strong>Attention : Impossible de charger votre profil client.</strong></p>
+            <p>Cela est dû à une restriction de sécurité. Pour corriger cela :</p>
+            <ol style={{ paddingLeft: '20px', marginTop: '4px' }}>
+              <li>Copiez votre <strong>ID Utilisateur</strong> ci-dessus ({user?.id}).</li>
+              <li>Connectez-vous au <strong>Dashboard Freelance</strong> (Admin).</li>
+              <li>Allez dans l'onglet <strong>Clients</strong>, modifiez votre fiche client.</li>
+              <li>Collez cet ID dans le champ <strong>"ID Utilisateur (Auth Supabase)"</strong>.</li>
+            </ol>
+          </div>
         )}
         {clients.length > 0 && (!clientId || clientId === '00000000-0000-0000-0000-000000000000') && (
           <p style={{ marginTop: '8px', color: '#9ca3af' }}>
-            👉 Si vous êtes &quot;Digital Radicalz&quot;, copiez l'ID ci-dessus et collez-le dans le champ "ID Utilisateur" de votre fiche client sur le dashboard Freelance.
+            👉 Pour lier votre compte, copiez l'ID ci-dessus et collez-le dans le champ "ID Utilisateur" de votre fiche client sur le dashboard Freelance.
           </p>
         )}
       </div>

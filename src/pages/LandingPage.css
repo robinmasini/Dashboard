@@ -7,14 +7,14 @@
     overflow: hidden;
 }
 
-/* Hero section - fond noir */
+/* Hero section - transparent to show background */
 .landing-hero {
-    background: #000000;
+    background: transparent;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
-    padding: 40px 32px 32px;
+    padding: 12px 32px 16px;
     z-index: 1;
 }
 
@@ -26,25 +26,40 @@
 
 /* Bottom section - avec gradient */
 .landing-bottom {
-    flex: 1;
+    flex: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 48px 32px 60px;
+    padding: 24px 32px 32px;
     z-index: 1;
     position: relative;
 }
 
 .landing-logo {
-    max-width: 220px;
+    max-width: 100px;
     height: auto;
-    margin-bottom: 32px;
+    margin-bottom: 12px;
+}
+
+/* Desktop: Logo in top-right corner */
+@media (min-width: 769px) {
+    .landing-logo {
+        position: fixed;
+        top: 32px;
+        right: 32px;
+        margin-bottom: 0;
+        max-width: 150px;
+        z-index: 100;
+    }
 }
 
 .landing-message {
-    margin-bottom: 32px;
+    margin-bottom: 24px;
+    max-width: 700px;
+    text-align: center;
+    padding: 0 20px;
 }
 
 .landing-badge {
@@ -59,17 +74,29 @@
 }
 
 .landing-message p {
-    font-size: 1.3rem;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1rem;
+    font-weight: 400;
     color: rgba(255, 255, 255, 0.7);
     margin: 0;
+    line-height: 1.7;
+    letter-spacing: 0.02em;
+}
+
+.landing-cta-row {
+    display: flex;
+    flex-direction: row;
+    gap: 12px;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .landing-cta {
     display: inline-flex;
     align-items: center;
-    gap: 12px;
-    padding: 16px 32px;
-    font-size: 1.1rem;
+    gap: 8px;
+    padding: 12px 24px;
+    font-size: 0.95rem;
     font-weight: 600;
     color: white;
     background: linear-gradient(135deg, #6823ff, #3b4fff);
@@ -77,6 +104,12 @@
     border-radius: 14px;
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+}
+
+.landing-cta-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .landing-cta:hover {
@@ -94,13 +127,17 @@
 }
 
 .landing-contact {
-    margin-top: 40px;
+    margin-top: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
 }
 
 .landing-contact a {
     color: rgba(255, 255, 255, 0.4);
     text-decoration: none;
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     transition: color 0.2s;
 }
 
@@ -114,28 +151,62 @@
     margin-top: 8px;
 }
 
-/* Background gradient effect - positionné plus bas */
+/* iPhone Mockup Section */
+.landing-mockup {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 16px 20px 0;
+    z-index: 1;
+    position: relative;
+}
+
+.landing-mockup-img {
+    max-width: 450px;
+    width: 100%;
+    height: auto;
+    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+}
+
+/* Background gradient effect - hidden */
 .landing-bg-gradient {
-    position: absolute;
-    bottom: 0;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 800px;
-    height: 500px;
-    background: radial-gradient(ellipse at center bottom, rgba(104, 35, 255, 0.2) 0%, rgba(59, 79, 255, 0.1) 40%, transparent 70%);
+    display: none;
+}
+
+/* Full-screen background image with Ken Burns animation */
+.landing-page::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: url('../assets/background.png') no-repeat center center;
+    background-size: 110%;
     pointer-events: none;
     z-index: 0;
+    animation: kenBurns 10s ease-in-out infinite alternate;
+}
+
+@keyframes kenBurns {
+    0% {
+        background-size: 110%;
+        background-position: 30% center;
+    }
+
+    100% {
+        background-size: 120%;
+        background-position: 70% center;
+    }
 }
 
 /* Mobile responsive */
 @media (max-width: 768px) {
     .landing-hero {
-        padding: 24px 16px 8px;
+        padding: 24px 16px 16px;
     }
 
-    .landing-hero-card {
-        max-width: 320px;
-    }
+    /* Keep hero card size unchanged */
 
     .landing-logo {
         max-width: 170px;
@@ -148,7 +219,7 @@
     }
 
     .landing-message {
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
 
     .landing-message p {
@@ -181,5 +252,11 @@
     .landing-bg-gradient {
         width: 100%;
         height: 300px;
+    }
+
+    /* Use mobile-specific background */
+    .landing-page::before {
+        background: url('../assets/background-mobile.png') no-repeat center center;
+        background-size: cover;
     }
 }

@@ -1,5 +1,5 @@
 import type { FloatingStat } from '../../data/dashboard'
-import { getDigitalRadicalzTJM } from '../utils/tjm'
+import { getTJMData } from '../utils/tjm'
 
 type FloatingStatsProps = {
   items: FloatingStat[]
@@ -8,7 +8,7 @@ type FloatingStatsProps = {
 const FloatingStats = ({ items }: FloatingStatsProps) => {
   if (!items.length) return null
 
-  const { todayBenefitFormatted, tjmFormatted, weekBenefitFormatted, isThursday, hasThursdayPassed } = getDigitalRadicalzTJM()
+  const { todayBenefitFormatted, tjmFormatted, weekBenefitFormatted, isThursday, hasThursdayPassed } = getTJMData()
 
   return (
     <div className="floating-stats">
@@ -20,15 +20,15 @@ const FloatingStats = ({ items }: FloatingStatsProps) => {
 
         if (item.label === "Bénéfice généré aujourd'hui" || item.label === 'Bénéfice généré') {
           displayValue = todayBenefitFormatted
-          displayTrend = isThursday ? 'Jeudi Digital Radicalz' : 'En attente'
+          displayTrend = isThursday ? 'Jeudi Productif' : 'En attente'
           displayDirection = isThursday ? 'up' : 'neutral'
         } else if (item.label === 'Bénéfice cette semaine') {
           displayValue = weekBenefitFormatted
-          displayTrend = hasThursdayPassed ? 'Jeudi Digital Radicalz' : 'En attente'
+          displayTrend = hasThursdayPassed ? 'Jeudi Productif' : 'En attente'
           displayDirection = hasThursdayPassed ? 'up' : 'neutral'
         } else if (item.label === 'TJM de la journée') {
           displayValue = tjmFormatted
-          displayTrend = 'Jeudi Digital Radicalz'
+          displayTrend = 'Jeudi Productif'
           displayDirection = 'up'
         }
 

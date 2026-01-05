@@ -1,5 +1,5 @@
 
-export const getDigitalRadicalzTJM = () => {
+export const getTJMData = () => {
   // TODO: Restore actual implementation. This is a placeholder to fix the build.
   return {
     todayBenefitFormatted: "0,00 €",

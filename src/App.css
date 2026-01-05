@@ -413,6 +413,8 @@ td {
   display: flex;
   flex-direction: column;
   gap: 20px;
+  max-height: 65vh;
+  overflow-y: auto;
 }
 
 .modal-field {
@@ -1117,11 +1119,35 @@ td {
 
 @media (max-width: 768px) {
 
+  /* Workspace - Push content right of sidebar */
+  .workspace {
+    margin-left: 60px;
+    padding: 16px;
+    overflow-x: hidden;
+    max-width: calc(100vw - 60px);
+  }
+
+  .workspace__content {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
   /* Section Header - Stack tabs and actions */
   .section-header {
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 8px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .section-header__tabs {
+    width: 100%;
+  }
+
+  .section-header__label {
+    font-size: 0.7rem;
+    margin-bottom: 2px;
   }
 
   .section-header__actions {
@@ -1135,19 +1161,21 @@ td {
 
   /* Tab Pills - Smaller on mobile */
   .tab-pill {
-    padding: 8px 14px;
-    font-size: 0.85rem;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    white-space: nowrap;
   }
 
   .tab-group {
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
+    max-width: 100%;
   }
 
   /* Panels - Less padding */
   .panel {
-    padding: 16px;
-    border-radius: 12px;
+    padding: 12px;
+    border-radius: 10px;
   }
 
   /* Tables - Smaller text */
@@ -1296,5 +1324,134 @@ td {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+}
+
+/* =============================================
+   MOBILE RESPONSIVE - CLIENT COMMAND CARDS
+   ============================================= */
+
+@media (max-width: 768px) {
+
+  /* Command cards (devis, factures, tickets) - Stack content vertically */
+  .panel>div[style*="flex-direction: column"]>div[style*="border-radius: 18px"],
+  .panel>div>div[style*="borderRadius"] {
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 16px !important;
+    padding: 16px !important;
+  }
+
+  /* Amount and status - Full width on mobile */
+  .panel>div>div[style*="borderRadius"]>div:last-child {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 12px !important;
+  }
+
+  /* Action buttons - Stack on small screens */
+  .panel button[style*="Régler"],
+  .panel a[style*="Consulter"] {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Ghost buttons for mobile */
+  .ghost-button.tiny {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+  }
+}
+
+/* =============================================
+   MOBILE RESPONSIVE - MODAL IMPROVEMENTS
+   ============================================= */
+
+@media (max-width: 768px) {
+
+  /* Modal container */
+  .modal {
+    width: 95% !important;
+    max-width: 100% !important;
+    margin: 10px !important;
+  }
+
+  /* Modal body - More height for content */
+  .modal__body {
+    max-height: 70vh;
+    padding: 16px;
+  }
+
+  /* Modal fields */
+  .modal-field input,
+  .modal-field textarea,
+  .modal-field select {
+    font-size: 16px;
+    /* Prevents iOS zoom on focus */
+  }
+
+  /* File drop zone */
+  .modal-field div[style*="border: 2px dashed"] {
+    padding: 16px !important;
+  }
+}
+
+/* =============================================
+   MOBILE RESPONSIVE - INVOICES UNPAID ALERT
+   ============================================= */
+
+@media (max-width: 768px) {
+
+  /* Unpaid invoice cards - Stack content */
+  div[style*="background: rgba(255, 107, 107"] {
+    flex-direction: column !important;
+    gap: 12px !important;
+    padding: 16px !important;
+  }
+
+  /* Unpaid invoice actions */
+  div[style*="background: rgba(255, 107, 107"] button {
+    width: 100%;
+    margin-top: 8px;
+  }
+
+  /* Invoice amount on mobile */
+  div[style*="1040"] {
+    font-size: 1.1rem !important;
+  }
+}
+
+/* =============================================
+   MOBILE - DEVIS/FACTURE CARD LAYOUT FIX
+   ============================================= */
+
+@media (max-width: 600px) {
+
+  /* Force column layout for all command cards */
+  [class*="panel"]>div>div {
+    flex-direction: column !important;
+  }
+
+  /* Ensure buttons don't overflow */
+  button,
+  a {
+    max-width: 100%;
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* PDF button mobile */
+  a[href*="pdf"],
+  button[title*="PDF"] {
+    width: 100%;
+    display: flex !important;
+    justify-content: center !important;
+    padding: 12px 16px !important;
+  }
+
+  /* Status pills inline */
+  .status-pill,
+  span[style*="borderRadius: '20px'"] {
+    display: inline-block;
   }
 }

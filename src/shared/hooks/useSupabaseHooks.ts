@@ -23,6 +23,7 @@ export type Ticket = {
   eta: string
   source?: string
   client?: string // For display (joined from clients table)
+  pdf_url?: string // URL du PDF associé
 }
 
 export type Proposal = {
@@ -33,7 +34,8 @@ export type Proposal = {
   subtitle?: string
   amount: string
   date: string
-  status: 'Signé' | 'En cours'
+  status: 'Signé' | 'En cours' | 'Refusé'
+  pdf_url?: string // URL du PDF du devis
 }
 
 export type Invoice = {
@@ -45,6 +47,7 @@ export type Invoice = {
   due_date: string
   status: 'À envoyer' | 'Envoyée' | 'Payée'
   notes?: string
+  pdf_url?: string // URL du PDF de la facture
 }
 
 export type Project = {
@@ -295,8 +298,9 @@ export function useProposals(clientId?: string) {
       .single()
 
     if (insertError) throw insertError
+    await fetchProposals() // Refresh list after adding
     return data
-  }, [])
+  }, [fetchProposals])
 
   const updateProposal = useCallback(async (id: string, updates: Partial<Proposal>) => {
     const { data, error: updateError } = await supabase
@@ -307,8 +311,9 @@ export function useProposals(clientId?: string) {
       .single()
 
     if (updateError) throw updateError
+    await fetchProposals() // Refresh list after updating
     return data
-  }, [])
+  }, [fetchProposals])
 
   const deleteProposal = useCallback(async (id: string) => {
     const { error: deleteError } = await supabase
@@ -1063,26 +1068,58 @@ export function useClients() {
 }
 
 // ============================================
-// ACTIVE TIMERS HOOK (Cross-device sync)
+// ACTIVE TIMERS HOOK (Supabase primary + real-time sync)
 // ============================================
 
+const TIMERS_STORAGE_KEY = 'active_timers_cache_v2'
+
+type TimerState = {
+  startTime: number | null
+  accumulated: number
+  isRunning: boolean
+}
+
+// Helper to save timers to localStorage (cache only)
+const cacheTimersLocally = (timers: Record<string, TimerState>) => {
+  try {
+    localStorage.setItem(TIMERS_STORAGE_KEY, JSON.stringify(timers))
+  } catch (err) {
+    console.error('Error caching timers:', err)
+  }
+}
+
+// Helper to load cached timers
+const loadCachedTimers = (): Record<string, TimerState> => {
+  try {
+    const stored = localStorage.getItem(TIMERS_STORAGE_KEY)
+    if (stored) return JSON.parse(stored)
+  } catch (err) {
+    console.error('Error loading cached timers:', err)
+  }
+  return {}
+}
+
 export function useActiveTimers() {
-  const [timers, setTimers] = useState<Record<string, { startTime: number | null; accumulated: number; isRunning: boolean }>>({})
+  // Initialize from cache, then sync from Supabase
+  const [timers, setTimers] = useState<Record<string, TimerState>>(() => loadCachedTimers())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   // Fetch timers from Supabase
-  const fetchTimers = useCallback(async () => {
+  const fetchTimersFromDB = useCallback(async () => {
     try {
       const { data, error: fetchError } = await supabase
         .from('active_timers')
         .select('*')
 
-      if (fetchError) throw fetchError
+      if (fetchError) {
+        console.error('Supabase fetch error:', fetchError)
+        setError(fetchError.message)
+        return
+      }
 
       // Convert DB format to local format
-      const timerMap: Record<string, { startTime: number | null; accumulated: number; isRunning: boolean }> = {}
-
+      const timerMap: Record<string, TimerState> = {}
       for (const row of (data || [])) {
         timerMap[row.category_id] = {
           startTime: row.start_time ? new Date(row.start_time).getTime() : null,
@@ -1092,49 +1129,71 @@ export function useActiveTimers() {
       }
 
       setTimers(timerMap)
+      cacheTimersLocally(timerMap)
       setError(null)
     } catch (err: any) {
-      console.error('Error fetching active timers:', err)
+      console.error('Error fetching timers:', err)
       setError(err.message)
     } finally {
       setLoading(false)
     }
   }, [])
 
+  // Initial fetch + real-time subscription + visibility change
   useEffect(() => {
-    fetchTimers()
+    fetchTimersFromDB()
 
-    // Refresh when tab/window becomes visible (cross-device sync)
+    // Real-time subscription for cross-device sync
+    const channel = supabase
+      .channel('active_timers_changes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'active_timers'
+      }, (payload) => {
+        console.log('Real-time timer update:', payload)
+        // Refetch all timers on any change
+        fetchTimersFromDB()
+      })
+      .subscribe()
+
+    // Refresh when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
-        fetchTimers()
+        fetchTimersFromDB()
       }
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
+    // Cleanup
     return () => {
+      supabase.removeChannel(channel)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
-  }, [fetchTimers])
+  }, [fetchTimersFromDB])
 
-  // Start timer
+  // Start timer - write to Supabase immediately
   const startTimer = useCallback(async (categoryId: string) => {
     const now = new Date()
     const currentTimer = timers[categoryId]
     const accumulated = currentTimer?.accumulated || 0
 
-    // Optimistic update
-    setTimers(prev => ({
-      ...prev,
-      [categoryId]: {
-        startTime: now.getTime(),
-        accumulated,
-        isRunning: true
-      }
-    }))
+    const newState: TimerState = {
+      startTime: now.getTime(),
+      accumulated,
+      isRunning: true
+    }
 
+    // Optimistic update
+    setTimers(prev => {
+      const updated = { ...prev, [categoryId]: newState }
+      cacheTimersLocally(updated)
+      return updated
+    })
+
+    // Write to Supabase
     try {
-      await supabase
+      const { error } = await supabase
         .from('active_timers')
         .upsert({
           category_id: categoryId,
@@ -1142,31 +1201,38 @@ export function useActiveTimers() {
           accumulated_ms: accumulated,
           is_running: true
         }, { onConflict: 'category_id' })
+
+      if (error) {
+        console.error('Error starting timer in DB:', error)
+      }
     } catch (err) {
       console.error('Error starting timer:', err)
-      fetchTimers() // Revert on error
     }
-  }, [timers, fetchTimers])
+  }, [timers])
 
-  // Pause timer
+  // Pause timer - write to Supabase immediately
   const pauseTimer = useCallback(async (categoryId: string) => {
     const timer = timers[categoryId]
     if (!timer || !timer.startTime) return
 
     const newAccumulated = timer.accumulated + (Date.now() - timer.startTime)
 
-    // Optimistic update
-    setTimers(prev => ({
-      ...prev,
-      [categoryId]: {
-        startTime: null,
-        accumulated: newAccumulated,
-        isRunning: false
-      }
-    }))
+    const newState: TimerState = {
+      startTime: null,
+      accumulated: newAccumulated,
+      isRunning: false
+    }
 
+    // Optimistic update
+    setTimers(prev => {
+      const updated = { ...prev, [categoryId]: newState }
+      cacheTimersLocally(updated)
+      return updated
+    })
+
+    // Write to Supabase
     try {
-      await supabase
+      const { error } = await supabase
         .from('active_timers')
         .update({
           start_time: null,
@@ -1174,31 +1240,39 @@ export function useActiveTimers() {
           is_running: false
         })
         .eq('category_id', categoryId)
+
+      if (error) {
+        console.error('Error pausing timer in DB:', error)
+      }
     } catch (err) {
       console.error('Error pausing timer:', err)
-      fetchTimers() // Revert on error
     }
-  }, [timers, fetchTimers])
+  }, [timers])
 
-  // Reset timer (delete from DB)
+  // Reset timer - delete from Supabase
   const resetTimer = useCallback(async (categoryId: string) => {
     // Optimistic update
     setTimers(prev => {
-      const next = { ...prev }
-      delete next[categoryId]
-      return next
+      const updated = { ...prev }
+      delete updated[categoryId]
+      cacheTimersLocally(updated)
+      return updated
     })
 
+    // Delete from Supabase
     try {
-      await supabase
+      const { error } = await supabase
         .from('active_timers')
         .delete()
         .eq('category_id', categoryId)
+
+      if (error) {
+        console.error('Error resetting timer in DB:', error)
+      }
     } catch (err) {
       console.error('Error resetting timer:', err)
-      fetchTimers() // Revert on error
     }
-  }, [fetchTimers])
+  }, [])
 
   return {
     timers,
@@ -1207,7 +1281,7 @@ export function useActiveTimers() {
     startTimer,
     pauseTimer,
     resetTimer,
-    refresh: fetchTimers,
+    refresh: fetchTimersFromDB,
   }
 }
 

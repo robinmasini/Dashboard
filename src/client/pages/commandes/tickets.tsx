@@ -218,6 +218,7 @@ export default function Tickets() {
                 <th>Type</th>
                 <th>Statut</th>
                 <th>Prix (€)</th>
+                <th>Document</th>
                 <th style={{ textAlign: 'right' }}>Action</th>
               </tr>
             </thead>
@@ -241,15 +242,41 @@ export default function Tickets() {
                   <td style={{ color: 'var(--text-muted)' }}>{ticket.type}</td>
                   <td>
                     <span className={`status-pill status-pill--${ticket.status === 'Ouvert' ? 'open' :
-                        ticket.status === 'En cours' ? 'progress' :
-                          ticket.status === 'commandé' ? 'ordered' :
-                            'closed'
+                      ticket.status === 'En cours' ? 'progress' :
+                        ticket.status === 'commandé' ? 'ordered' :
+                          'closed'
                       }`}>
                       {ticket.status}
                     </span>
                   </td>
                   <td style={{ color: 'var(--text-muted)' }}>
                     {ticket.price > 0 ? `${ticket.price.toFixed(2)}€` : 'N/A'}
+                  </td>
+                  <td>
+                    {ticket.pdf_url ? (
+                      <a
+                        href={ticket.pdf_url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '4px 10px',
+                          background: 'rgba(104, 35, 255, 0.15)',
+                          border: '1px solid rgba(104, 35, 255, 0.3)',
+                          borderRadius: '6px',
+                          color: '#a78bfa',
+                          textDecoration: 'none',
+                          fontSize: '0.8rem',
+                          fontWeight: 500
+                        }}
+                      >
+                        📄 Voir
+                      </a>
+                    ) : (
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>-</span>
+                    )}
                   </td>
                   <td style={{ textAlign: 'right' }}>
                     {ticket.status !== 'commandé' && ticket.status !== 'Fermé' && (

@@ -56,7 +56,10 @@ const ActionModal = ({ open, schema, onClose, onSubmit, initialValues }: ActionM
           </button>
         </header>
         <form className="modal__body" onSubmit={handleSubmit}>
+          {/* Debug: check console for all fields in schema */}
+          {(() => { console.log('ActionModal schema:', schema.key, 'Fields:', schema.fields.map(f => `${f.id}(${f.type})`).join(', ')); return null; })()}
           {schema.fields.map((field) => {
+            console.log('Rendering field:', field.id, 'type:', field.type)
             if (field.type === 'textarea') {
               return (
                 <label key={field.id} className="modal-field">
@@ -70,43 +73,159 @@ const ActionModal = ({ open, schema, onClose, onSubmit, initialValues }: ActionM
               )
             }
             if (field.type === 'file') {
+              // Déterminer les types acceptés basé sur le champ
+              const acceptTypes = field.id === 'pdf' ? 'application/pdf' :
+                field.id === 'image' ? 'image/*' :
+                  'image/*,application/pdf'
+              const isPdfField = field.id === 'pdf' || field.id.includes('pdf')
+
+              // Function to trigger file input click
+              const triggerFileInput = () => {
+                const input = document.getElementById(`file-input-${field.id}`) as HTMLInputElement
+                if (input) input.click()
+              }
+
               return (
-                <label key={field.id} className="modal-field">
+                <div key={field.id} className="modal-field">
                   <span>{field.label}</span>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(event) => {
-                      const file = event.target.files?.[0]
+                  <div
+                    style={{
+                      border: '2px dashed rgba(255, 255, 255, 0.2)',
+                      borderRadius: '12px',
+                      padding: '20px',
+                      textAlign: 'center',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      background: values[field.id] ? 'rgba(104, 35, 255, 0.1)' : 'transparent'
+                    }}
+                    onClick={(e) => {
+                      // Only trigger if clicking directly on the drop zone, not on buttons inside
+                      if ((e.target as HTMLElement).tagName !== 'BUTTON') {
+                        triggerFileInput()
+                      }
+                    }}
+                    onDragOver={(e) => { e.preventDefault(); e.currentTarget.style.borderColor = '#6823ff' }}
+                    onDragLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)' }}
+                    onDrop={(e) => {
+                      e.preventDefault()
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)'
+                      const file = e.dataTransfer.files?.[0]
                       if (file) {
                         const reader = new FileReader()
                         reader.onloadend = () => {
                           handleChange(field.id, reader.result as string)
+                          // Stocker le nom du fichier pour l'affichage
+                          handleChange(field.id + '_name', file.name)
                         }
                         reader.readAsDataURL(file)
                       }
                     }}
-                    style={{ padding: '8px 0' }}
-                  />
-                  {values[field.id] && (
-                    <div style={{ marginTop: '8px', maxWidth: '100%', maxHeight: '150px', overflow: 'hidden', borderRadius: '8px', position: 'relative' }}>
-                      <img src={values[field.id]} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                      <button
-                        type="button"
-                        onClick={() => handleChange(field.id, '')}
-                        style={{
-                          position: 'absolute', top: '4px', right: '4px',
-                          background: 'rgba(0,0,0,0.6)', color: 'white', border: 'none',
-                          width: '24px', height: '24px', borderRadius: '50%', cursor: 'pointer',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center'
-                        }}
-                        title="Supprimer l'image"
-                      >
-                        ×
-                      </button>
+                  >
+                    <input
+                      type="file"
+                      accept={acceptTypes}
+                      onChange={(event) => {
+                        console.log('File selected:', event.target.files?.[0])
+                        const file = event.target.files?.[0]
+                        if (file) {
+                          const reader = new FileReader()
+                          reader.onloadend = () => {
+                            console.log('File read complete:', file.name)
+                            handleChange(field.id, reader.result as string)
+                            handleChange(field.id + '_name', file.name)
+                          }
+                          reader.readAsDataURL(file)
+                        }
+                      }}
+                      style={{ display: 'none' }}
+                      id={`file-input-${field.id}`}
+                    />
+                    <div style={{ cursor: 'pointer', display: 'block' }}>
+                      {!values[field.id] ? (
+                        <>
+                          <div style={{ fontSize: '2rem', marginBottom: '8px' }}>
+                            {isPdfField ? '📄' : '📎'}
+                          </div>
+                          <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+                            Glissez un fichier ici ou <span style={{ color: '#6823ff' }}>parcourir</span>
+                          </p>
+                          <p style={{ margin: '4px 0 0', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
+                            {isPdfField ? 'PDF uniquement' : 'Images ou PDF'}
+                          </p>
+                        </>
+                      ) : (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'center' }}>
+                          {/* Check for base64 PDF OR existing PDF URL */}
+                          {(values[field.id]?.startsWith('data:application/pdf') ||
+                            values[field.id]?.toLowerCase().endsWith('.pdf') ||
+                            values[field.id]?.includes('application/pdf') ||
+                            (isPdfField && values[field.id]?.startsWith('http'))) ? (
+                            <>
+                              <span style={{ fontSize: '2rem' }}>📄</span>
+                              <div style={{ textAlign: 'left' }}>
+                                <p style={{ margin: 0, fontWeight: 600 }}>
+                                  {values[field.id + '_name'] ||
+                                    (values[field.id]?.startsWith('http') ? 'PDF existant' : 'Document PDF')}
+                                </p>
+                                <p style={{ margin: 0, color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                                  {values[field.id]?.startsWith('data:') ? 'PDF prêt à uploader' :
+                                    values[field.id]?.startsWith('http') ? (
+                                      <a
+                                        href={values[field.id]}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={{ color: '#6823ff' }}
+                                      >
+                                        Voir le PDF ↗
+                                      </a>
+                                    ) : 'PDF'}
+                                </p>
+                              </div>
+                            </>
+                          ) : values[field.id]?.startsWith('data:image') || values[field.id]?.startsWith('http') ? (
+                            <img
+                              src={values[field.id]}
+                              alt="Preview"
+                              style={{ maxHeight: '100px', borderRadius: '8px' }}
+                              onError={(e) => {
+                                // If image fails to load, show a fallback
+                                (e.target as HTMLImageElement).style.display = 'none'
+                              }}
+                            />
+                          ) : (
+                            <>
+                              <span style={{ fontSize: '2rem' }}>📎</span>
+                              <div style={{ textAlign: 'left' }}>
+                                <p style={{ margin: 0, fontWeight: 600 }}>{values[field.id + '_name'] || 'Fichier'}</p>
+                              </div>
+                            </>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              handleChange(field.id, '')
+                              handleChange(field.id + '_name', '')
+                            }}
+                            style={{
+                              background: 'rgba(255, 107, 107, 0.2)',
+                              color: '#ff6b6b',
+                              border: '1px solid rgba(255, 107, 107, 0.3)',
+                              padding: '6px 12px',
+                              borderRadius: '8px',
+                              cursor: 'pointer',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            Supprimer
+                          </button>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </label>
+                  </div>
+                </div>
               )
             }
             if (field.type === 'select') {

@@ -317,7 +317,7 @@ export default function Planning() {
     <div className="workspace__content">
       <div className="section-header">
         <div className="section-header__tabs">
-          <p className="section-header__label">Planning</p>
+          <p className="section-header__label">Objectifs</p>
           <div className="tab-group">
             <button
               className={`tab-pill ${activeTab === 'todo' ? 'is-active' : ''}`}

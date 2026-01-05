@@ -3,6 +3,8 @@ import { UserRole } from './shared/types/roles'
 import { AuthProvider } from './shared/contexts/AuthProvider'
 import ProtectedRoute from './shared/components/ProtectedRoute'
 import ClientLogin from './client/pages/auth/ClientLogin'
+import MagicLogin from './client/pages/auth/MagicLogin'
+import AutoLogin from './client/pages/auth/AutoLogin'
 import FreelanceLogin from './freelance/pages/auth/FreelanceLogin'
 import DashboardLayout from './layouts/DashboardLayout'
 import LandingPage from './pages/LandingPage'
@@ -34,6 +36,8 @@ function AppRoutes() {
 
       {/* Routes d'authentification */}
       <Route path="/auth/client" element={<ClientLogin />} />
+      <Route path="/auth/magic/:token" element={<MagicLogin />} />
+      <Route path="/auth/auto" element={<AutoLogin />} />
 
       {/* Login Freelance - accessible via /auth/freelance */}
       <Route path="/auth/freelance" element={<FreelanceLogin />} />

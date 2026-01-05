@@ -120,7 +120,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
     { id: 'performance', label: 'Performance', icon: '📊', path: '/admin/performance' },
     { id: 'commandes', label: 'Commandes', icon: '📋', path: '/admin/commandes' },
     { id: 'time-tracking', label: 'Time Tracking', icon: '⏱️', path: '/admin/time-tracking' },
-    { id: 'planning', label: 'Planning', icon: '📅', path: '/admin/planning' },
+    { id: 'planning', label: 'Objectifs', icon: '✅', path: '/admin/planning' },
     { id: 'clients', label: 'Clients', icon: '👥', path: '/admin/clients' },
   ] : [
     { id: 'projet', label: 'Votre Projet', icon: '📁', path: '/dashboard/projet' },
@@ -188,7 +188,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
           onClick={isMobile && isCollapsed ? toggleSidebar : undefined}
           style={{ cursor: isMobile && isCollapsed ? 'pointer' : 'default' }}
         >
-          <img src={logoDs} alt="Logo Digital Radicalz" className="sidebar__logo" />
+          <img src={logoDs} alt="Logo Dashboard" className="sidebar__logo" />
         </div>
 
         <nav className="sidebar__nav">

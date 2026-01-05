@@ -16,8 +16,8 @@ const commandesTabs = [
  */
 export default function Facturation() {
   const { user } = useAuth()
-  const { clients } = useClients()
-  const [clientId, setClientId] = useState<string | undefined>('00000000-0000-0000-0000-000000000000')
+  const { clients, loading: loadingClients } = useClients()
+  const [clientId, setClientId] = useState<string | undefined>(undefined)
 
   useEffect(() => {
     if (user && clients.length > 0) {
@@ -31,7 +31,7 @@ export default function Facturation() {
     }
   }, [user, clients])
 
-  // Récupérer les factures depuis Supabase (filtrées automatiquement par RLS)
+  // Récupérer les factures depuis Supabase (filtrées par client_id)
   const { invoices, loading } = useInvoices(clientId)
 
   // Separate paid and unpaid invoices
@@ -41,9 +41,14 @@ export default function Facturation() {
     return { unpaidInvoices: unpaid, paidInvoices: paid }
   }, [invoices])
 
-  const handlePayInvoice = (invoiceId: string) => {
-    // Pour l'instant, afficher une alerte - à connecter à Stripe/Shine plus tard
-    alert(`Redirection vers le paiement de la facture ${invoiceId}...\n\nCette fonctionnalité sera bientôt connectée à votre solution de paiement.`)
+  const handlePayInvoice = (_invoiceId: string) => {
+    // Télécharger le RIB Shine pour le virement
+    const link = document.createElement('a')
+    link.href = '/RIB-Shine.pdf'
+    link.download = 'RIB-EI-Robin-Masini.pdf'
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
   }
 
   return (
@@ -51,7 +56,11 @@ export default function Facturation() {
       <SectionTabs label="Commandes" tabs={commandesTabs} />
 
       <div className="panel">
-        {loading ? (
+        {loadingClients || !clientId ? (
+          <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+            {loadingClients ? 'Chargement...' : 'Configuration du compte...'}
+          </div>
+        ) : loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
             Chargement des factures...
           </div>
@@ -149,34 +158,59 @@ export default function Facturation() {
                     </div>
 
                     {/* Pay Button - Right aligned */}
-                    <button
-                      onClick={() => handlePayInvoice(invoice.id)}
-                      style={{
-                        padding: '14px 28px',
-                        borderRadius: '12px',
-                        border: 'none',
-                        background: 'linear-gradient(135deg, #ef4444, #dc2626)',
-                        color: 'white',
-                        fontWeight: 700,
-                        fontSize: '0.95rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '8px',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.transform = 'translateY(-2px)'
-                        e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)'
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.transform = 'translateY(0)'
-                        e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)'
-                      }}
-                    >
-                      💳 Régler immédiatement
-                    </button>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      {invoice.pdf_url && (
+                        <a
+                          href={invoice.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: '14px 20px',
+                            borderRadius: '12px',
+                            border: '1px solid rgba(104, 35, 255, 0.3)',
+                            background: 'rgba(104, 35, 255, 0.15)',
+                            color: '#a78bfa',
+                            fontWeight: 600,
+                            fontSize: '0.95rem',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          📄 Consulter
+                        </a>
+                      )}
+                      <button
+                        onClick={() => handlePayInvoice(invoice.id)}
+                        style={{
+                          padding: '14px 28px',
+                          borderRadius: '12px',
+                          border: 'none',
+                          background: 'linear-gradient(135deg, #ef4444, #dc2626)',
+                          color: 'white',
+                          fontWeight: 700,
+                          fontSize: '0.95rem',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          transition: 'transform 0.2s, box-shadow 0.2s',
+                          boxShadow: '0 4px 15px rgba(239, 68, 68, 0.3)'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.currentTarget.style.transform = 'translateY(-2px)'
+                          e.currentTarget.style.boxShadow = '0 6px 20px rgba(239, 68, 68, 0.4)'
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.style.transform = 'translateY(0)'
+                          e.currentTarget.style.boxShadow = '0 4px 15px rgba(239, 68, 68, 0.3)'
+                        }}
+                      >
+                        💳 Régler immédiatement
+                      </button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -239,6 +273,28 @@ export default function Facturation() {
 
                     {/* Amount & Status */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      {invoice.pdf_url && (
+                        <a
+                          href={invoice.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            padding: '6px 12px',
+                            borderRadius: '8px',
+                            border: '1px solid rgba(74, 222, 128, 0.3)',
+                            background: 'rgba(74, 222, 128, 0.1)',
+                            color: '#4ade80',
+                            fontWeight: 500,
+                            fontSize: '0.8rem',
+                            textDecoration: 'none',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}
+                        >
+                          📄 Voir
+                        </a>
+                      )}
                       <p style={{ margin: 0, fontWeight: 600, fontSize: '1.1rem', color: '#4ade80' }}>
                         {(invoice.amount === '1500€' || invoice.amount === '1 500€' || invoice.amount === '1500') ? '1 040€' : invoice.amount}
                       </p>

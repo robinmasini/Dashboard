@@ -193,7 +193,7 @@ const OverviewContent = () => {
           <p className="panel__sub" style={{ marginBottom: '8px' }}>{walletSummary.provider}</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <p style={{ fontSize: '2rem', fontWeight: 800, color: 'white', marginBottom: '0', lineHeight: 1 }}>{walletSummary.amount}</p>
-            <p style={{ color: '#ef4444', fontSize: '0.8rem', fontWeight: 600, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap' }}>47 % de l'objectif atteint</p>
+            <p style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap' }}>49 % de l'objectif atteint</p>
           </div>
         </article>
       </div>

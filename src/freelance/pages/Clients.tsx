@@ -1,11 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useClients } from '../../shared'
 import ActionModal from '../components/ActionModal'
 import { actionSchemas } from '../../data/dashboard'
+import { uploadFile } from '../../shared/services/uploadService'
 import '../../App.css'
-
-// Clé localStorage pour stocker les logos des clients
-const LOGOS_STORAGE_KEY = 'client-logos'
 
 /**
  * Page Clients Freelance - Gestion des clients
@@ -101,33 +99,11 @@ export default function Clients() {
     }
   }
 
-  // État pour les logos stockés en localStorage (persiste après rafraîchissement)
-  const [clientLogos, setClientLogos] = useState<Record<string, string>>({})
+  // État pour suivre les uploads en cours
+  const [uploadingAvatars, setUploadingAvatars] = useState<Record<string, boolean>>({})
 
-  // Charger les logos depuis localStorage au montage du composant
-  useEffect(() => {
-    const savedLogos = localStorage.getItem(LOGOS_STORAGE_KEY)
-    if (savedLogos) {
-      try {
-        const parsed = JSON.parse(savedLogos)
-        setClientLogos(parsed)
-        console.log('Logos chargés depuis localStorage:', Object.keys(parsed).length)
-      } catch (e) {
-        console.error('Erreur parsing logos localStorage:', e)
-      }
-    }
-  }, [])
-
-  // Sauvegarder les logos dans localStorage quand ils changent
-  useEffect(() => {
-    if (Object.keys(clientLogos).length > 0) {
-      localStorage.setItem(LOGOS_STORAGE_KEY, JSON.stringify(clientLogos))
-      console.log('Logos sauvegardés dans localStorage')
-    }
-  }, [clientLogos])
-
-  // Fonction pour uploader un logo SANS compression (qualité originale)
-  const handleLogoUpload = (clientId: string, file: File) => {
+  // Fonction pour uploader un avatar vers Supabase Storage
+  const handleAvatarUpload = async (clientId: string, file: File) => {
     if (!file) return
 
     // Vérifier le type de fichier
@@ -136,38 +112,39 @@ export default function Clients() {
       return
     }
 
-    // Limite à 500KB pour localStorage (sans compression)
-    if (file.size > 500 * 1024) {
-      alert(`L'image est trop grande (${(file.size / 1024).toFixed(0)}KB).\nVeuillez choisir une image de moins de 500KB pour conserver la qualité originale.`)
+    // Limite à 2MB
+    if (file.size > 2 * 1024 * 1024) {
+      alert(`L'image est trop grande (${(file.size / 1024 / 1024).toFixed(1)}MB). Maximum: 2MB`)
       return
     }
 
-    // Lire l'image en base64 SANS compression
-    const reader = new FileReader()
+    setUploadingAvatars(prev => ({ ...prev, [clientId]: true }))
 
-    reader.onload = (e) => {
-      const base64Url = e.target?.result as string
+    try {
+      // Upload vers Supabase Storage
+      const { url, error } = await uploadFile(file, 'avatars')
 
-      // Stocker dans l'état React et localStorage
-      setClientLogos(prev => ({
-        ...prev,
-        [clientId]: base64Url
-      }))
+      if (error) {
+        alert(`Erreur lors de l'upload: ${error}`)
+        return
+      }
 
-      console.log('Logo ajouté pour client:', clientId, `(${(file.size / 1024).toFixed(1)}KB)`)
-      alert('✅ Logo ajouté avec succès !')
+      if (url) {
+        // Mettre à jour le client avec l'URL de l'avatar
+        await updateClient(clientId, { avatar_url: url })
+        alert('✅ Avatar mis à jour avec succès !')
+      }
+    } catch (err: any) {
+      console.error('Error uploading avatar:', err)
+      alert(`Erreur: ${err.message}`)
+    } finally {
+      setUploadingAvatars(prev => ({ ...prev, [clientId]: false }))
     }
-
-    reader.onerror = () => {
-      alert('❌ Erreur lors de la lecture du fichier')
-    }
-
-    reader.readAsDataURL(file)
   }
 
-  // Fonction pour obtenir le logo d'un client (localStorage en priorité)
-  const getClientLogo = (clientId: string): string | null => {
-    return clientLogos[clientId] || null
+  // Fonction pour obtenir l'avatar d'un client (depuis DB)
+  const getClientAvatar = (client: any): string | null => {
+    return client.avatar_url || null
   }
 
   return (
@@ -228,17 +205,18 @@ export default function Clients() {
                           type="file"
                           accept="image/*"
                           style={{ display: 'none' }}
+                          disabled={uploadingAvatars[client.id]}
                           onChange={(e) => {
                             const file = e.target.files?.[0]
-                            if (file) handleLogoUpload(client.id, file)
+                            if (file) handleAvatarUpload(client.id, file)
                           }}
                         />
                         <div style={{
                           width: '50px',
                           height: '50px',
                           borderRadius: '50%',
-                          background: getClientLogo(client.id)
-                            ? `url(${getClientLogo(client.id)}) center/cover no-repeat`
+                          background: getClientAvatar(client)
+                            ? `url(${getClientAvatar(client)}) center/cover no-repeat`
                             : 'linear-gradient(135deg, #6366f1, #3b82f6)',
                           display: 'flex',
                           alignItems: 'center',
@@ -247,9 +225,10 @@ export default function Clients() {
                           color: 'white',
                           fontWeight: 700,
                           border: '2px solid rgba(255,255,255,0.1)',
-                          transition: 'all 0.2s'
+                          transition: 'all 0.2s',
+                          opacity: uploadingAvatars[client.id] ? 0.5 : 1
                         }}>
-                          {!getClientLogo(client.id) && client.name.charAt(0).toUpperCase()}
+                          {uploadingAvatars[client.id] ? '...' : (!getClientAvatar(client) && client.name.charAt(0).toUpperCase())}
                         </div>
                       </label>
 

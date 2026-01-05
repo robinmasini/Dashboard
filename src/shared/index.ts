@@ -2,6 +2,7 @@
 
 // Services
 export { supabase } from './services/supabaseClient'
+export * from './services/uploadService'
 
 
 // Contexts & Hooks

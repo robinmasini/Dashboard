@@ -38,9 +38,9 @@ export default function Commandes() {
   const { clients } = useClients()
 
   // Hooks Supabase (sans filtre clientId - voit tout)
-  const { tickets, loading: loadingTickets, addTicket, updateTicket, deleteTicket } = useTickets()
-  const { proposals, loading: loadingProposals, addProposal, updateProposal, deleteProposal } = useProposals()
-  const { invoices, loading: loadingInvoices, addInvoice, updateInvoice, deleteInvoice } = useInvoices()
+  const { tickets, loading: loadingTickets, addTicket, updateTicket, deleteTicket, refresh: refreshTickets } = useTickets()
+  const { proposals, loading: loadingProposals, addProposal, updateProposal, deleteProposal, refresh: refreshProposals } = useProposals()
+  const { invoices, loading: loadingInvoices, addInvoice, updateInvoice, deleteInvoice, refresh: refreshInvoices } = useInvoices()
 
   // Modal Handlers
   const handleOpenModal = () => {
@@ -81,6 +81,46 @@ export default function Commandes() {
         if (client) clientId = client.id
       }
 
+      // Handle PDF upload - if it's a base64 data URL, upload to Supabase Storage
+      let pdfUrl: string | undefined = undefined
+      if (values.pdf) {
+        if (values.pdf.startsWith('data:')) {
+          // It's a base64 data URL - need to upload to Storage
+          console.log('Uploading PDF to Supabase Storage...')
+          try {
+            // Convert base64 to File
+            const response = await fetch(values.pdf)
+            const blob = await response.blob()
+            const fileName = values.pdf_name || `document_${Date.now()}.pdf`
+            const file = new File([blob], fileName, { type: 'application/pdf' })
+
+            // Determine folder based on active tab
+            const folder = activeTab === 'tickets' ? 'tickets' :
+              activeTab === 'devis' ? 'proposals' : 'invoices'
+
+            // Import and use uploadFile
+            const { uploadFile } = await import('../../shared/services/uploadService')
+            const { url, error } = await uploadFile(file, folder)
+
+            if (error) {
+              console.error('PDF upload error:', error)
+              alert(`Erreur lors de l'upload du PDF: ${error}`)
+              return
+            }
+
+            pdfUrl = url || undefined
+            console.log('PDF uploaded successfully:', pdfUrl)
+          } catch (uploadErr) {
+            console.error('Failed to upload PDF:', uploadErr)
+            alert('Erreur lors de l\'upload du PDF. Vérifiez la connexion.')
+            return
+          }
+        } else if (values.pdf.startsWith('http')) {
+          // It's already a URL (existing PDF)
+          pdfUrl = values.pdf
+        }
+      }
+
       if (activeTab === 'tickets') {
         if (editingItem) {
           await updateTicket(editingItem.id, {
@@ -90,6 +130,7 @@ export default function Commandes() {
             description: values.notes,
             eta: values.estimate ? `${values.estimate}h` : undefined,
             price: values.price ? Number(values.price) : undefined,
+            pdf_url: pdfUrl,
           })
         } else {
           await addTicket({
@@ -99,8 +140,9 @@ export default function Commandes() {
             description: values.notes,
             eta: values.estimate ? `${values.estimate}h` : '0h',
             price: values.price ? Number(values.price) : 0,
-            status: 'Ouvert'
-          })
+            status: 'Ouvert',
+            pdf_url: pdfUrl,
+          } as any)
         }
       } else if (activeTab === 'devis') {
         if (editingItem) {
@@ -108,6 +150,7 @@ export default function Commandes() {
             title: values.title,
             amount: values.amount,
             client_id: clientId || editingItem.client_id,
+            pdf_url: pdfUrl,
           })
         } else {
           await addProposal({
@@ -116,8 +159,9 @@ export default function Commandes() {
             subtitle: values.client,
             amount: values.amount,
             date: values.delivery || new Date().toISOString(),
-            status: 'En cours'
-          })
+            status: 'En cours',
+            pdf_url: pdfUrl,
+          } as any)
         }
       } else {
         if (editingItem) {
@@ -126,7 +170,8 @@ export default function Commandes() {
             due_date: values.dueDate,
             status: values.status as any,
             client_id: clientId || editingItem.client_id,
-            notes: values.notes
+            notes: values.notes,
+            pdf_url: pdfUrl,
           })
         } else {
           await addInvoice({
@@ -135,13 +180,24 @@ export default function Commandes() {
             amount: values.amount,
             due_date: values.dueDate,
             status: values.status as any,
-            notes: values.notes
-          })
+            notes: values.notes,
+            pdf_url: pdfUrl,
+          } as any)
         }
       }
     } catch (err) {
       console.error('Error submitting form:', err)
     }
+
+    // Refresh data after submission
+    if (activeTab === 'tickets') {
+      await refreshTickets()
+    } else if (activeTab === 'devis') {
+      await refreshProposals()
+    } else {
+      await refreshInvoices()
+    }
+
     handleCloseModal()
   }
 
@@ -222,6 +278,7 @@ export default function Commandes() {
         title: editingItem.title || '',
         estimate: editingItem.eta ? String(editingItem.eta).replace('h', '') : '',
         price: editingItem.price ? String(editingItem.price) : '',
+        pdf: editingItem.pdf_url || '',
         notes: editingItem.description || ''
       }
     }
@@ -231,6 +288,7 @@ export default function Commandes() {
         title: editingItem.title || '',
         amount: editingItem.amount ? String(editingItem.amount).replace(/[^\d.,]/g, '') : '',
         delivery: editingItem.delivery_date || '',
+        pdf: editingItem.pdf_url || '',
         notes: editingItem.notes || ''
       }
     }
@@ -240,6 +298,7 @@ export default function Commandes() {
         amount: editingItem.amount ? String(editingItem.amount).replace(/[^\d.,]/g, '') : '',
         dueDate: editingItem.due_date || '',
         status: editingItem.status || 'À envoyer',
+        pdf: editingItem.pdf_url || '',
         notes: editingItem.notes || ''
       }
     }
@@ -331,15 +390,28 @@ export default function Commandes() {
 
                     {/* Actions Devis */}
                     <div style={{ display: 'flex', gap: '8px', marginLeft: '12px', borderLeft: '1px solid rgba(255,255,255,0.1)', paddingLeft: '12px' }}>
-                      <button
-                        type="button"
-                        className="ghost-button tiny"
-                        onClick={() => alert(`Ouverture du devis : ${proposal.title}`)}
-                        title="Consulter le devis"
-                        style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        👁️ Consulter
-                      </button>
+                      {proposal.pdf_url ? (
+                        <a
+                          href={proposal.pdf_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ghost-button tiny"
+                          title="Ouvrir le devis PDF"
+                          style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', textDecoration: 'none', color: '#a78bfa' }}
+                        >
+                          📄 Voir PDF
+                        </a>
+                      ) : (
+                        <button
+                          type="button"
+                          className="ghost-button tiny"
+                          onClick={() => alert('Aucun PDF attaché à ce devis. Modifiez le devis pour ajouter un PDF.')}
+                          title="Aucun PDF"
+                          style={{ fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', opacity: 0.5 }}
+                        >
+                          📄 Pas de PDF
+                        </button>
+                      )}
                       {proposal.status !== 'Signé' && (
                         <button
                           type="button"

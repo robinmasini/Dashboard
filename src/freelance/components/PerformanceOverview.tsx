@@ -1,5 +1,5 @@
 import { clientsTrend, heroCard, satisfactionGauge, walletSummary, type ShineTransaction } from '../../data/dashboard'
-import { getDigitalRadicalzTJM } from '../utils/tjm'
+import { getTJMData } from '../utils/tjm'
 import { useTodayDate } from '../../shared/utils/date'
 
 type PerformanceOverviewProps = {
@@ -59,7 +59,7 @@ const calculateShineBalance = (transactions: ShineTransaction[]): number => {
 const PerformanceOverview = ({ shineTransactions }: PerformanceOverviewProps) => {
   const dailySalesData = generateDailySalesData(shineTransactions)
   const salesPoints = buildPolyline(dailySalesData)
-  const { todayBenefitFormatted, tjmFormatted, isThursday } = getDigitalRadicalzTJM()
+  const { todayBenefitFormatted, tjmFormatted, isThursday } = getTJMData()
   const shineBalance = calculateShineBalance(shineTransactions)
   const todayDate = useTodayDate()
 
@@ -88,7 +88,7 @@ const PerformanceOverview = ({ shineTransactions }: PerformanceOverviewProps) =>
         <div className="floating-card__value">
           <span>{todayBenefitFormatted}</span>
           <span className={`trend ${isThursday ? 'trend--up' : ''}`}>
-            {isThursday ? 'Jeudi Digital Radicalz' : 'En attente'}
+            {isThursday ? 'Jeudi Productif' : 'En attente'}
           </span>
         </div>
       </article>
@@ -96,14 +96,14 @@ const PerformanceOverview = ({ shineTransactions }: PerformanceOverviewProps) =>
         <p className="floating-card__label">Tarif journalier de référence</p>
         <div className="floating-card__value">
           <span>{tjmFormatted}</span>
-          <span className="trend trend--up">Jeudi Digital Radicalz</span>
+          <span className="trend trend--up">Jeudi Productif</span>
         </div>
       </article>
       <article className="panel floating-card">
         <p className="floating-card__label">New Clients</p>
         <div className="floating-card__value">
           <span>+1</span>
-          <span className="trend trend--up">Digital Radicalz</span>
+          <span className="trend trend--up">Client Actif</span>
         </div>
       </article>
       <article className="panel floating-card">
@@ -190,7 +190,7 @@ const PerformanceOverview = ({ shineTransactions }: PerformanceOverviewProps) =>
             )
           })}
         </div>
-        <p className="bars-panel__caption">Digital Radicalz · 32 984</p>
+        <p className="bars-panel__caption">Client Actif · 32 984</p>
       </article>
     </section>
   )

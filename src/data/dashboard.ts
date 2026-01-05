@@ -66,10 +66,10 @@ export const navConfig: Record<DashboardNavKey, SectionConfig> = {
       {
         label: 'Tarif journalier de référence',
         value: '323,75€',
-        trendLabel: 'Jeudi Digital Radicalz',
+        trendLabel: 'Jeudi Productif',
         trendDirection: 'up',
       },
-      { label: 'Nouveaux clients', value: '+1', trendLabel: 'Digital Radicalz', trendDirection: 'up' },
+      { label: 'Nouveaux clients', value: '+1', trendLabel: 'Client Actif', trendDirection: 'up' },
       { label: 'Bénéfice cette semaine', value: '0,00€', trendLabel: 'En attente', trendDirection: 'neutral' },
     ],
   },
@@ -93,16 +93,16 @@ export const navConfig: Record<DashboardNavKey, SectionConfig> = {
     floatingStats: [],
     floatingStatsByTab: {
       tickets: [
-        { label: 'Tickets enregistrés', value: '1', trendLabel: 'Digital Radicalz', trendDirection: 'up' },
+        { label: 'Tickets enregistrés', value: '1', trendLabel: 'Client Actif', trendDirection: 'up' },
         { label: 'Tickets en cours', value: '1', trendLabel: 'Projet actif', trendDirection: 'up' },
       ],
       quotes: [
-        { label: 'Devis signés (30j)', value: '1', trendLabel: 'Digital Radicalz', trendDirection: 'up' },
-        { label: 'Nouveau devis en attente', value: '3 120€', trendLabel: 'Digital Radicalz', trendDirection: 'up' },
+        { label: 'Devis signés (30j)', value: '1', trendLabel: 'Client Actif', trendDirection: 'up' },
+        { label: 'Nouveau devis en attente', value: '3 120€', trendLabel: 'Client Actif', trendDirection: 'up' },
         { label: 'Montant en attente', value: '1 040€', trendLabel: 'À facturer', trendDirection: 'neutral' },
       ],
       invoicing: [
-        { label: 'Factures à émettre', value: '1', trendLabel: '1 040€ Digital Radicalz', trendDirection: 'neutral' },
+        { label: 'Factures à émettre', value: '1', trendLabel: '1 040€ Client Actif', trendDirection: 'neutral' },
       ],
     },
   },
@@ -122,8 +122,8 @@ export const navConfig: Record<DashboardNavKey, SectionConfig> = {
     ],
     floatingStats: [
       { label: 'Bénéfice généré', value: '0,00€', trendLabel: 'En attente', trendDirection: 'neutral' },
-      { label: 'TJM de la journée', value: '323,75€', trendLabel: 'Jeudi Digital Radicalz', trendDirection: 'up' },
-      { label: 'Nouveaux clients', value: '+1', trendLabel: 'Digital Radicalz', trendDirection: 'up' },
+      { label: 'TJM de la journée', value: '323,75€', trendLabel: 'Jeudi Productif', trendDirection: 'up' },
+      { label: 'Nouveaux clients', value: '+1', trendLabel: 'Client Actif', trendDirection: 'up' },
     ],
   },
   planning: {
@@ -156,14 +156,14 @@ export const navConfig: Record<DashboardNavKey, SectionConfig> = {
     ],
     floatingStats: [
       { label: 'Bénéfice généré', value: '0,00€', trendLabel: 'En attente', trendDirection: 'neutral' },
-      { label: 'Nouveaux clients 30j', value: '+1', trendLabel: 'Digital Radicalz', trendDirection: 'up' },
-      { label: 'Clients actifs', value: '1', trendLabel: 'Digital Radicalz', trendDirection: 'up' },
+      { label: 'Nouveaux clients 30j', value: '+1', trendLabel: 'Client Actif', trendDirection: 'up' },
+      { label: 'Clients actifs', value: '1', trendLabel: 'Client Actif', trendDirection: 'up' },
     ],
   },
 }
 
 export const walletSummary = {
-  amount: '+440,00€',
+  amount: '+1 480,00€',
   objective: 'En attente de paiement',
   provider: 'SHINE',
 }
@@ -193,9 +193,9 @@ export const clientsTrend = {
 }
 
 export const forecastHighlights = [
-  { label: 'Pipeline signé (30j)', amount: '1 040€', trend: 'Digital Radicalz', detail: '1 projet signé ce mois' },
-  { label: 'Montant en attente', amount: '1 040€', trend: 'À facturer', detail: 'Devis Digital Radicalz' },
-  { label: 'Solde actuel Shine', amount: '440€', trend: 'Disponible', detail: 'En attente de paiement' },
+  { label: 'Pipeline signé (30j)', amount: '1 040€', trend: 'Client Actif', detail: '1 projet signé ce mois' },
+  { label: 'Montant en attente', amount: '1 040€', trend: 'À facturer', detail: 'Devis Client Actif' },
+  { label: 'Solde actuel Shine', amount: '1 480€', trend: 'Disponible', detail: 'En attente de paiement' },
 ]
 
 export const forecastTimeline = [
@@ -213,7 +213,7 @@ export const sustainabilityMetrics = [
 ]
 
 export const sustainabilityClients = [
-  { name: 'Digital Radicalz', health: 'Élevée', scope: 'UX/UI & Site Web', recurrence: 'Projet signé' },
+  { name: 'Client Actif', health: 'Élevée', scope: 'UX/UI & Site Web', recurrence: 'Projet signé' },
 ]
 
 export type Invoice = {
@@ -225,7 +225,7 @@ export type Invoice = {
 }
 
 export const invoicingQueue: Invoice[] = [
-  { id: 'INV-001', client: 'Digital Radicalz', amount: '1 040€', dueDate: '30/11/2025', status: 'À envoyer' },
+  { id: 'INV-001', client: 'Client Actif', amount: '1 040€', dueDate: '30/11/2025', status: 'À envoyer' },
 ]
 
 export type AgendaEvent = {
@@ -240,8 +240,8 @@ export type AgendaEvent = {
 }
 
 export const agendaEvents: AgendaEvent[] = [
-  { id: 'evt-1', label: 'DIGITAL RADICALZ', day: 0, startTime: 480, endTime: 540, type: 'Client', color: '#5CE1FF' }, // Lundi 8h00-9h00
-  { id: 'evt-2', label: 'Suivi projet Digital Radicalz', day: 2, startTime: 840, endTime: 900, type: 'Review', color: '#8B5CF6' }, // Mercredi 14h00-15h00
+  { id: 'evt-1', label: 'CLIENT ACTIF', day: 0, startTime: 480, endTime: 540, type: 'Client', color: '#5CE1FF' }, // Lundi 8h00-9h00
+  { id: 'evt-2', label: 'Suivi projet Client Actif', day: 2, startTime: 840, endTime: 900, type: 'Review', color: '#8B5CF6' }, // Mercredi 14h00-15h00
 ]
 
 export const timeEvolution = {
@@ -311,7 +311,7 @@ export const actionSchemas: Record<string, ActionSchema> = {
     description: 'Ajoutez un point de suivi pour l\'un de vos clients récurrents.',
     submitLabel: 'Enregistrer le suivi',
     fields: [
-      { id: 'client', label: 'Client', type: 'text', placeholder: 'Digital Radicalz...' },
+      { id: 'client', label: 'Client', type: 'text', placeholder: 'Client Actif...' },
       { id: 'health', label: 'Vitalité', type: 'select', options: ['Élevée', 'Moyenne', 'À surveiller'] },
       { id: 'scope', label: 'Portée', type: 'text', placeholder: 'Mission / service' },
       { id: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Derniers échanges, risques...' },
@@ -328,6 +328,7 @@ export const actionSchemas: Record<string, ActionSchema> = {
       { id: 'title', label: 'Intitulé', type: 'text', placeholder: 'Ex: Desktop ne démarre plus' },
       { id: 'price', label: 'Prix (€)', type: 'number', placeholder: 'ex: 400' },
       { id: 'estimate', label: 'Durée estimée (h)', type: 'number', placeholder: 'ex: 4' },
+      { id: 'pdf', label: 'Document PDF', type: 'file', placeholder: 'Ajouter un PDF' },
       { id: 'notes', label: 'Notes internes', type: 'textarea', placeholder: 'Checklist, fichiers...' },
     ],
   },
@@ -341,6 +342,7 @@ export const actionSchemas: Record<string, ActionSchema> = {
       { id: 'title', label: 'Intitulé', type: 'text', placeholder: 'UX/UI & Site Web' },
       { id: 'amount', label: 'Montant HT (€)', type: 'number' },
       { id: 'delivery', label: 'Date de livraison', type: 'date' },
+      { id: 'pdf', label: 'Devis PDF', type: 'file', placeholder: 'Ajouter le devis PDF' },
       { id: 'notes', label: 'Commentaire', type: 'textarea', placeholder: 'Conditions, lien Notion...' },
     ],
   },
@@ -354,6 +356,7 @@ export const actionSchemas: Record<string, ActionSchema> = {
       { id: 'amount', label: 'Montant TTC (€)', type: 'number' },
       { id: 'dueDate', label: 'Échéance', type: 'date' },
       { id: 'status', label: 'Statut', type: 'select', options: ['À envoyer', 'Envoyée', 'Payée'] },
+      { id: 'pdf', label: 'Facture PDF', type: 'file', placeholder: 'Ajouter la facture PDF' },
       { id: 'notes', label: 'Notes', type: 'textarea', placeholder: 'Lien facture, rappel...' },
     ],
   },
@@ -448,7 +451,7 @@ export type Ticket = {
 }
 
 export const ticketsData: Ticket[] = [
-  { id: 'DR-001', type: 'UX/UI', client: 'Digital Radicalz', price: 1040, title: 'Conception UX/UI & Site Web Framer', eta: 'En cours', status: 'En cours' },
+  { id: 'DR-001', type: 'UX/UI', client: 'Client Actif', price: 1040, title: 'Conception UX/UI & Site Web Framer', eta: 'En cours', status: 'En cours' },
 ]
 
 export type Proposal = {
@@ -461,7 +464,7 @@ export type Proposal = {
 
 export const proposals: Proposal[] = [
   {
-    title: 'Conception UX/UI & Site Web Framer - Digital Radicalz',
+    title: 'Conception UX/UI & Site Web Framer - Client Actif',
     subtitle: 'UX/UI - Conception Site Web',
     date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }),
     status: 'Signé',
@@ -480,8 +483,8 @@ export type Client = {
 
 export const clients: Client[] = [
   {
-    name: 'Digital Radicalz',
-    contact: 'Digital Radicalz',
+    name: 'Client Actif',
+    contact: 'Client Actif',
     industry: 'Digital',
     status: 'En cours',
     addedOn: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -542,8 +545,8 @@ export const todoColumns: TodoColumn[] = [
     title: 'Rush',
     icon: 'runner',
     cards: [
-      { title: 'SPRINT', meta: 'Production Digital Radicalz', tag: 'Sprint', status: '1 carte' },
-      { title: 'Prod Digital Radicalz', meta: 'Livraison UX/UI & Site Web', tag: 'Rush', status: 'En cours' },
+      { title: 'SPRINT', meta: 'Production Client Actif', tag: 'Sprint', status: '1 carte' },
+      { title: 'Prod Client Actif', meta: 'Livraison UX/UI & Site Web', tag: 'Rush', status: 'En cours' },
     ],
   },
   {
@@ -551,7 +554,7 @@ export const todoColumns: TodoColumn[] = [
     title: 'En cours',
     icon: 'folder',
     cards: [
-      { title: 'Conception UX/UI', meta: 'Digital Radicalz - Site Web Framer', tag: 'UX/UI', status: 'En cours' },
+      { title: 'Conception UX/UI', meta: 'Client Actif - Site Web Framer', tag: 'UX/UI', status: 'En cours' },
     ],
   },
   {
@@ -559,7 +562,7 @@ export const todoColumns: TodoColumn[] = [
     title: 'Terminé',
     icon: 'shield',
     cards: [
-      { title: 'Devis signé', meta: 'Digital Radicalz - 1 040€', tag: 'Done', status: 'Validé' },
+      { title: 'Devis signé', meta: 'Client Actif - 1 040€', tag: 'Done', status: 'Validé' },
     ],
   },
 ]
