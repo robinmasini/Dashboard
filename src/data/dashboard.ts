@@ -163,7 +163,7 @@ export const navConfig: Record<DashboardNavKey, SectionConfig> = {
 }
 
 export const walletSummary = {
-  amount: '+3 464,33€',
+  amount: '+8 094,76€',
   objective: 'En attente de paiement',
   provider: 'SHINE',
 }
@@ -195,7 +195,7 @@ export const clientsTrend = {
 export const forecastHighlights = [
   { label: 'Pipeline signé (30j)', amount: '1 040€', trend: 'Client Actif', detail: '1 projet signé ce mois' },
   { label: 'Montant en attente', amount: '1 040€', trend: 'À facturer', detail: 'Devis Client Actif' },
-  { label: 'Solde actuel Shine', amount: '3 464,33€', trend: 'Disponible', detail: 'Vente régulière' },
+  { label: 'Solde actuel Shine', amount: '8 094,76€', trend: 'Disponible', detail: 'Vente régulière' },
 ]
 
 export const forecastTimeline = [

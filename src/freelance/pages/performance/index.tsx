@@ -63,7 +63,11 @@ const OverviewContent = () => {
     }).length
   }, [clients])
 
-  // 4. Sales Chart Data (Ventes du mois en cours)
+  // 4. Stripe Connection Status
+  const stripeKey = "pk_live_51Sv3ZHLkTHqEmucyTb6aAik6fRLlnMVAkSrx0Uc8k0im9pIQMxyArnXv1ZgDh4hzv6G0wSvBRrHUwuL8xZHIXkyl00pk1e2U3M"
+  const stripeStatus = "Connecté"
+
+  // 5. Sales Chart Data (Ventes du mois en cours)
   const { salesPoints, axisLabels, monthLabel } = useMemo(() => {
     const now = new Date()
     const currentMonth = now.getMonth()
@@ -109,8 +113,8 @@ const OverviewContent = () => {
 
   return (
     <section className="grid performance-grid">
-      {/* Top row - 3 KPIs */}
-      <article className="panel floating-card col-span-4">
+      {/* Top row - 4 KPIs */}
+      <article className="panel floating-card col-span-3">
         <p className="floating-card__label">Bénéfice du jour</p>
         <div className="floating-card__value">
           <span>{todayBenefitFormatted}</span>
@@ -119,18 +123,30 @@ const OverviewContent = () => {
           </span>
         </div>
       </article>
-      <article className="panel floating-card col-span-4">
+      <article className="panel floating-card col-span-3">
         <p className="floating-card__label">Tarif Journalier (TJM)</p>
         <div className="floating-card__value">
           <span>{tjmValue}</span>
           <span className="trend trend--up">Référence</span>
         </div>
       </article>
-      <article className="panel floating-card col-span-4">
+      <article className="panel floating-card col-span-3">
         <p className="floating-card__label">Nouveaux Clients</p>
         <div className="floating-card__value">
           <span>+{newClientsCount}</span>
           <span className="trend trend--up">Ce mois-ci</span>
+        </div>
+      </article>
+      <article className="panel floating-card col-span-3">
+        <p className="floating-card__label">Compte Stripe</p>
+        <div className="floating-card__value" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '1.2rem', color: '#6366f1' }}>{stripeStatus}</span>
+            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
+          </div>
+          <span className="trend" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+            {stripeKey.substring(0, 16)}...
+          </span>
         </div>
       </article>
 
@@ -217,9 +233,12 @@ const OverviewContent = () => {
         <article className="panel wallet-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <header className="panel__header" style={{ marginBottom: '12px' }}>
             <p className="panel__label">Solde disponible</p>
-            <button type="button" className="ghost-button tiny" aria-label="Options">⋯</button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid rgba(99, 102, 241, 0.3)' }}>STRIPE OK</span>
+              <button type="button" className="ghost-button tiny" aria-label="Options">⋯</button>
+            </div>
           </header>
-          <p className="panel__sub" style={{ marginBottom: '8px' }}>{walletSummary.provider}</p>
+          <p className="panel__sub" style={{ marginBottom: '8px' }}>{walletSummary.provider} + STRIPE</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <p style={{ fontSize: '2rem', fontWeight: 800, color: 'white', marginBottom: '0', lineHeight: 1 }}>{walletSummary.amount}</p>
             <p style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap' }}>86 % de l'objectif atteint</p>
