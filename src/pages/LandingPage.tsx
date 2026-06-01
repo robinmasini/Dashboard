@@ -22,11 +22,11 @@ export default function LandingPage() {
     const companies = [
         { name: 'Kuerkod', logo: image169Logo },
         { name: 'Meonix', logo: group3709Logo },
-        { name: 'Foundclub', logo: foundclubLogo },
-        { name: 'Christophe Desouches', logo: christopheLogo },
-        { name: 'Zol', logo: group3708Logo },
+        { name: 'Foundclub', logo: foundclubLogo, scale: 0.7 },
+        { name: 'Christophe Desouches', logo: christopheLogo, scale: 1.5 },
+        { name: 'Zol', logo: group3708Logo, scale: 1.3 },
         { name: 'SuperMama', logo: supermamaLogo },
-        { name: 'Casper Dental', logo: group3710Logo }
+        { name: 'Casper Dental', logo: group3710Logo, scale: 1.35 }
     ]
 
     return (
@@ -81,13 +81,23 @@ export default function LandingPage() {
                         {/* Premier set de logos */}
                         {companies.map((company, index) => (
                             <div key={`logo-1-${index}`} className="landing-carousel-item">
-                                <img src={company.logo} alt={company.name} className="landing-carousel-img" />
+                                <img
+                                    src={company.logo}
+                                    alt={company.name}
+                                    className="landing-carousel-img"
+                                    style={company.scale ? { height: `calc(var(--logo-height) * ${company.scale})` } : undefined}
+                                />
                             </div>
                         ))}
                         {/* Deuxième set dupliqué pour assurer la continuité du défilement */}
                         {companies.map((company, index) => (
                             <div key={`logo-2-${index}`} className="landing-carousel-item">
-                                <img src={company.logo} alt={company.name} className="landing-carousel-img" />
+                                <img
+                                    src={company.logo}
+                                    alt={company.name}
+                                    className="landing-carousel-img"
+                                    style={company.scale ? { height: `calc(var(--logo-height) * ${company.scale})` } : undefined}
+                                />
                             </div>
                         ))}
                     </div>

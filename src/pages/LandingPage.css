@@ -206,7 +206,8 @@
 }
 
 .landing-carousel-img {
-    height: 28px;
+    --logo-height: 28px;
+    height: var(--logo-height);
     width: auto;
     object-fit: contain;
     opacity: 0.4;
@@ -333,6 +334,6 @@
     }
 
     .landing-carousel-img {
-        height: 22px;
+        --logo-height: 22px;
     }
 }
