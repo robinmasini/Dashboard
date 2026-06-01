@@ -272,23 +272,23 @@
 /* Mobile responsive */
 @media (max-width: 768px) {
     .landing-hero {
-        padding: 24px 16px 16px;
+        padding: 12px 16px 4px;
     }
 
     /* Keep hero card size unchanged */
 
     .landing-logo {
-        max-width: 170px;
-        margin-bottom: 16px;
+        max-width: 110px;
+        margin-bottom: 8px;
     }
 
     .landing-bottom {
-        padding: 16px 16px 32px;
+        padding: 8px 16px 16px;
         justify-content: flex-start;
     }
 
     .landing-message {
-        margin-bottom: 16px;
+        margin-bottom: 12px;
     }
 
     .landing-message p {
@@ -308,7 +308,7 @@
     }
 
     .landing-contact {
-        margin-top: 24px;
+        margin-top: 12px;
     }
 
     .landing-contact a {
