@@ -65,13 +65,6 @@ export default function LandingPage() {
                         <span className="landing-arrow">→</span>
                     </button>
                 </div>
-
-                {/* Contact */}
-                <div className="landing-contact">
-                    <a href="mailto:contact@robinmasini.com">contact@robinmasini.com</a>
-                    <a href="tel:+33603096001" className="landing-phone">+33 6 03 09 60 01</a>
-                    <p className="landing-address">520 Rue Frédéric Joliot - 13100 Aix-en-Provence</p>
-                </div>
             </div>
 
             {/* Carrousel infini des logos partenaires en bas de page */}
@@ -103,6 +96,13 @@ export default function LandingPage() {
                         ))}
                     </div>
                 </div>
+            </div>
+
+            {/* Contact à la fin de la page */}
+            <div className="landing-contact">
+                <a href="mailto:contact@robinmasini.com">contact@robinmasini.com</a>
+                <a href="tel:+33603096001" className="landing-phone">+33 6 03 09 60 01</a>
+                <p className="landing-address">520 Rue Frédéric Joliot - 13100 Aix-en-Provence</p>
             </div>
 
             {/* Background gradient effect - positioned lower */}

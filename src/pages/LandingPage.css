@@ -242,7 +242,7 @@
     display: none;
 }
 
-/* Full-screen background image with Ken Burns animation */
+/* Full-screen background image (rock on left, fading to black on the right) */
 .landing-page::before {
     content: '';
     position: fixed;
@@ -250,23 +250,12 @@
     left: 0;
     width: 100%;
     height: 100vh;
-    background: url('../assets/background.png') no-repeat center center;
-    background-size: 110%;
+    background: 
+        linear-gradient(to right, rgba(0, 0, 0, 0) 30%, #000000 85%),
+        url('../assets/background.png') no-repeat left center;
+    background-size: cover;
     pointer-events: none;
     z-index: 0;
-    animation: kenBurns 10s ease-in-out infinite alternate;
-}
-
-@keyframes kenBurns {
-    0% {
-        background-size: 110%;
-        background-position: 30% center;
-    }
-
-    100% {
-        background-size: 120%;
-        background-position: 70% center;
-    }
 }
 
 /* Mobile responsive */
@@ -275,7 +264,10 @@
         padding: 12px 16px 4px;
     }
 
-    /* Keep hero card size unchanged */
+    .landing-hero-card {
+        max-width: 380px;
+        margin: 0 auto;
+    }
 
     .landing-logo {
         max-width: 110px;
@@ -288,7 +280,9 @@
     }
 
     .landing-message {
-        margin-bottom: 12px;
+        margin-bottom: 22px;
+        margin-top: 10px;
+        padding: 0 24px;
     }
 
     .landing-message p {
@@ -324,9 +318,11 @@
         height: 300px;
     }
 
-    /* Use mobile-specific background */
+    /* Use mobile-specific background (rock on left, fading to black at the bottom) */
     .landing-page::before {
-        background: url('../assets/background-mobile.png') no-repeat center center;
+        background: 
+            linear-gradient(to bottom, rgba(0, 0, 0, 0) 30%, #000000 80%),
+            url('../assets/background-mobile.png') no-repeat left center;
         background-size: cover;
     }
 
