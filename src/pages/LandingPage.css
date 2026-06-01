@@ -75,12 +75,18 @@
 
 .landing-message p {
     font-family: 'Montserrat', sans-serif;
-    font-size: 1rem;
-    font-weight: 400;
-    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.45);
     margin: 0;
-    line-height: 1.7;
-    letter-spacing: 0.02em;
+    line-height: 1.8;
+}
+
+.landing-message p strong {
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 700;
 }
 
 .landing-cta-row {
@@ -286,7 +292,8 @@
     }
 
     .landing-message p {
-        font-size: 1rem;
+        font-size: 0.65rem;
+        line-height: 1.8;
     }
 
     .landing-badge {
