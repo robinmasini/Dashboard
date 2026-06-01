@@ -151,21 +151,83 @@
     margin-top: 8px;
 }
 
-/* iPhone Mockup Section */
-.landing-mockup {
+/* Section Carrousel */
+.landing-carousel-section {
+    width: 100%;
+    max-width: 1200px;
+    margin: 40px auto 20px;
+    padding: 0 20px;
     display: flex;
-    justify-content: center;
-    align-items: flex-end;
-    padding: 16px 20px 0;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
     z-index: 1;
     position: relative;
 }
 
-.landing-mockup-img {
-    max-width: 450px;
+.landing-carousel-title {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.4);
+    margin: 0;
+}
+
+/* Wrapper avec effet de fondu progressif sur les bords gauche/droite */
+.landing-carousel-wrapper {
     width: 100%;
-    height: auto;
-    filter: drop-shadow(0 20px 40px rgba(0, 0, 0, 0.5));
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+    -webkit-mask-image: linear-gradient(to right, transparent, black 15%, black 85%, transparent);
+}
+
+/* Piste de défilement horizontal */
+.landing-carousel-track {
+    display: flex;
+    width: max-content;
+    gap: 60px; /* Espace entre les logos */
+    animation: scrollMarquee 30s linear infinite;
+}
+
+/* Pause de l'animation lors du survol de la souris */
+.landing-carousel-wrapper:hover .landing-carousel-track {
+    animation-play-state: paused;
+}
+
+/* Item individuel du carrousel */
+.landing-carousel-item {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 50px;
+}
+
+.landing-carousel-img {
+    height: 28px;
+    width: auto;
+    object-fit: contain;
+    opacity: 0.4;
+    filter: grayscale(100%) brightness(1.5);
+    transition: all 0.3s ease;
+}
+
+.landing-carousel-img:hover {
+    opacity: 1;
+    filter: grayscale(0%) brightness(1);
+    transform: scale(1.08);
+}
+
+/* Animation Keyframes pour le défilement */
+@keyframes scrollMarquee {
+    0% {
+        transform: translateX(0);
+    }
+    100% {
+        transform: translateX(-50%);
+    }
 }
 
 /* Background gradient effect - hidden */
@@ -258,5 +320,19 @@
     .landing-page::before {
         background: url('../assets/background-mobile.png') no-repeat center center;
         background-size: cover;
+    }
+
+    /* Ajustements mobiles du carrousel */
+    .landing-carousel-section {
+        margin: 24px auto 16px;
+        padding: 0 12px;
+    }
+
+    .landing-carousel-track {
+        gap: 40px;
+    }
+
+    .landing-carousel-img {
+        height: 22px;
     }
 }
