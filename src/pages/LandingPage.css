@@ -37,22 +37,46 @@
     position: relative;
 }
 
+/* Header navigation aligné sur la hero card */
+.landing-header {
+    width: 100%;
+    max-width: 550px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px; /* Espace aéré avec la hero card */
+    padding: 0 4px;
+    z-index: 10;
+}
+
 .landing-logo {
     max-width: 120px;
     height: auto;
-    margin-bottom: 12px;
 }
 
-/* Desktop: Logo in top-right corner */
-@media (min-width: 769px) {
-    .landing-logo {
-        position: fixed;
-        top: 32px;
-        right: 32px;
-        margin-bottom: 0;
-        max-width: 170px;
-        z-index: 100;
-    }
+/* Bouton Hamburger */
+.landing-hamburger {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 0;
+    z-index: 10;
+    transition: transform 0.2s ease;
+}
+
+.landing-hamburger:hover {
+    transform: scale(1.05);
+}
+
+.landing-hamburger-line {
+    width: 24px;
+    height: 2px;
+    background-color: rgba(255, 255, 255, 0.85);
+    border-radius: 99px;
+    transition: all 0.3s ease;
 }
 
 .landing-message {
@@ -270,9 +294,13 @@
         display: block;
     }
 
-    .landing-logo {
-        max-width: 130px;
+    .landing-header {
+        max-width: 320px;
         margin-bottom: 16px;
+    }
+
+    .landing-logo {
+        max-width: 105px;
     }
 
     .landing-bottom {
@@ -354,4 +382,95 @@
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
     border: 0;
+}
+
+/* Volet de navigation (Drawer) pour le menu hamburger */
+.landing-drawer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+}
+
+.landing-drawer.is-open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.landing-drawer-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 80%;
+    max-width: 320px;
+    height: 100%;
+    background: rgba(10, 10, 15, 0.95);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 40px 32px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transform: translateX(-100%);
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.landing-drawer.is-open .landing-drawer-content {
+    transform: translateX(0);
+}
+
+.landing-drawer-close {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: transparent;
+    border: none;
+    font-size: 1.5rem;
+    color: rgba(255, 255, 255, 0.6);
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.landing-drawer-close:hover {
+    color: white;
+}
+
+.landing-drawer-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    margin-top: 60px;
+}
+
+.landing-drawer-link {
+    background: transparent;
+    border: none;
+    text-align: left;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.7);
+    text-decoration: none;
+    cursor: pointer;
+    padding: 4px 0;
+    transition: all 0.2s ease;
+    width: max-content;
+}
+
+.landing-drawer-link:hover {
+    color: white;
+    transform: translateX(4px);
+}
+
+.landing-drawer-footer {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.3);
 }

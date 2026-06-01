@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import heroCard from '../assets/hero-card.png'
 import logo from '../assets/logo-ds.png'
@@ -18,6 +19,7 @@ import image169Logo from '../assets/image 169.png'
  */
 export default function LandingPage() {
     const navigate = useNavigate()
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
 
     const companies = [
         { name: 'Meonix', logo: group3709Logo },
@@ -34,8 +36,21 @@ export default function LandingPage() {
             {/* Section haute avec fond noir */}
             <div className="landing-hero">
                 <h1 className="visually-hidden">Robin Masini — Product Concepteur, UX/UI Designer & Full Stack Developer</h1>
-                {/* Logo au-dessus */}
-                <img src={logo} alt="Robin Masini" className="landing-logo" />
+                
+                {/* En-tête avec hamburger à gauche et logo à droite (alignés sur la hero card) */}
+                <header className="landing-header">
+                    <button 
+                        className="landing-hamburger" 
+                        onClick={() => setIsMenuOpen(true)}
+                        aria-label="Ouvrir le menu"
+                    >
+                        <span className="landing-hamburger-line"></span>
+                        <span className="landing-hamburger-line"></span>
+                        <span className="landing-hamburger-line"></span>
+                    </button>
+                    <img src={logo} alt="Robin Masini" className="landing-logo" />
+                </header>
+
                 <img src={heroCard} alt="Robin Masini - Product Concepteur, UX/UI Designer & Full Stack Developer" className="landing-hero-card" />
             </div>
 
@@ -107,6 +122,34 @@ export default function LandingPage() {
 
             {/* Background gradient effect - positioned lower */}
             <div className="landing-bg-gradient"></div>
+
+            {/* Volet de navigation (Drawer) pour le menu hamburger */}
+            <div className={`landing-drawer ${isMenuOpen ? 'is-open' : ''}`} onClick={() => setIsMenuOpen(false)}>
+                <div className="landing-drawer-content" onClick={(e) => e.stopPropagation()}>
+                    <button className="landing-drawer-close" onClick={() => setIsMenuOpen(false)} aria-label="Fermer le menu">
+                        ✕
+                    </button>
+                    
+                    <nav className="landing-drawer-nav">
+                        <a href="/" className="landing-drawer-link" onClick={() => setIsMenuOpen(false)}>
+                            Accueil
+                        </a>
+                        <button className="landing-drawer-link" onClick={() => { setIsMenuOpen(false); navigate('/auth/client'); }}>
+                            Dashboard Client
+                        </button>
+                        <button className="landing-drawer-link" onClick={() => { setIsMenuOpen(false); navigate('/auth/freelance'); }}>
+                            Accès Admin
+                        </button>
+                        <a href="mailto:contact@robinmasini.com?subject=Prise de contact" className="landing-drawer-link" onClick={() => setIsMenuOpen(false)}>
+                            Me contacter
+                        </a>
+                    </nav>
+
+                    <div className="landing-drawer-footer">
+                        <p>© Robin Masini</p>
+                    </div>
+                </div>
+            </div>
         </div>
     )
 }
