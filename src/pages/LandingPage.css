@@ -38,7 +38,7 @@
 }
 
 .landing-logo {
-    max-width: 100px;
+    max-width: 120px;
     height: auto;
     margin-bottom: 12px;
 }
@@ -50,7 +50,7 @@
         top: 32px;
         right: 32px;
         margin-bottom: 0;
-        max-width: 150px;
+        max-width: 170px;
         z-index: 100;
     }
 }
@@ -271,7 +271,7 @@
     }
 
     .landing-logo {
-        max-width: 105px;
+        max-width: 130px;
         margin-bottom: 16px;
     }
 
@@ -320,11 +320,11 @@
         height: 300px;
     }
 
-    /* Use mobile-specific background (rock at the bottom, fading to black at the top) */
+    /* Use mobile-specific background (rock shifted up slightly and less black opacity at the bottom) */
     .landing-page::before {
         background: 
-            linear-gradient(to bottom, #000000 15%, rgba(0, 0, 0, 0) 65%),
-            url('../assets/background-mobile.png') no-repeat center bottom;
+            linear-gradient(to bottom, #000000 5%, rgba(0, 0, 0, 0.4) 40%, rgba(0, 0, 0, 0) 75%),
+            url('../assets/background-mobile.png') no-repeat center 85%;
         background-size: cover;
     }
 

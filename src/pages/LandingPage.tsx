@@ -20,10 +20,10 @@ export default function LandingPage() {
     const navigate = useNavigate()
 
     const companies = [
-        { name: 'Kuerkod', logo: image169Logo },
-        { name: 'Meonix', logo: group3709Logo },
-        { name: 'Foundclub', logo: foundclubLogo, scale: 0.55 },
         { name: 'Christophe Desouches', logo: christopheLogo, scale: 1.7 },
+        { name: 'Meonix', logo: group3709Logo },
+        { name: 'Kuerkod', logo: image169Logo },
+        { name: 'Foundclub', logo: foundclubLogo, scale: 0.55 },
         { name: 'Zol', logo: group3708Logo, scale: 1.3 },
         { name: 'SuperMama', logo: supermamaLogo },
         { name: 'Casper Dental', logo: group3710Logo, scale: 1.35 }
