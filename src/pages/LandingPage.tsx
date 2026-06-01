@@ -20,8 +20,8 @@ export default function LandingPage() {
     const navigate = useNavigate()
 
     const companies = [
-        { name: 'Christophe Desouches', logo: christopheLogo, scale: 1.7 },
         { name: 'Meonix', logo: group3709Logo },
+        { name: 'Christophe Desouches', logo: christopheLogo, scale: 1.7 },
         { name: 'Kuerkod', logo: image169Logo },
         { name: 'Foundclub', logo: foundclubLogo, scale: 0.55 },
         { name: 'Zol', logo: group3708Logo, scale: 1.3 },
