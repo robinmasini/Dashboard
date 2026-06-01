@@ -33,9 +33,10 @@ export default function LandingPage() {
         <div className="landing-page">
             {/* Section haute avec fond noir */}
             <div className="landing-hero">
+                <h1 className="visually-hidden">Robin Masini — Product Concepteur, UX/UI Designer & Full Stack Developer</h1>
                 {/* Logo au-dessus */}
                 <img src={logo} alt="Robin Masini" className="landing-logo" />
-                <img src={heroCard} alt="Robin Masini - Concepteur Product UX/UI Design, Développeur Full Stack JavaScript" className="landing-hero-card" />
+                <img src={heroCard} alt="Robin Masini - Product Concepteur, UX/UI Designer & Full Stack Developer" className="landing-hero-card" />
             </div>
 
             {/* Section basse avec gradient */}
