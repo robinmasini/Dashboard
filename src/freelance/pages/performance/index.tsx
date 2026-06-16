@@ -329,7 +329,7 @@ const OverviewContent = () => {
           </header>
           <p className="panel__sub" style={{ marginBottom: '12px' }}>{walletSummary.provider} + STRIPE</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <p style={{ fontSize: '2.2rem', fontWeight: 800, color: 'white', margin: 0, lineHeight: 1 }}>{walletSummary.amount}</p>
+            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: 0, lineHeight: 1 }}>{walletSummary.amount}</p>
             <p style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>86 % de l'objectif atteint</p>
           </div>
         </article>
