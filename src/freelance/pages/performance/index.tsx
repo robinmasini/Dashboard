@@ -202,114 +202,114 @@ const OverviewContent = () => {
   const stripeStatus = "Connecté"
 
   return (
-    <section className="grid performance-grid">
-      {/* Top row - 4 KPIs */}
-      <article className="panel floating-card col-span-3">
-        <p className="floating-card__label">Bénéfice du jour</p>
-        <div className="floating-card__value">
-          <span>{todayBenefitFormatted}</span>
-          <span className="trend">
-            {todayBenefit > 0 ? 'En hausse' : 'Stable'}
-          </span>
-        </div>
-      </article>
-      <article className="panel floating-card col-span-3">
-        <p className="floating-card__label">Tarif Journalier (TJM)</p>
-        <div className="floating-card__value">
-          <span>{tjmValue}</span>
-          <span className="trend trend--up">Référence</span>
-        </div>
-      </article>
-      <article className="panel floating-card col-span-3">
-        <p className="floating-card__label">Nouveaux Clients</p>
-        <div className="floating-card__value">
-          <span>+{newClientsCount}</span>
-          <span className="trend trend--up">Ce mois-ci</span>
-        </div>
-      </article>
-      <article className="panel floating-card col-span-3">
-        <p className="floating-card__label">Compte Stripe</p>
-        <div className="floating-card__value" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '1.2rem', color: '#6366f1' }}>{stripeStatus}</span>
-            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
+    <>
+      {/* Top row - 4 KPIs separated in kpi-grid */}
+      <div className="kpi-grid">
+        <article className="panel floating-card">
+          <p className="floating-card__label">Bénéfice du jour</p>
+          <div className="floating-card__value">
+            <span>{todayBenefitFormatted}</span>
+            <span className="trend">
+              {todayBenefit > 0 ? 'En hausse' : 'Stable'}
+            </span>
           </div>
-          <span className="trend" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-            {stripeKey.substring(0, 16)}...
-          </span>
-        </div>
-      </article>
-
-      {/* Row 2 Left: Welcome Banner */}
-      <div
-        className="col-span-8"
-        style={{
-          background: 'linear-gradient(135deg, #060b28 0%, #0a0e23 100%)',
-          borderRadius: '14px',
-          overflow: 'hidden',
-          position: 'relative',
-          height: '350px',
-          border: '1px solid rgba(255, 255, 255, 0.05)',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
-        }}
-      >
-        <div
-          className="jellyfish-animation"
-          style={{
-            position: 'absolute',
-            inset: 0,
-            backgroundImage: `url(${welcomeBg})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-            opacity: 1,
-          }}
-        ></div>
-        <div style={{
-          position: 'absolute',
-          inset: 0,
-          background: 'linear-gradient(90deg, #060b28 0%, rgba(6, 11, 40, 0.8) 40%, rgba(6, 11, 40, 0) 100%)',
-        }}></div>
-
-        <div style={{ position: 'relative', zIndex: 10, padding: '32px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <p style={{ color: '#9ca3af', fontSize: '1rem', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bienvenue,</p>
-          <h2 style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', marginBottom: '16px' }}>Robin MASINI</h2>
-          <p style={{ color: '#d1d5db', marginBottom: 'auto', maxWidth: '450px', fontSize: '1rem', lineHeight: '1.6' }}>
-            Ravi de vous revoir ! Consultez votre Dashboard pour suivre votre activité et vos performances en temps réel.
-          </p>
-
-          <div style={{ marginTop: '32px', display: 'flex', alignItems: 'center', gap: '12px', color: '#9ca3af', fontSize: '0.9rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '16px', width: 'fit-content' }}>
-            <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
-            <span>Date d'aujourd'hui :</span>
-            <span style={{ color: 'white', fontWeight: 600 }}>{formattedDate}</span>
+        </article>
+        <article className="panel floating-card">
+          <p className="floating-card__label">Tarif Journalier (TJM)</p>
+          <div className="floating-card__value">
+            <span>{tjmValue}</span>
+            <span className="trend trend--up">Référence</span>
           </div>
-        </div>
+        </article>
+        <article className="panel floating-card">
+          <p className="floating-card__label">Nouveaux Clients</p>
+          <div className="floating-card__value">
+            <span>+{newClientsCount}</span>
+            <span className="trend trend--up">Ce mois-ci</span>
+          </div>
+        </article>
+        <article className="panel floating-card">
+          <p className="floating-card__label">Compte Stripe</p>
+          <div className="floating-card__value" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ fontSize: '1.2rem', color: '#6366f1' }}>{stripeStatus}</span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }}></span>
+            </div>
+            <span className="trend" style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontWeight: 400 }}>
+              {stripeKey.substring(0, 16)}...
+            </span>
+          </div>
+        </article>
       </div>
 
-      {/* Row 2 Right: Stacked Sat & Wallet */}
-      <div className="col-span-4" style={{ display: 'flex', flexDirection: 'column', gap: '24px', height: '350px' }}>
-        {/* Rendez-vous à venir */}
-        <article className="panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '16px' }}>
-          <p className="panel__label" style={{ marginBottom: '12px' }}>Rendez-vous à venir</p>
+      <section className="grid performance-grid">
+        {/* Row 1 Left: Welcome Banner */}
+        <div
+          className="col-span-8 row-1-card"
+          style={{
+            background: 'linear-gradient(135deg, #060b28 0%, #0a0e23 100%)',
+            borderRadius: '14px',
+            overflow: 'hidden',
+            position: 'relative',
+            border: '1px solid rgba(255, 255, 255, 0.05)',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)'
+          }}
+        >
+          <div
+            className="jellyfish-animation"
+            style={{
+              position: 'absolute',
+              inset: 0,
+              backgroundImage: `url(${welcomeBg})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              opacity: 1,
+            }}
+          ></div>
+          <div style={{
+            position: 'absolute',
+            inset: 0,
+            background: 'linear-gradient(90deg, #060b28 0%, rgba(6, 11, 40, 0.8) 40%, rgba(6, 11, 40, 0) 100%)',
+          }}></div>
+
+          <div style={{ position: 'relative', zIndex: 10, padding: '24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bienvenue,</p>
+            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'white', marginBottom: '8px' }}>Robin MASINI</h2>
+            <p style={{ color: '#d1d5db', margin: 0, maxWidth: '480px', fontSize: '0.9rem', lineHeight: '1.4' }}>
+              Ravi de vous revoir ! Suivez votre activité et vos performances en temps réel.
+            </p>
+
+            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#9ca3af', fontSize: '0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px', width: 'fit-content' }}>
+              <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
+              <span>Aujourd'hui :</span>
+              <span style={{ color: 'white', fontWeight: 600 }}>{formattedDate}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Row 1 Right: Rendez-vous à venir */}
+        <article className="panel col-span-4 row-1-card" style={{ display: 'flex', flexDirection: 'column', padding: '16px' }}>
+          <p className="panel__label" style={{ marginBottom: '8px', fontSize: '0.8rem' }}>Rendez-vous à venir</p>
           {upcomingAppointments.length === 0 ? (
-            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: 'auto 0' }}>Aucun rendez-vous prévu</p>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', margin: 'auto 0' }}>Aucun rendez-vous prévu</p>
           ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: 1, justifyContent: 'center' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flex: 1, justifyContent: 'center' }}>
               {upcomingAppointments.map((apt) => (
                 <div key={apt.id} style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
-                  padding: '8px 12px',
-                  background: 'rgba(255,255,255,0.05)',
+                  gap: '8px',
+                  padding: '6px 10px',
+                  background: 'rgba(255,255,255,0.04)',
                   borderRadius: '8px',
                   borderLeft: '3px solid #4f9dff'
                 }}>
-                  <span style={{ fontSize: '1.2rem' }}>📆</span>
+                  <span style={{ fontSize: '1rem' }}>📆</span>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <p style={{ fontSize: '0.85rem', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <p style={{ fontSize: '0.8rem', fontWeight: 600, margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {apt.client?.name || apt.notes || 'Rendez-vous'}
                     </p>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
+                    <p style={{ fontSize: '0.7rem', color: 'var(--text-muted)', margin: 0 }}>
                       {new Date(apt.appointment_date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} • {apt.start_time}
                     </p>
                   </div>
@@ -319,168 +319,130 @@ const OverviewContent = () => {
           )}
         </article>
 
-        {/* Wallet */}
-        <article className="panel wallet-panel" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <header className="panel__header" style={{ marginBottom: '12px' }}>
+        {/* Row 2 Left: Wallet / Solde disponible */}
+        <article className="panel wallet-panel col-span-4 row-2-card" style={{ justifyContent: 'center', padding: '24px' }}>
+          <header className="panel__header" style={{ marginBottom: '16px' }}>
             <p className="panel__label">Solde disponible</p>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <span style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid rgba(99, 102, 241, 0.3)' }}>STRIPE OK</span>
-              <button type="button" className="ghost-button tiny" aria-label="Options">⋯</button>
             </div>
           </header>
-          <p className="panel__sub" style={{ marginBottom: '8px' }}>{walletSummary.provider} + STRIPE</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <p style={{ fontSize: '2rem', fontWeight: 800, color: 'white', marginBottom: '0', lineHeight: 1 }}>{walletSummary.amount}</p>
-            <p style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600, margin: 0, lineHeight: 1.2, whiteSpace: 'nowrap' }}>86 % de l'objectif atteint</p>
+          <p className="panel__sub" style={{ marginBottom: '12px' }}>{walletSummary.provider} + STRIPE</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <p style={{ fontSize: '2.2rem', fontWeight: 800, color: 'white', margin: 0, lineHeight: 1 }}>{walletSummary.amount}</p>
+            <p style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>86 % de l'objectif atteint</p>
           </div>
         </article>
-      </div>
 
-      {/* Row 3 Left: TikTok Trends Robot */}
-      <article className="panel tiktok-panel col-span-6" style={{ display: 'flex', flexDirection: 'column', minHeight: '420px', justifyContent: 'space-between' }}>
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <div>
-            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span className={`pulse-dot ${isScanningTrends ? 'scanning' : ''}`}></span>
-              Robot Scanner de Tendances TikTok
-            </h4>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Scan quotidien : {isScanningTrends ? 'Scan en cours...' : 'Actif (Dernier scan aujourd\'hui à 08:32)'}
-            </span>
-          </div>
-          <button
-            onClick={runTrendScan}
-            disabled={isScanningTrends}
-            className="primary-button tiny"
-            style={{
-              padding: '6px 12px',
-              fontSize: '0.8rem',
-              background: isScanningTrends ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff0050, #00f2fe)',
-              color: 'white',
-              opacity: isScanningTrends ? 0.6 : 1,
-              cursor: isScanningTrends ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {isScanningTrends ? 'Analyse...' : 'Scanner'}
-          </button>
-        </header>
-
-        {/* Live log console */}
-        <div className="tiktok-console" style={{ marginBottom: '16px', flex: 1 }}>
-          {trendLogs.map((log, index) => (
-            <div key={index} className="tiktok-console__line">{log}</div>
-          ))}
-        </div>
-
-        {/* Trending widgets */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-          <div>
-            <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔥 Hashtags Viraux</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '6px' }}>
-                <span style={{ color: '#ff0050', fontWeight: 600 }}>#tiktokmademebuyit</span>
-                <span style={{ color: 'var(--text-muted)' }}>+140%</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '6px' }}>
-                <span style={{ color: '#00f2fe', fontWeight: 600 }}>#unboxing</span>
-                <span style={{ color: 'var(--text-muted)' }}>+95%</span>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '6px' }}>
-                <span style={{ color: 'white' }}>#homehacks</span>
-                <span style={{ color: 'var(--text-muted)' }}>+70%</span>
-              </div>
+        {/* Row 2 Middle: TikTok Trends Robot */}
+        <article className="panel tiktok-panel col-span-4 row-2-card" style={{ padding: '20px', justifyContent: 'space-between' }}>
+          <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+            <div>
+              <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span className={`pulse-dot ${isScanningTrends ? 'scanning' : ''}`}></span>
+                Robot Scanner TikTok
+              </h4>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                Dernier scan : à 08:32
+              </span>
             </div>
+            <button
+              onClick={runTrendScan}
+              disabled={isScanningTrends}
+              className="primary-button tiny"
+              style={{
+                padding: '4px 10px',
+                fontSize: '0.75rem',
+                background: isScanningTrends ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff0050, #00f2fe)',
+                color: 'white',
+                opacity: isScanningTrends ? 0.6 : 1,
+                cursor: isScanningTrends ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {isScanningTrends ? 'Analyse...' : 'Scanner'}
+            </button>
+          </header>
+
+          {/* Live log console */}
+          <div className="tiktok-console" style={{ marginBottom: '12px', flex: 1, height: '110px' }}>
+            {trendLogs.map((log, index) => (
+              <div key={index} className="tiktok-console__line">{log}</div>
+            ))}
           </div>
-          <div>
-            <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🎵 Sons Populaires</p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '4px 8px', borderRadius: '6px' }}>
-                <span style={{ fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Summer Lofi (Remix)</span>
-                <span style={{ color: '#ff0050', fontSize: '0.65rem' }}>15k vidéos (+340%)</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '4px 8px', borderRadius: '6px' }}>
-                <span style={{ fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Upbeat Acoustic Pop</span>
-                <span style={{ color: '#00f2fe', fontSize: '0.65rem' }}>12k vidéos (+180%)</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </article>
 
-      {/* Row 3 Right: TikTok Products Sourcing Robot */}
-      <article className="panel tiktok-panel col-span-6" style={{ display: 'flex', flexDirection: 'column', minHeight: '420px' }}>
-        <header style={{ marginBottom: '16px' }}>
-          <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            🤖 Robot Sourcing Produits Gagnants
-          </h4>
-          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-            Recherche de produits viraux à forte marge et fort potentiel de vente TikTok
-          </span>
-        </header>
-
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '310px', paddingRight: '4px' }}>
-          {winningProducts.map((p) => {
-            const marginAmount = p.sellPrice - p.sourcePrice
-            const marginPercent = Math.round((marginAmount / p.sellPrice) * 100)
-            const isSelected = selectedProduct === p.id
-
-            return (
-              <div
-                key={p.id}
-                className={`product-row ${isSelected ? 'is-selected' : ''}`}
-                style={{ cursor: 'pointer' }}
-                onClick={() => setSelectedProduct(p.id)}
-              >
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                    {p.name}
-                  </p>
-                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    {p.category} • {p.views} vues
-                  </p>
+          {/* Trending widgets */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+            <div>
+              <p style={{ margin: '0 0 4px 0', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔥 Hashtags</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', background: 'rgba(255,255,255,0.02)', padding: '4px 6px', borderRadius: '4px' }}>
+                  <span style={{ color: '#ff0050', fontWeight: 600 }}>#mademebuy</span>
+                  <span style={{ color: 'var(--text-muted)' }}>+140%</span>
                 </div>
-                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div>
-                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#39ff14' }}>
-                      {marginAmount.toFixed(2)} €
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', background: 'rgba(255,255,255,0.02)', padding: '4px 6px', borderRadius: '4px' }}>
+                  <span style={{ color: '#00f2fe', fontWeight: 600 }}>#unboxing</span>
+                  <span style={{ color: 'var(--text-muted)' }}>+95%</span>
+                </div>
+              </div>
+            </div>
+            <div>
+              <p style={{ margin: '0 0 4px 0', fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🎵 Sons</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.65rem', background: 'rgba(255,255,255,0.02)', padding: '4px 6px', borderRadius: '4px' }}>
+                  <span style={{ fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Lofi Remix</span>
+                  <span style={{ color: '#ff0050', fontSize: '0.6rem' }}>+340%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        {/* Row 2 Right: TikTok Products Sourcing Robot */}
+        <article className="panel tiktok-panel col-span-4 row-2-card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
+          <header style={{ marginBottom: '12px' }}>
+            <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'white' }}>
+              🤖 Robot Sourcing Produits
+            </h4>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+              Sélectionnez un produit gagnant
+            </span>
+          </header>
+
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto', paddingRight: '2px' }}>
+            {winningProducts.map((p) => {
+              const marginAmount = p.sellPrice - p.sourcePrice
+              const isSelected = selectedProduct === p.id
+
+              return (
+                <div
+                  key={p.id}
+                  className={`product-row ${isSelected ? 'is-selected' : ''}`}
+                  style={{ cursor: 'pointer', padding: '8px 10px', marginBottom: '4px' }}
+                  onClick={() => setSelectedProduct(p.id)}
+                >
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <p style={{ margin: 0, fontSize: '0.75rem', fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {p.name}
                     </p>
                     <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
-                      Marge ({marginPercent}%)
+                      Marge: <span style={{ color: '#39ff14', fontWeight: 700 }}>{marginAmount.toFixed(1)}€</span> • {p.views}
                     </p>
                   </div>
-                  <div style={{ display: 'flex', gap: '4px' }}>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setShowSupplierModal(p)
-                      }}
-                      className="ghost-button tiny"
-                      style={{ padding: '4px 8px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
-                    >
-                      Sourcing
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedProduct(p.id)
-                      }}
-                      className="primary-button tiny"
-                      style={{
-                        padding: '4px 8px',
-                        fontSize: '0.7rem',
-                        background: isSelected ? 'linear-gradient(135deg, #00f2fe, #3b4fff)' : 'rgba(255,255,255,0.05)',
-                        border: 'none'
-                      }}
-                    >
-                      Stratégie
-                    </button>
-                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowSupplierModal(p)
+                    }}
+                    className="ghost-button tiny"
+                    style={{ padding: '3px 6px', fontSize: '0.65rem', border: '1px solid rgba(255,255,255,0.1)', marginLeft: '8px' }}
+                  >
+                    Source
+                  </button>
                 </div>
-              </div>
-            )
-          })}
-        </div>
-      </article>
+              )
+            })}
+          </div>
+        </article>
 
       {/* Row 4: TikTok E-commerce Idea/Strategy Generator (Full Width) */}
       {selectedProduct && (
@@ -645,6 +607,7 @@ const OverviewContent = () => {
         </div>
       )}
     </section>
+  </>
   )
 }
 

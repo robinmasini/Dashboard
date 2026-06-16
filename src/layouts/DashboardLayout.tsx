@@ -5,7 +5,7 @@ import { useAuth } from '../shared/hooks/useAuth'
 import { useClients } from '../shared/hooks/useSupabaseHooks'
 import '../App.css'
 import '../shared/components/Sidebar.css'
-import logoDs from '../assets/logo-ds.png'
+import logoDs from '../assets/rm-logo.png'
 import robinAvatar from '../assets/robin-avatar.png'
 
 // Composant pour afficher le profil du client connecté
