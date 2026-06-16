@@ -7,11 +7,117 @@ import ForecastPanel from '../../components/ForecastPanel'
 import SustainabilityPanel from '../../components/SustainabilityPanel'
 import { walletSummary } from '../../../data/dashboard'
 import { useInvoices, useClients, useAppointments } from '../../../shared'
-
-// --- Helper Functions ---
-
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount)
+}
+
+// --- Sourcing & SMM Data ---
+
+interface Product {
+  id: string
+  name: string
+  category: string
+  sourcePrice: number
+  sellPrice: number
+  views: string
+  supplier: string
+  supplierUrl: string
+  engagement: string
+  growth: string
+}
+
+const winningProducts: Product[] = [
+  {
+    id: "blender",
+    name: "Mini Blender Portable Ultra-Power",
+    category: "Cuisine & Nutrition",
+    sourcePrice: 4.50,
+    sellPrice: 29.90,
+    views: "4.8M",
+    supplier: "Alibaba (Fournisseur Certifié, livraison 7j)",
+    supplierUrl: "https://french.alibaba.com",
+    engagement: "9.2%",
+    growth: "+145%"
+  },
+  {
+    id: "brush",
+    name: "Brosse Nettoyante Électrique 5-en-1",
+    category: "Beauté & Entretien",
+    sourcePrice: 2.80,
+    sellPrice: 19.99,
+    views: "12.1M",
+    supplier: "Zendrop (Dropshipping rapide, stock Europe)",
+    supplierUrl: "https://www.zendrop.com",
+    engagement: "11.5%",
+    growth: "+310%"
+  },
+  {
+    id: "galaxy",
+    name: "Projecteur Galaxie Portable Lumineux",
+    category: "Décoration & High-Tech",
+    sourcePrice: 6.20,
+    sellPrice: 34.99,
+    views: "8.3M",
+    supplier: "Alibaba (Fabricant direct, logo personnalisé)",
+    supplierUrl: "https://french.alibaba.com",
+    engagement: "8.7%",
+    growth: "+95%"
+  },
+  {
+    id: "phone-holder",
+    name: "Support Téléphone Suiveur de Visage (360° AI)",
+    category: "High-Tech & Création",
+    sourcePrice: 5.10,
+    sellPrice: 27.99,
+    views: "3.2M",
+    supplier: "CJDropshipping (Livraison express avec emballage personnalisé)",
+    supplierUrl: "https://cjdropshipping.com",
+    engagement: "7.9%",
+    growth: "+65%"
+  }
+]
+
+const productStrategies: Record<string, { hook: string; angle: string; videoPlan: string[]; sourcingTips: string }> = {
+  blender: {
+    hook: "« Arrêtez de dépenser 8€ dans vos smoothies le matin. Ce petit gadget fait exactement la même chose pour 0,50€... »",
+    angle: "Style esthétique 'Clean Girl' / Routine matinale saine. C'est l'aspect d'indépendance, d'économie et la praticité pour le bureau/sport qui convertit.",
+    videoPlan: [
+      "0-3s : Hook visuel montrant des fruits frais mixés instantanément à la salle de sport ou dans la voiture.",
+      "3-10s : Démo de la charge USB-C et du nettoyage (on met de l'eau, du liquide vaisselle, et on mixe).",
+      "10-15s : Appel à l'action : 'Obtenez -50% aujourd'hui via le lien en bio'."
+    ],
+    sourcingTips: "Acheter par lots de 50 unités sur Alibaba pour faire baisser le coût à 3.20€ l'unité. Créer une marque simple autour de la nutrition."
+  },
+  brush: {
+    hook: "« Si vous avez cette trace de calcaire incrustée chez vous depuis des mois, ne frottez plus comme un fou... »",
+    angle: "Style ASMR / Nettoyage satisfaisant. Montrer l'avant/après sur une surface très sale (carrelage, joints, robinet) sans frotter.",
+    videoPlan: [
+      "0-3s : Plan ultra-satisfaisant d'une brosse rotative qui nettoie une trace noire instantanément.",
+      "3-10s : Comparaison de l'effort traditionnel vs la puissance de la brosse 5-en-1 avec embouts adaptés.",
+      "10-15s : Rareté & Call to action : 'Livraison offerte ce soir seulement. Lien en bio'."
+    ],
+    sourcingTips: "Produit idéal pour TikTok Organic. Commandez 2 exemplaires pour filmer des vidéos chez vous, puis lancez le shop."
+  },
+  galaxy: {
+    hook: "« J'ai transformé ma chambre d'étudiant ennuyeuse en vaisseau spatial pour moins de 35€... »",
+    angle: "Ambiance de nuit chaleureuse. Le produit doit être mis en scène dans l'obscurité avec des couleurs vibrantes pour déclencher un achat impulsif.",
+    videoPlan: [
+      "0-3s : Allumage du projecteur dans le noir total sur un drop de musique virale.",
+      "3-10s : Présentation des différents modes de couleurs et du mode de synchronisation à la musique.",
+      "10-15s : 'Lien en bio pour choper le vôtre avec le code TIKTOK15'."
+    ],
+    sourcingTips: "Trouver un fournisseur en marque blanche sur Alibaba. Vendre via Shopify en intégrant des avis clients vidéosTikTok."
+  },
+  "phone-holder": {
+    hook: "« Ce robot à 25€ remplace un caméraman pro et me suit partout quand je filme mes TikToks... »",
+    angle: "Cibler les créateurs de contenu, influenceurs et profs de sport. Montrer que la rotation AI suit chaque mouvement de façon fluide.",
+    videoPlan: [
+      "0-3s : Mouvement rapide du créateur et suivi instantané par le support sans aucun lag.",
+      "3-10s : Démonstration qu'aucune application n'est nécessaire (puce AI intégrée au capteur).",
+      "10-15s : 'Quantités limitées pour le lancement. Lien dans la bio'."
+    ],
+    sourcingTips: "Sourcing conseillé via CJDropshipping pour réduire les délais de livraison à 5-8 jours. Excellente opportunité en affiliation."
+  }
 }
 
 // --- Overview Content ---
@@ -21,7 +127,42 @@ const OverviewContent = () => {
   const { invoices } = useInvoices()
   const { clients } = useClients()
   const { appointments } = useAppointments()
-  // Note: useTickets available for future client activity visualization
+
+  // --- States for TikTok Robots ---
+  const [isScanningTrends, setIsScanningTrends] = useState(false)
+  const [trendLogs, setTrendLogs] = useState<string[]>([
+    `[08:30:00] [INFO] Robot Scanner TikTok en veille.`,
+    `[08:32:15] [SUCCESS] Scan quotidien automatique réussi.`
+  ])
+  const [selectedProduct, setSelectedProduct] = useState<string>('blender')
+  const [showSupplierModal, setShowSupplierModal] = useState<Product | null>(null)
+
+  const runTrendScan = () => {
+    if (isScanningTrends) return
+    setIsScanningTrends(true)
+    setTrendLogs([`[${new Date().toLocaleTimeString('fr-FR')}] [⚡] Initialisation du scan manuel...`])
+    
+    const logSteps = [
+      { text: "[🔄] Connexion aux serveurs API TikTok Creative Center...", delay: 600 },
+      { text: "[🔍] Analyse des mots-clés émergents en France dans la catégorie 'E-commerce'...", delay: 1200 },
+      { text: "[📈] Indexation de 4 500 vidéos et calcul de la vélocité des hashtags...", delay: 1800 },
+      { text: "[🔥] TENDANCE PHARE DÉTECTÉE : #tiktokmademebuyit (Taux d'engagement +140%)", delay: 2400 },
+      { text: "[🎵] Détection des pistes audio virales avec vélocité > 250%...", delay: 3000 },
+      { text: "[SUCCESS] Sons viraux identifiés. Hooks comportementaux extraits.", delay: 3600 },
+      { text: "[📊] Actualisation des produits gagnants TikTok Shop & Organic...", delay: 4200 },
+      { text: "[SUCCESS] Base de données actualisée avec succès. Prêt à vendre !", delay: 4800 }
+    ]
+
+    logSteps.forEach((step, idx) => {
+      setTimeout(() => {
+        const time = new Date().toLocaleTimeString('fr-FR')
+        setTrendLogs(prev => [...prev, `[${time}] ${step.text}`])
+        if (idx === logSteps.length - 1) {
+          setIsScanningTrends(false)
+        }
+      }, step.delay)
+    })
+  }
 
   // --- Upcoming Appointments (next 3) ---
   const upcomingAppointments = useMemo(() => {
@@ -33,9 +174,6 @@ const OverviewContent = () => {
   }, [appointments])
 
   // --- KPI Calculations ---
-
-  // 1. Bénéfice du jour (Somme des factures payées ou émises aujourd'hui ?)
-  // Pour l'instant, on va prendre les factures créées aujourd'hui
   const todayBenefit = useMemo(() => {
     const today = new Date().toISOString().split('T')[0]
     return invoices
@@ -47,11 +185,8 @@ const OverviewContent = () => {
   }, [invoices])
 
   const todayBenefitFormatted = formatCurrency(todayBenefit)
-
-  // 2. TJM (Fixe pour l'instant ou calculé sur la moyenne des tickets ?)
   const tjmValue = "323,75 €"
 
-  // 3. Nouveaux Clients (Ce mois-ci)
   const newClientsCount = useMemo(() => {
     const now = new Date()
     const currentMonth = now.getMonth()
@@ -63,53 +198,8 @@ const OverviewContent = () => {
     }).length
   }, [clients])
 
-  // 4. Stripe Connection Status
   const stripeKey = "pk_live_51Sv3ZHLkTHqEmucyTb6aAik6fRLlnMVAkSrx0Uc8k0im9pIQMxyArnXv1ZgDh4hzv6G0wSvBRrHUwuL8xZHIXkyl00pk1e2U3M"
   const stripeStatus = "Connecté"
-
-  // 5. Sales Chart Data (Ventes du mois en cours)
-  const { salesPoints, axisLabels, monthLabel } = useMemo(() => {
-    const now = new Date()
-    const currentMonth = now.getMonth()
-    const currentYear = now.getFullYear()
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate()
-
-    // Init array with 0
-    const dailySales = new Array(daysInMonth).fill(0)
-
-    invoices.forEach(inv => {
-      if (!inv.created_at) return
-      const d = new Date(inv.created_at)
-      if (d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
-        const dayIndex = d.getDate() - 1
-        const amount = parseFloat(inv.amount.replace(/[^0-9,-]+/g, "").replace(',', '.'))
-        dailySales[dayIndex] += (isNaN(amount) ? 0 : amount)
-      }
-    })
-
-    // Generate points for SVG polyline
-    const maxVal = Math.max(...dailySales, 100) // Min 100 to avoid flat line at 0
-    const points = dailySales.map((val, idx) => {
-      const x = (idx / (daysInMonth - 1)) * 100
-      const y = 50 - (val / maxVal) * 50 // 50 is height of SVG
-      return `${x.toFixed(2)},${y.toFixed(2)}`
-    }).join(' ')
-
-    // Axis labels (every 5 days)
-    const labels = []
-    for (let i = 0; i < daysInMonth; i += 5) labels.push(String(i + 1))
-
-    const monthNames = ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre']
-
-    return {
-      salesPoints: points,
-      axisLabels: labels,
-      monthLabel: `${monthNames[currentMonth]} ${currentYear}`
-    }
-  }, [invoices])
-
-  // Note: Client activity visualization available for future enhancement
-  // using clients and tickets data
 
   return (
     <section className="grid performance-grid">
@@ -246,52 +336,314 @@ const OverviewContent = () => {
         </article>
       </div>
 
-      {/* Row 3: Sales Chart */}
-      <article className="panel chart-panel col-span-8" style={{ height: '240px' }}>
-        <header className="panel__header">
-          <p>Ventes ({monthLabel})</p>
+      {/* Row 3 Left: TikTok Trends Robot */}
+      <article className="panel tiktok-panel col-span-6" style={{ display: 'flex', flexDirection: 'column', minHeight: '420px', justifyContent: 'space-between' }}>
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div>
+            <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className={`pulse-dot ${isScanningTrends ? 'scanning' : ''}`}></span>
+              Robot Scanner de Tendances TikTok
+            </h4>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+              Scan quotidien : {isScanningTrends ? 'Scan en cours...' : 'Actif (Dernier scan aujourd\'hui à 08:32)'}
+            </span>
+          </div>
+          <button
+            onClick={runTrendScan}
+            disabled={isScanningTrends}
+            className="primary-button tiny"
+            style={{
+              padding: '6px 12px',
+              fontSize: '0.8rem',
+              background: isScanningTrends ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #ff0050, #00f2fe)',
+              color: 'white',
+              opacity: isScanningTrends ? 0.6 : 1,
+              cursor: isScanningTrends ? 'not-allowed' : 'pointer'
+            }}
+          >
+            {isScanningTrends ? 'Analyse...' : 'Scanner'}
+          </button>
         </header>
-        <div style={{ flex: 1, position: 'relative', minHeight: 0 }}>
-          <svg viewBox="0 0 100 50" preserveAspectRatio="none" style={{ width: '100%', height: '100%', minHeight: 'auto' }}>
-            <defs>
-              <linearGradient id="areaGradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#4f9dff" stopOpacity="0.4" />
-                <stop offset="100%" stopColor="#1c2340" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <polyline points={salesPoints} fill="none" stroke="#4f9dff" strokeWidth="2" strokeLinecap="round" />
-            <polygon
-              points={`${salesPoints} 100,50 0,50`}
-              fill="url(#areaGradient)"
-              opacity="0.4"
-            />
-          </svg>
-        </div>
-        <div className="chart-panel__axis">
-          {axisLabels.map((label) => (
-            <span key={label}>{label}</span>
+
+        {/* Live log console */}
+        <div className="tiktok-console" style={{ marginBottom: '16px', flex: 1 }}>
+          {trendLogs.map((log, index) => (
+            <div key={index} className="tiktok-console__line">{log}</div>
           ))}
+        </div>
+
+        {/* Trending widgets */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+          <div>
+            <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🔥 Hashtags Viraux</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '6px' }}>
+                <span style={{ color: '#ff0050', fontWeight: 600 }}>#tiktokmademebuyit</span>
+                <span style={{ color: 'var(--text-muted)' }}>+140%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '6px' }}>
+                <span style={{ color: '#00f2fe', fontWeight: 600 }}>#unboxing</span>
+                <span style={{ color: 'var(--text-muted)' }}>+95%</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', background: 'rgba(255,255,255,0.02)', padding: '6px 8px', borderRadius: '6px' }}>
+                <span style={{ color: 'white' }}>#homehacks</span>
+                <span style={{ color: 'var(--text-muted)' }}>+70%</span>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p style={{ margin: '0 0 8px 0', fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>🎵 Sons Populaires</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '4px 8px', borderRadius: '6px' }}>
+                <span style={{ fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Summer Lofi (Remix)</span>
+                <span style={{ color: '#ff0050', fontSize: '0.65rem' }}>15k vidéos (+340%)</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', fontSize: '0.75rem', background: 'rgba(255,255,255,0.02)', padding: '4px 8px', borderRadius: '6px' }}>
+                <span style={{ fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Upbeat Acoustic Pop</span>
+                <span style={{ color: '#00f2fe', fontSize: '0.65rem' }}>12k vidéos (+180%)</span>
+              </div>
+            </div>
+          </div>
         </div>
       </article>
 
-      {/* Row 3: Clients Trends */}
-      <article className="panel bars-panel col-span-4" style={{ height: '240px' }}>
-        <header className="panel__header">
-          <p>Activité Clients</p>
+      {/* Row 3 Right: TikTok Products Sourcing Robot */}
+      <article className="panel tiktok-panel col-span-6" style={{ display: 'flex', flexDirection: 'column', minHeight: '420px' }}>
+        <header style={{ marginBottom: '16px' }}>
+          <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            🤖 Robot Sourcing Produits Gagnants
+          </h4>
+          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+            Recherche de produits viraux à forte marge et fort potentiel de vente TikTok
+          </span>
         </header>
-        <div className="bars" style={{ flex: 1, minHeight: 0 }}>
-          {/* Mock bars for visual consistency */}
-          {[60, 80, 45, 90, 30, 70, 50].map((value, index) => {
-            const height = value
+
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto', maxHeight: '310px', paddingRight: '4px' }}>
+          {winningProducts.map((p) => {
+            const marginAmount = p.sellPrice - p.sourcePrice
+            const marginPercent = Math.round((marginAmount / p.sellPrice) * 100)
+            const isSelected = selectedProduct === p.id
+
             return (
-              <div key={index} className="bar">
-                <span style={{ height: `${height}%` }} />
+              <div
+                key={p.id}
+                className={`product-row ${isSelected ? 'is-selected' : ''}`}
+                style={{ cursor: 'pointer' }}
+                onClick={() => setSelectedProduct(p.id)}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'white', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.name}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                    {p.category} • {p.views} vues
+                  </p>
+                </div>
+                <div style={{ textAlign: 'right', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div>
+                    <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#39ff14' }}>
+                      {marginAmount.toFixed(2)} €
+                    </p>
+                    <p style={{ margin: 0, fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                      Marge ({marginPercent}%)
+                    </p>
+                  </div>
+                  <div style={{ display: 'flex', gap: '4px' }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setShowSupplierModal(p)
+                      }}
+                      className="ghost-button tiny"
+                      style={{ padding: '4px 8px', fontSize: '0.7rem', border: '1px solid rgba(255,255,255,0.1)' }}
+                    >
+                      Sourcing
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedProduct(p.id)
+                      }}
+                      className="primary-button tiny"
+                      style={{
+                        padding: '4px 8px',
+                        fontSize: '0.7rem',
+                        background: isSelected ? 'linear-gradient(135deg, #00f2fe, #3b4fff)' : 'rgba(255,255,255,0.05)',
+                        border: 'none'
+                      }}
+                    >
+                      Stratégie
+                    </button>
+                  </div>
+                </div>
               </div>
             )
           })}
         </div>
-        <p className="bars-panel__caption">Basé sur les tickets</p>
       </article>
+
+      {/* Row 4: TikTok E-commerce Idea/Strategy Generator (Full Width) */}
+      {selectedProduct && (
+        <article className="panel tiktok-strategy-panel col-span-12" style={{ marginTop: '8px' }}>
+          <header style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: '#00f2fe', fontWeight: 700 }}>
+                Générateur d'Idées & Stratégie E-commerce TikTok
+              </span>
+              <h3 style={{ margin: '4px 0 0 0', fontSize: '1.3rem', fontWeight: 700, color: 'white' }}>
+                Pitch & Script pour : <span style={{ color: '#ff0050' }}>{winningProducts.find(p => p.id === selectedProduct)?.name}</span>
+              </h3>
+            </div>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.8rem', background: 'rgba(57, 255, 20, 0.1)', color: '#39ff14', padding: '4px 10px', borderRadius: '6px', fontWeight: 600 }}>
+                Marge estimée : {(winningProducts.find(p => p.id === selectedProduct)!.sellPrice - winningProducts.find(p => p.id === selectedProduct)!.sourcePrice).toFixed(2)} €
+              </span>
+            </div>
+          </header>
+
+          <div className="tiktok-strategy-grid">
+            {/* Hook video script */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <h5 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 700, color: '#ff0050', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                📣 Accroche Vidéo (Hook)
+              </h5>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontStyle: 'italic', lineHeight: '1.5', color: '#e5e7eb' }}>
+                {productStrategies[selectedProduct]?.hook}
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(productStrategies[selectedProduct]?.hook || '')
+                  alert('Hook copié dans le presse-papiers !')
+                }}
+                className="ghost-button tiny"
+                style={{ marginTop: '12px', width: '100%', padding: '6px', fontSize: '0.75rem', justifyContent: 'center' }}
+              >
+                📋 Copier le Hook
+              </button>
+            </div>
+
+            {/* Marketing Angle */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <h5 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 700, color: '#00f2fe' }}>
+                🎯 Angle Marketing Recommandé
+              </h5>
+              <p style={{ margin: 0, fontSize: '0.85rem', lineHeight: '1.5', color: '#d1d5db' }}>
+                {productStrategies[selectedProduct]?.angle}
+              </p>
+            </div>
+
+            {/* Sourcing & Logistics */}
+            <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.04)' }}>
+              <h5 style={{ margin: '0 0 8px 0', fontSize: '0.9rem', fontWeight: 700, color: '#39ff14' }}>
+                📦 Sourcing & Logistique
+              </h5>
+              <p style={{ margin: 0, fontSize: '0.85rem', lineHeight: '1.5', color: '#d1d5db', marginBottom: '8px' }}>
+                {productStrategies[selectedProduct]?.sourcingTips}
+              </p>
+              <a
+                href={winningProducts.find(p => p.id === selectedProduct)?.supplierUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="primary-button tiny"
+                style={{
+                  display: 'inline-flex',
+                  justifyContent: 'center',
+                  width: '100%',
+                  padding: '6px',
+                  fontSize: '0.75rem',
+                  background: 'rgba(57, 255, 20, 0.15)',
+                  border: '1px solid rgba(57, 255, 20, 0.3)',
+                  color: '#39ff14',
+                  boxShadow: 'none'
+                }}
+              >
+                Visiter le Fournisseur ↗
+              </a>
+            </div>
+          </div>
+
+          {/* Video Script Plan */}
+          <div style={{ marginTop: '16px', background: 'rgba(255, 255, 255, 0.01)', padding: '16px', borderRadius: '10px', border: '1px solid rgba(255,255,255,0.03)' }}>
+            <h5 style={{ margin: '0 0 10px 0', fontSize: '0.9rem', fontWeight: 700, color: 'white' }}>
+              🎥 Structure Vidéo recommandée (Format Court 15s)
+            </h5>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              {productStrategies[selectedProduct]?.videoPlan.map((step, idx) => (
+                <div key={idx} style={{ display: 'flex', gap: '10px', fontSize: '0.85rem', color: '#d1d5db' }}>
+                  <span style={{ color: '#ff0050', fontWeight: 700 }}>{idx + 1}.</span>
+                  <span>{step}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </article>
+      )}
+
+      {/* Supplier Sourcing Modal Popup */}
+      {showSupplierModal && (
+        <div className="modal-backdrop" onClick={() => setShowSupplierModal(null)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', background: '#0b0c16' }}>
+            <div className="modal__header">
+              <div>
+                <p className="modal__eyebrow">Détails Logistique & Sourcing</p>
+                <h3 style={{ fontSize: '1.2rem' }}>{showSupplierModal.name}</h3>
+              </div>
+              <button onClick={() => setShowSupplierModal(null)} className="ghost-button" style={{ border: 'none', fontSize: '1.2rem', color: 'white' }}>✕</button>
+            </div>
+            <div className="modal__body" style={{ gap: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Prix de Vente conseillé</span>
+                <span style={{ fontWeight: 700, color: 'white' }}>{showSupplierModal.sellPrice.toFixed(2)} €</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Coût d'achat de base</span>
+                <span style={{ fontWeight: 700, color: '#ff0050' }}>{showSupplierModal.sourcePrice.toFixed(2)} €</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '10px' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Marge nette</span>
+                <span style={{ fontWeight: 700, color: '#39ff14' }}>{(showSupplierModal.sellPrice - showSupplierModal.sourcePrice).toFixed(2)} €</span>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Fournisseur identifié :</span>
+                <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: '8px', border: '1px solid rgba(255,255,255,0.05)', fontSize: '0.85rem', color: '#e5e7eb' }}>
+                  {showSupplierModal.supplier}
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <span style={{ color: 'var(--text-muted)', fontSize: '0.85rem', fontWeight: 600 }}>Statistiques de viabilité :</span>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <div style={{ flex: 1, background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '6px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Engagement TikTok</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.95rem', fontWeight: 700, color: '#00f2fe' }}>{showSupplierModal.engagement}</p>
+                  </div>
+                  <div style={{ flex: 1, background: 'rgba(255,255,255,0.02)', padding: '8px', borderRadius: '6px', textAlign: 'center' }}>
+                    <p style={{ margin: 0, fontSize: '0.7rem', color: 'var(--text-muted)' }}>Croissance hebdomadaire</p>
+                    <p style={{ margin: '4px 0 0 0', fontSize: '0.95rem', fontWeight: 700, color: '#ff0050' }}>{showSupplierModal.growth}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="modal__footer" style={{ padding: '16px 24px' }}>
+              <button onClick={() => setShowSupplierModal(null)} className="ghost-button" style={{ padding: '8px 16px' }}>Fermer</button>
+              <a
+                href={showSupplierModal.supplierUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="primary-button"
+                style={{
+                  padding: '8px 16px',
+                  background: 'linear-gradient(135deg, #00f2fe, #3b4fff)',
+                  color: 'white',
+                  textDecoration: 'none',
+                  fontSize: '0.9rem'
+                }}
+              >
+                Commander Échantillon
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   )
 }

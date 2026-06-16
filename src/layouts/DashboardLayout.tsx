@@ -98,22 +98,21 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   const location = useLocation()
   const { logout, user } = useAuth()
 
-  // Mobile detection & collapsed state
+  // Mobile detection & menu open state
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
-  const [isCollapsed, setIsCollapsed] = useState(window.innerWidth <= 768)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth <= 768
       setIsMobile(mobile)
-      setIsCollapsed(mobile)
+      if (!mobile) {
+        setIsMobileMenuOpen(false)
+      }
     }
     window.addEventListener('resize', handleResize)
     return () => window.removeEventListener('resize', handleResize)
   }, [])
-
-  const toggleSidebar = () => setIsCollapsed(!isCollapsed)
-
 
   // Navigation différente selon le rôle
   const navItems: NavItem[] = role === UserRole.FREELANCE ? [
@@ -169,25 +168,51 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   const { age, days } = calculateAgeAndDays()
 
   return (
-    <div className={`app-shell ${isCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobile && !isCollapsed ? 'expanded' : ''}`}>
-        {/* Toggle Button - Mobile */}
+    <div className={`app-shell ${isMobile ? 'is-mobile' : ''} ${isMobileMenuOpen ? 'mobile-menu-open' : ''}`}>
+      {/* Mobile Header Bar */}
+      {isMobile && (
+        <header className="mobile-header">
+          <button
+            className="mobile-header__burger"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Ouvrir le menu"
+          >
+            ☰
+          </button>
+          <div className="mobile-header__logo">
+            <img src={logoDs} alt="Logo Dashboard" />
+          </div>
+          <div className="mobile-header__user" onClick={() => setIsMobileMenuOpen(true)}>
+            {role === UserRole.FREELANCE ? (
+              <img src={robinAvatar} alt="Robin Masini" className="mobile-header__avatar-img" />
+            ) : (
+              <div className="mobile-header__avatar-letter">
+                {user?.email?.charAt(0)?.toUpperCase() || '?'}
+              </div>
+            )}
+          </div>
+        </header>
+      )}
+
+      {/* Dark Blur Overlay Backdrop */}
+      {isMobile && isMobileMenuOpen && (
+        <div className="sidebar-backdrop" onClick={() => setIsMobileMenuOpen(false)} />
+      )}
+
+      <aside className={`sidebar ${isMobile ? 'mobile-sidebar' : ''} ${isMobileMenuOpen ? 'is-open' : ''}`}>
+        {/* Close Button inside Sidebar on mobile */}
         {isMobile && (
           <button
-            className="sidebar__toggle"
-            onClick={toggleSidebar}
-            aria-label={isCollapsed ? 'Ouvrir menu' : 'Fermer menu'}
+            className="sidebar__close"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-label="Fermer le menu"
           >
-            {isCollapsed ? '☰' : '✕'}
+            ✕
           </button>
         )}
 
         {/* Logo Section */}
-        <div
-          className="sidebar__logo-container"
-          onClick={isMobile && isCollapsed ? toggleSidebar : undefined}
-          style={{ cursor: isMobile && isCollapsed ? 'pointer' : 'default' }}
-        >
+        <div className="sidebar__logo-container">
           <img src={logoDs} alt="Logo Dashboard" className="sidebar__logo" />
         </div>
 
@@ -196,11 +221,13 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
             <button
               key={item.id}
               className={`sidebar__nav-item ${isActive(item.path) ? 'active' : ''}`}
-              onClick={() => navigate(item.path)}
-              title={isCollapsed ? item.label : undefined}
+              onClick={() => {
+                navigate(item.path)
+                setIsMobileMenuOpen(false)
+              }}
             >
               <span className="sidebar__nav-icon">{item.icon}</span>
-              {!isCollapsed && <span className="sidebar__nav-label">{item.label}</span>}
+              <span className="sidebar__nav-label">{item.label}</span>
             </button>
           ))}
         </nav>
@@ -210,23 +237,17 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
           {role === UserRole.FREELANCE ? (
             <>
               <div className="sidebar__profile-card">
-                <div
-                  className="sidebar__profile-image"
-                  onClick={isMobile ? toggleSidebar : undefined}
-                  style={{ cursor: isMobile ? 'pointer' : 'default' }}
-                >
+                <div className="sidebar__profile-image">
                   <img src={robinAvatar} alt="Robin Masini" className="sidebar__profile-img" />
                 </div>
-                {!isCollapsed && (
-                  <div className="sidebar__profile-text">
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px', fontWeight: 500 }}>
-                      {age} ans • {days} jours
-                    </div>
-                    <div className="sidebar__contact">EI Robin MASINI</div>
-                    <div className="sidebar__siret">99268512300018</div>
-                    <div className="sidebar__domain">robinmasini.com</div>
+                <div className="sidebar__profile-text">
+                  <div style={{ fontSize: '0.8rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px', fontWeight: 500 }}>
+                    {age} ans • {days} jours
                   </div>
-                )}
+                  <div className="sidebar__contact">EI Robin MASINI</div>
+                  <div className="sidebar__siret">99268512300018</div>
+                  <div className="sidebar__domain">robinmasini.com</div>
+                </div>
               </div>
               <button onClick={handleLogout} className="logout-button">
                 Se déconnecter
@@ -234,7 +255,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
             </>
           ) : (
             <>
-              <ClientProfileSection user={user} onAvatarClick={isMobile ? toggleSidebar : undefined} />
+              <ClientProfileSection user={user} />
               <button
                 onClick={handleLogout}
                 className="ghost-button logout-button"
@@ -246,7 +267,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
         </div>
       </aside>
 
-      <main className={`workspace ${isCollapsed ? 'workspace--expanded' : ''}`}>
+      <main className="workspace">
         {children || <Outlet />}
       </main>
     </div>
