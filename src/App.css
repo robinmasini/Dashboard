@@ -1610,7 +1610,7 @@ td {
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   width: 100%;
-  margin-bottom: 24px;
+  margin-bottom: 0px;
   box-sizing: border-box;
 }
 
@@ -1641,7 +1641,7 @@ td {
   .kpi-grid {
     grid-template-columns: repeat(2, 1fr) !important;
     gap: 16px;
-    margin-bottom: 16px;
+    margin-bottom: 0px;
   }
   .row-1-card {
     height: auto !important;
