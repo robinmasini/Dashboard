@@ -245,7 +245,7 @@ const OverviewContent = () => {
       <section className="grid performance-grid">
         {/* Row 1 Left: Welcome Banner */}
         <div
-          className="col-span-8 row-1-card"
+          className="col-span-4 row-1-card"
           style={{
             background: 'linear-gradient(135deg, #060b28 0%, #0a0e23 100%)',
             borderRadius: '14px',
@@ -272,20 +272,35 @@ const OverviewContent = () => {
             background: 'linear-gradient(90deg, #060b28 0%, rgba(6, 11, 40, 0.8) 40%, rgba(6, 11, 40, 0) 100%)',
           }}></div>
 
-          <div style={{ position: 'relative', zIndex: 10, padding: '24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-            <p style={{ color: '#9ca3af', fontSize: '0.9rem', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bienvenue,</p>
-            <h2 style={{ fontSize: '1.8rem', fontWeight: 700, color: 'white', marginBottom: '8px' }}>Robin MASINI</h2>
-            <p style={{ color: '#d1d5db', margin: 0, maxWidth: '480px', fontSize: '0.9rem', lineHeight: '1.4' }}>
-              Ravi de vous revoir ! Suivez votre activité et vos performances en temps réel.
+          <div style={{ position: 'relative', zIndex: 10, padding: '16px 20px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            <p style={{ color: '#9ca3af', fontSize: '0.85rem', marginBottom: '2px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Bienvenue,</p>
+            <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', marginBottom: '4px' }}>Robin MASINI</h2>
+            <p style={{ color: '#d1d5db', margin: 0, maxWidth: '100%', fontSize: '0.8rem', lineHeight: '1.4' }}>
+              Suivez votre activité et vos performances en temps réel.
             </p>
 
-            <div style={{ marginTop: '16px', display: 'flex', alignItems: 'center', gap: '8px', color: '#9ca3af', fontSize: '0.8rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '12px', width: 'fit-content' }}>
+            <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '6px', color: '#9ca3af', fontSize: '0.75rem', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '8px', width: 'fit-content' }}>
               <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 6px #10b981' }}></span>
               <span>Aujourd'hui :</span>
               <span style={{ color: 'white', fontWeight: 600 }}>{formattedDate}</span>
             </div>
           </div>
         </div>
+
+        {/* Row 1 Middle: Wallet / Solde disponible (moved from Row 2, same size as Welcome card) */}
+        <article className="panel wallet-panel col-span-4 row-1-card" style={{ justifyContent: 'center', padding: '16px 20px' }}>
+          <header className="panel__header" style={{ marginBottom: '8px' }}>
+            <p className="panel__label">Solde disponible</p>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <span style={{ fontSize: '0.6rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '1px 6px', borderRadius: '4px', fontWeight: 700, border: '1px solid rgba(99, 102, 241, 0.3)' }}>STRIPE OK</span>
+            </div>
+          </header>
+          <p className="panel__sub" style={{ marginBottom: '6px', fontSize: '0.8rem' }}>{walletSummary.provider} + STRIPE</p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'white', margin: 0, lineHeight: 1 }}>{walletSummary.amount}</p>
+            <p style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600, margin: 0 }}>86 % de l'objectif atteint</p>
+          </div>
+        </article>
 
         {/* Row 1 Right: Rendez-vous à venir */}
         <article className="panel col-span-4 row-1-card" style={{ display: 'flex', flexDirection: 'column', padding: '16px' }}>
@@ -319,23 +334,8 @@ const OverviewContent = () => {
           )}
         </article>
 
-        {/* Row 2 Left: Wallet / Solde disponible */}
-        <article className="panel wallet-panel col-span-4 row-2-card" style={{ justifyContent: 'center', padding: '24px' }}>
-          <header className="panel__header" style={{ marginBottom: '16px' }}>
-            <p className="panel__label">Solde disponible</p>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontSize: '0.65rem', background: 'rgba(99, 102, 241, 0.2)', color: '#818cf8', padding: '2px 8px', borderRadius: '4px', fontWeight: 700, border: '1px solid rgba(99, 102, 241, 0.3)' }}>STRIPE OK</span>
-            </div>
-          </header>
-          <p className="panel__sub" style={{ marginBottom: '12px' }}>{walletSummary.provider} + STRIPE</p>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            <p style={{ fontSize: '1.5rem', fontWeight: 700, color: 'white', margin: 0, lineHeight: 1 }}>{walletSummary.amount}</p>
-            <p style={{ color: '#10b981', fontSize: '0.85rem', fontWeight: 600, margin: 0 }}>86 % de l'objectif atteint</p>
-          </div>
-        </article>
-
-        {/* Row 2 Middle: TikTok Trends Robot */}
-        <article className="panel tiktok-panel col-span-4 row-2-card" style={{ padding: '20px', justifyContent: 'space-between' }}>
+        {/* Row 2 Left: TikTok Trends Robot */}
+        <article className="panel tiktok-panel col-span-6 row-2-card" style={{ padding: '20px', justifyContent: 'space-between' }}>
           <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
             <div>
               <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', gap: '6px' }}>
@@ -398,7 +398,7 @@ const OverviewContent = () => {
         </article>
 
         {/* Row 2 Right: TikTok Products Sourcing Robot */}
-        <article className="panel tiktok-panel col-span-4 row-2-card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
+        <article className="panel tiktok-panel col-span-6 row-2-card" style={{ display: 'flex', flexDirection: 'column', padding: '20px' }}>
           <header style={{ marginBottom: '12px' }}>
             <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: 'white' }}>
               🤖 Robot Sourcing Produits

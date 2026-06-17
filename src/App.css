@@ -518,8 +518,16 @@ td {
   grid-column: span 4;
 }
 
+.col-span-6 {
+  grid-column: span 6;
+}
+
 .col-span-8 {
   grid-column: span 8;
+}
+
+.col-span-12 {
+  grid-column: span 12;
 }
 
 .floating-card {
