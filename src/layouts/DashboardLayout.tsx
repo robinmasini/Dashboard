@@ -121,6 +121,7 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
     { id: 'time-tracking', label: 'Time Tracking', icon: '⏱️', path: '/admin/time-tracking' },
     { id: 'planning', label: 'Objectifs', icon: '✅', path: '/admin/planning' },
     { id: 'clients', label: 'Clients', icon: '👥', path: '/admin/clients' },
+    { id: 'crm', label: 'Personal CRM', icon: '🤝', path: '/admin/crm' },
   ] : [
     { id: 'projet', label: 'Votre Projet', icon: '📁', path: '/dashboard/projet' },
     { id: 'commandes', label: 'Commandes', icon: '📋', path: '/dashboard/commandes' },
