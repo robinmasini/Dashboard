@@ -10,8 +10,8 @@ const DOMAINS = ['FinTech', 'SaaS', 'MedTech', 'GreenTech', 'E-commerce', 'AdTec
 const FRENCH_CITIES = ['Paris', 'Lyon', 'Bordeaux', 'Marseille', 'Nantes', 'Toulouse', 'Lille', 'Nice']
 
 const COMPANY_NAMES = [
-  'Lexona', 'SurgiLink', 'Casper', 'Wavely', 'Qonto', 'PayFit', 'Alan', 'Voodoo', 'Algolia',
-  'ManoMano', 'BackMarket', 'Deezer', 'Swile', 'Luko', 'Ornikar', 'Evaneos', 'Yuka', 'Sendinblue'
+  'Doctolib', 'Alan', 'Qonto', 'PayFit', 'Algolia', 'ManoMano', 'BackMarket', 'Deezer',
+  'Swile', 'Spendesk', 'Lydia', 'Voodoo', 'Mirakl', 'Yuka', 'Sendinblue', 'Malt', 'Wavely'
 ]
 
 const FIRST_NAMES = [

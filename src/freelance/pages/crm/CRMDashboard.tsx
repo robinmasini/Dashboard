@@ -129,6 +129,27 @@ export default function CRMDashboard() {
         </div>
       </div>
 
+      {/* Alert Badge if API Keys are missing */}
+      {(!settings?.brightdata_api_key || !settings?.brightdata_scraper_id) && (
+        <div style={{
+          padding: '12px 18px',
+          borderRadius: '12px',
+          background: 'rgba(245, 158, 11, 0.1)',
+          border: '1px solid rgba(245, 158, 11, 0.25)',
+          color: '#fbbf24',
+          fontSize: '0.85rem',
+          fontWeight: 500,
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px'
+        }}>
+          <span>⚠️</span>
+          <span>
+            <strong>Mode Démo (Simulation) :</strong> Les clés API Bright Data ne sont pas configurées. Le scraper utilise une simulation IA avec des entreprises réelles. Configurez vos clés dans l'onglet <strong>Settings</strong> pour activer le scraping réel.
+          </span>
+        </div>
+      )}
+
       {/* Pane Recherche Entreprises */}
       <div className="panel" style={{ padding: '28px' }}>
         <h3 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', fontWeight: 600 }}>Recherche entreprises</h3>
