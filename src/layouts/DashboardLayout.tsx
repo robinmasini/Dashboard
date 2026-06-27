@@ -117,11 +117,11 @@ export default function DashboardLayout({ role, children }: DashboardLayoutProps
   // Navigation différente selon le rôle
   const navItems: NavItem[] = role === UserRole.FREELANCE ? [
     { id: 'performance', label: 'Performance', icon: '📊', path: '/admin/performance' },
+    { id: 'crm', label: 'Personal CRM', icon: '✍️', path: '/admin/crm' },
     { id: 'commandes', label: 'Commandes', icon: '📋', path: '/admin/commandes' },
     { id: 'time-tracking', label: 'Time Tracking', icon: '⏱️', path: '/admin/time-tracking' },
     { id: 'planning', label: 'Objectifs', icon: '✅', path: '/admin/planning' },
     { id: 'clients', label: 'Clients', icon: '👥', path: '/admin/clients' },
-    { id: 'crm', label: 'Personal CRM', icon: '🤝', path: '/admin/crm' },
   ] : [
     { id: 'projet', label: 'Votre Projet', icon: '📁', path: '/dashboard/projet' },
     { id: 'commandes', label: 'Commandes', icon: '📋', path: '/dashboard/commandes' },

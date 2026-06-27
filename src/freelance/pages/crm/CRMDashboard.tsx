@@ -8,8 +8,15 @@ export default function CRMDashboard() {
   const { addCompany, addContact, settings } = useCRM()
   
   // États pour les critères de recherche
-  const [ville, setVille] = useState('Lyon')
-  const [domaine, setDomaine] = useState('développeur iOS')
+  const [ville, setVille] = useState('Marseille')
+  const [domaine, setDomaine] = useState('UX/UI Designer')
+  
+  // Nouveaux filtres avancés
+  const [depthLimit, setDepthLimit] = useState(10)
+  const [contractType, setContractType] = useState('Freelance')
+  const [sourceWttj, setSourceWttj] = useState(true)
+  const [sourceLinkedin, setSourceLinkedin] = useState(true)
+  const [sourceIndeed, setSourceIndeed] = useState(false)
   
   // États de scraping
   const [loading, setLoading] = useState(false)
@@ -17,7 +24,7 @@ export default function CRMDashboard() {
   const [progressStep, setProgressStep] = useState('')
   const [scrapedResults, setScrapedResults] = useState<ScrapedResult[]>([])
   const [selectedIndices, setSelectedIndices] = useState<number[]>([])
-
+ 
   // Lancer le scraping
   const handleScrape = async () => {
     setLoading(true)
@@ -25,23 +32,24 @@ export default function CRMDashboard() {
     setProgressStep('Démarrage de l\'agent de scraping...')
     setScrapedResults([])
     setSelectedIndices([])
-
+ 
     try {
       // Déterminer les requêtes intelligemment (en cas d'inversion des champs par l'utilisateur)
       const q = domaine || ville
-      const loc = ville && domaine ? ville : 'France'
-
+      const loc = ville && domaine ? ville : 'Marseille'
+ 
       const results = await BrightDataScraperService.scrape(
         q,
         loc,
         settings?.brightdata_api_key,
         settings?.brightdata_scraper_id,
+        depthLimit,
         (step, pct) => {
           setProgress(pct)
           setProgressStep(step)
         }
       )
-
+ 
       setScrapedResults(results)
       // Sélectionner tout par défaut
       setSelectedIndices(results.map((_, i) => i))
@@ -52,21 +60,21 @@ export default function CRMDashboard() {
       setLoading(false)
     }
   }
-
+ 
   // Gérer la sélection individuelle
   const toggleSelect = (idx: number) => {
     setSelectedIndices(prev => 
       prev.includes(idx) ? prev.filter(i => i !== idx) : [...prev, idx]
     )
   }
-
+ 
   // Ajouter les entreprises et contacts sélectionnés au CRM
   const handleAddSelection = async () => {
     if (selectedIndices.length === 0) return
-
+ 
     let companiesAdded = 0
     let contactsAdded = 0
-
+ 
     try {
       for (const idx of selectedIndices) {
         const item = scrapedResults[idx]
@@ -83,7 +91,7 @@ export default function CRMDashboard() {
           project_name: item.company.project_name,
           source: 'brightdata'
         })
-
+ 
         // 2. Ajouter ses contacts rattachés
         if (newCompany?.id) {
           for (const contact of item.contacts) {
@@ -104,7 +112,7 @@ export default function CRMDashboard() {
         }
         companiesAdded++
       }
-
+ 
       alert(`✅ Prospection importée avec succès :\n- ${companiesAdded} Entreprises ajoutées\n- ${contactsAdded} Recruteurs/Contacts créés`);
       
       // Vider les résultats après import
@@ -115,7 +123,7 @@ export default function CRMDashboard() {
       alert(`Erreur lors de l'importation: ${e.message}`)
     }
   }
-
+ 
   return (
     <div className="workspace__content">
       {/* Section Header */}
@@ -128,52 +136,187 @@ export default function CRMDashboard() {
           </p>
         </div>
       </div>
-
-      {/* Alert Badge if API Keys are missing */}
-      {(!settings?.brightdata_api_key || !settings?.brightdata_scraper_id) && (
-        <div style={{
-          padding: '12px 18px',
-          borderRadius: '12px',
-          background: 'rgba(245, 158, 11, 0.1)',
-          border: '1px solid rgba(245, 158, 11, 0.25)',
-          color: '#fbbf24',
-          fontSize: '0.85rem',
-          fontWeight: 500,
-          display: 'flex',
-          alignItems: 'center',
-          gap: '10px'
-        }}>
-          <span>⚠️</span>
-          <span>
-            <strong>Mode Démo (Simulation) :</strong> Les clés API Bright Data ne sont pas configurées. Le scraper utilise une simulation IA avec des entreprises réelles. Configurez vos clés dans l'onglet <strong>Settings</strong> pour activer le scraping réel.
-          </span>
-        </div>
-      )}
-
+ 
       {/* Pane Recherche Entreprises */}
-      <div className="panel" style={{ padding: '28px' }}>
-        <h3 style={{ margin: '0 0 20px 0', fontSize: '1.2rem', fontWeight: 600 }}>Recherche entreprises</h3>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '24px' }}>
+      <div className="panel" style={{ 
+        padding: '28px',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
+        background: 'rgba(30, 30, 38, 0.4)',
+        backdropFilter: 'blur(20px)',
+        borderRadius: '24px',
+        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.3)'
+      }}>
+        <h3 style={{ margin: '0 0 24px 0', fontSize: '1.25rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span>🔍</span> Critères de Recherche
+        </h3>
+        
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '24px' }}>
+          {/* Ville Input & Shortcuts */}
           <div className="modal-field">
-            <span>Ville / Localisation</span>
+            <span style={{ fontWeight: 600, color: '#a5b4fc', marginBottom: '8px', display: 'block' }}>Ville / Localisation</span>
             <input
               type="text"
               value={ville}
               onChange={(e) => setVille(e.target.value)}
-              placeholder="Ex: Lyon, Paris, Télétravail"
+              placeholder="Ex: Marseille, Paris, Télétravail"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
             />
+            {/* Shortcuts */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+              {['Marseille', 'Aix-en-Provence', 'Paris'].map(city => (
+                <button
+                  key={city}
+                  type="button"
+                  onClick={() => setVille(city)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: ville === city ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                    border: ville === city ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: ville === city ? '#a5b4fc' : 'var(--text-muted)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {city === 'Marseille' ? '📍 Marseille' : city}
+                </button>
+              ))}
+            </div>
           </div>
+ 
+          {/* Domaine Input & Shortcuts */}
           <div className="modal-field">
-            <span>Domaine / type de poste</span>
+            <span style={{ fontWeight: 600, color: '#a5b4fc', marginBottom: '8px', display: 'block' }}>Domaine / Type de poste</span>
             <input
               type="text"
               value={domaine}
               onChange={(e) => setDomaine(e.target.value)}
               placeholder="Ex: développeur iOS, UX/UI designer, Product Designer"
+              style={{
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '12px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                outline: 'none',
+                transition: 'all 0.2s'
+              }}
             />
+            {/* Shortcuts */}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '10px', flexWrap: 'wrap' }}>
+              {['UX/UI Designer', 'Développeur Full Stack Junior', 'Product Designer'].map(role => (
+                <button
+                  key={role}
+                  type="button"
+                  onClick={() => setDomaine(role)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: '20px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    background: domaine === role ? 'rgba(99, 102, 241, 0.2)' : 'rgba(255, 255, 255, 0.03)',
+                    border: domaine === role ? '1px solid rgba(99, 102, 241, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+                    color: domaine === role ? '#a5b4fc' : 'var(--text-muted)',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  {role}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-
+ 
+        {/* Options avancées */}
+        <div style={{ 
+          borderTop: '1px solid rgba(255,255,255,0.06)', 
+          paddingTop: '20px', 
+          marginBottom: '28px',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr 1fr',
+          gap: '24px'
+        }}>
+          {/* Sources */}
+          <div>
+            <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '10px', display: 'block' }}>💻 Sources de recherche</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={sourceLinkedin} onChange={e => setSourceLinkedin(e.target.checked)} style={{ accentColor: '#6366f1' }} />
+                <span>LinkedIn (Offres & Recruteurs)</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={sourceWttj} onChange={e => setSourceWttj(e.target.checked)} style={{ accentColor: '#6366f1' }} />
+                <span>Welcome to the Jungle</span>
+              </label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.85rem', cursor: 'pointer' }}>
+                <input type="checkbox" checked={sourceIndeed} onChange={e => setSourceIndeed(e.target.checked)} style={{ accentColor: '#6366f1' }} />
+                <span>Indeed</span>
+              </label>
+            </div>
+          </div>
+ 
+          {/* Depth / Limit */}
+          <div className="modal-field">
+            <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '8px', display: 'block' }}>📊 Volume de résultats</span>
+            <select 
+              value={depthLimit} 
+              onChange={e => setDepthLimit(Number(e.target.value))}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="5" style={{ background: '#1c1c24' }}>5 entreprises cibles</option>
+              <option value="10" style={{ background: '#1c1c24' }}>10 entreprises cibles</option>
+              <option value="20" style={{ background: '#1c1c24' }}>20 entreprises cibles</option>
+            </select>
+          </div>
+ 
+          {/* Contract Type */}
+          <div className="modal-field">
+            <span style={{ fontWeight: 600, color: 'rgba(255,255,255,0.8)', fontSize: '0.85rem', marginBottom: '8px', display: 'block' }}>💼 Type de contrat</span>
+            <select 
+              value={contractType} 
+              onChange={e => setContractType(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '10px',
+                borderRadius: '8px',
+                background: 'rgba(255,255,255,0.03)',
+                border: '1px solid rgba(255,255,255,0.1)',
+                color: '#fff',
+                outline: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              <option value="Freelance" style={{ background: '#1c1c24' }}>Freelance / TJM</option>
+              <option value="CDI" style={{ background: '#1c1c24' }}>CDI / Permanent</option>
+              <option value="Alternance" style={{ background: '#1c1c24' }}>Alternance</option>
+              <option value="Stage" style={{ background: '#1c1c24' }}>Stage</option>
+            </select>
+          </div>
+        </div>
+ 
+        {/* Submit */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <button
             type="button"
@@ -181,30 +324,34 @@ export default function CRMDashboard() {
             onClick={handleScrape}
             disabled={loading}
             style={{
-              padding: '12px 28px',
-              background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #12131a, #000)',
-              border: '1px solid rgba(255,255,255,0.1)',
-              color: loading ? 'var(--text-muted)' : '#fff',
+              padding: '14px 36px',
+              background: loading ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #6366f1, #3b82f6)',
+              boxShadow: loading ? 'none' : '0 4px 14px 0 rgba(99, 102, 241, 0.4)',
+              border: 'none',
+              color: '#fff',
               fontSize: '0.95rem',
-              borderRadius: '12px'
+              fontWeight: 700,
+              borderRadius: '12px',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              transition: 'all 0.2s'
             }}
           >
-            {loading ? 'Recherche en cours...' : 'Valider'}
+            {loading ? 'Scraping en cours...' : 'Lancer l\'Analyse'}
           </button>
-
+ 
           {!loading && scrapedResults.length === 0 && (
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              Prêt à lancer l'agent IA via Bright Data.
+              Prêt à analyser le marché.
             </span>
           )}
-
+ 
           {!loading && scrapedResults.length > 0 && (
             <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
               {scrapedResults.length} proposition(s) hors base sur {scrapedResults.length} résultat(s) bruts.
             </span>
           )}
         </div>
-
+ 
         {/* Barre de chargement/Agent Progress */}
         {loading && (
           <div style={{ marginTop: '24px', padding: '16px', background: 'rgba(255,255,255,0.02)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.05)' }}>
@@ -226,10 +373,10 @@ export default function CRMDashboard() {
           </div>
         )}
       </div>
-
+ 
       {/* Résultats Section */}
       {scrapedResults.length > 0 && (
-        <div className="section-header" style={{ marginTop: '12px' }}>
+        <div className="section-header" style={{ marginTop: '24px' }}>
           <div className="section-header__tabs">
             <h2 style={{ fontSize: '1.4rem', fontWeight: 700 }}>Résultats</h2>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
@@ -243,7 +390,7 @@ export default function CRMDashboard() {
             disabled={selectedIndices.length === 0}
             style={{
               background: selectedIndices.length === 0 ? 'rgba(255,255,255,0.05)' : 'linear-gradient(135deg, #6366f1, #3b82f6)',
-              color: selectedIndices.length === 0 ? 'var(--text-muted)' : '#white',
+              color: selectedIndices.length === 0 ? 'var(--text-muted)' : 'white',
               padding: '10px 20px',
               borderRadius: '12px'
             }}

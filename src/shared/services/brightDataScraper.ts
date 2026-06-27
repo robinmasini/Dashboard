@@ -58,6 +58,7 @@ export class BrightDataScraperService {
     location: string,
     apiKey?: string,
     scraperId?: string,
+    limit: number = 5,
     onProgress?: (step: string, percent: number) => void
   ): Promise<ScrapedResult[]> {
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -85,7 +86,7 @@ export class BrightDataScraperService {
           body: JSON.stringify({
             search_query: query,
             location: location,
-            limit: 5
+            limit: limit
           })
         })
 
