@@ -44,5 +44,6 @@ export interface CRMSettings {
   brightdata_api_key?: string
   brightdata_scraper_id?: string
   linkedin_cookie?: string
+  tavily_api_key?: string
   updated_at?: string
 }

@@ -59,9 +59,194 @@ export class BrightDataScraperService {
     apiKey?: string,
     scraperId?: string,
     limit: number = 5,
+    tavilyApiKey?: string,
     onProgress?: (step: string, percent: number) => void
   ): Promise<ScrapedResult[]> {
     const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+
+    // Branchement de la recherche réelle avec Tavily
+    if (tavilyApiKey) {
+      if (onProgress) onProgress('Initialisation de la recherche en direct avec Tavily...', 10)
+      await sleep(500)
+      
+      try {
+        if (onProgress) onProgress('Recherche d\'annonces de recrutement en temps réel...', 25)
+        
+        // Construire la requête de recherche ciblée
+        const searchQuery = `recrutement "${query}" "${location}"`
+        
+        const response = await fetch('/api-tavily/search', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            api_key: tavilyApiKey,
+            query: searchQuery,
+            search_depth: 'advanced',
+            max_results: limit
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`Erreur API Tavily: ${response.statusText}`)
+        }
+
+        const data = await response.json()
+        const searchResults = data.results || []
+        
+        if (searchResults.length > 0) {
+          if (onProgress) onProgress(`Analyse de ${searchResults.length} annonces réelles trouvées...`, 50)
+          await sleep(600)
+          
+          const results: ScrapedResult[] = []
+          
+          for (let i = 0; i < searchResults.length; i++) {
+            const res = searchResults[i]
+            const title = res.title || ''
+            const url = res.url || ''
+            
+            let companyName = ''
+            
+            // Essayer d'extraire le nom de l'entreprise des URL connues (WTTJ / LinkedIn)
+            const wttjMatch = url.match(/welcometothejungle\.com\/(?:[a-z]{2}\/)?companies\/([a-zA-Z0-9_-]+)/)
+            const linkedinMatch = url.match(/linkedin\.com\/company\/([a-zA-Z0-9_-]+)/)
+            
+            if (wttjMatch) {
+              companyName = wttjMatch[1].replace(/[-_]/g, ' ')
+            } else if (linkedinMatch) {
+              companyName = linkedinMatch[1].replace(/[-_]/g, ' ')
+            } else {
+              // Extraction intelligente depuis le titre (séparation par tirets ou barres verticales)
+              const parts = title.split(/\s+[-|:|•|at]\s+/)
+              if (parts.length > 1) {
+                companyName = parts[parts.length - 1].includes('LinkedIn') || parts[parts.length - 1].includes('Job')
+                  ? parts[parts.length - 2]
+                  : parts[parts.length - 1]
+              } else {
+                companyName = title.split(' recruit')[0].split(' recrute')[0].trim()
+              }
+            }
+            
+            // Formater proprement le nom de l'entreprise
+            companyName = companyName
+              .trim()
+              .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
+            
+            if (!companyName || companyName.length > 35 || companyName.includes('http')) {
+              companyName = `Entreprise Cible ${i + 1}`
+            }
+
+            const isWTTJ = url.includes('welcometothejungle.com')
+            const isLinkedIn = url.includes('linkedin.com')
+            const isIndeed = url.includes('indeed.com')
+            
+            const website = `https://${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`
+            
+            if (onProgress) onProgress(`Recherche des recruteurs chez ${companyName} sur LinkedIn...`, 60 + Math.floor((i / searchResults.length) * 35))
+
+            // Rechercher des profils LinkedIn de recruteurs réels pour cette entreprise
+            const contacts: Omit<CRMContact, 'id' | 'company_id'>[] = []
+            
+            try {
+              const recruiterQuery = `site:linkedin.com/in ("recruteur" OR "talent acquisition" OR "HR" OR "DRH" OR "CTO") "${companyName}"`
+              const recResponse = await fetch('/api-tavily/search', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  api_key: tavilyApiKey,
+                  query: recruiterQuery,
+                  max_results: 2
+                })
+              })
+              
+              if (recResponse.ok) {
+                const recData = await recResponse.json()
+                const recResults = recData.results || []
+                
+                for (const rec of recResults) {
+                  const recTitle = rec.title || ''
+                  const recUrl = rec.url || ''
+                  
+                  const namePart = recTitle.split(/\s+[-|:|•|at]\s+/)[0].trim()
+                  const nameWords = namePart.split(/\s+/)
+                  const first = nameWords[0] || 'Contact'
+                  const last = nameWords.slice(1).join(' ') || 'Recruteur'
+                  
+                  let role = 'Talent Acquisition'
+                  const roleMatch = recTitle.match(/-\s+([^|-]+)/)
+                  if (roleMatch && roleMatch[1]) {
+                    role = roleMatch[1].trim()
+                  }
+                  
+                  const cleanFirst = first.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                  const cleanLast = last.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+                  const cleanComp = companyName.toLowerCase().replace(/[^a-z0-9]/g, "")
+                  
+                  contacts.push({
+                    first_name: first,
+                    last_name: last,
+                    email: `${cleanFirst}.${cleanLast}@${cleanComp}.com`,
+                    phone: '',
+                    role,
+                    linkedin_url: recUrl,
+                    status: 'à contacter',
+                    channel: 'linkedin',
+                    notes: `Profil LinkedIn identifié en direct pour ${companyName}.`
+                  })
+                }
+              }
+            } catch (recErr) {
+              console.warn(`Impossible de scraper les recruteurs de ${companyName}:`, recErr)
+            }
+            
+            // Contact de secours si aucun profil trouvé
+            if (contacts.length === 0) {
+              contacts.push({
+                first_name: 'Responsable',
+                last_name: 'Recrutement',
+                email: `recrutement@${companyName.toLowerCase().replace(/[^a-z0-9]/g, '')}.com`,
+                phone: '',
+                role: 'Talent Acquisition Team',
+                linkedin_url: isLinkedIn ? url : undefined,
+                status: 'à contacter',
+                channel: 'linkedin',
+                notes: 'Contact générique créé (aucun recruteur individuel trouvé).'
+              })
+            }
+            
+            results.push({
+              company: {
+                name: companyName,
+                domain: res.snippet ? res.snippet.substring(0, 100) : 'Secteur Tech/Design',
+                website: website,
+                linkedin_url: isLinkedIn ? url : undefined,
+                // On n'ajoute pas le lien WTTJ si la page n'est pas une vraie page WTTJ d'après l'URL d'origine
+                wttj_url: isWTTJ ? url : undefined,
+                indeed_url: isIndeed ? url : undefined,
+                description: res.snippet || `Poste ciblé : ${title}`,
+                project_name: 'Prospect Réel',
+                source: 'tavily'
+              },
+              contacts
+            })
+          }
+          
+          if (onProgress) onProgress('Scraping et structuration des prospects réels terminés !', 100)
+          await sleep(500)
+          return results
+        }
+        
+        if (onProgress) onProgress('Aucun résultat trouvé sur Tavily. Passage au mode simulation...', 45)
+        await sleep(1000)
+      } catch (err: any) {
+        console.warn('Tavily search failed, falling back to simulation:', err.message)
+        if (onProgress) onProgress('Erreur de connexion Tavily. Passage en mode simulation...', 45)
+        await sleep(1000)
+      }
+    }
 
     // Étape 1 : Connexion
     if (onProgress) onProgress('Initialisation de l\'agent IA de prospection...', 5)

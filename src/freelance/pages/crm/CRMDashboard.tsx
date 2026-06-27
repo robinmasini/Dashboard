@@ -44,6 +44,7 @@ export default function CRMDashboard() {
         settings?.brightdata_api_key,
         settings?.brightdata_scraper_id,
         depthLimit,
+        settings?.tavily_api_key,
         (step, pct) => {
           setProgress(pct)
           setProgressStep(step)

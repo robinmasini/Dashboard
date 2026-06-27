@@ -9,6 +9,7 @@ export default function CRMSettings() {
   const [apiKey, setApiKey] = useState('')
   const [scraperId, setScraperId] = useState('')
   const [linkedinCookie, setLinkedinCookie] = useState('')
+  const [tavilyApiKey, setTavilyApiKey] = useState('')
 
   // Charger les valeurs quand les paramètres sont prêts
   useEffect(() => {
@@ -16,6 +17,7 @@ export default function CRMSettings() {
       setApiKey(settings.brightdata_api_key || '')
       setScraperId(settings.brightdata_scraper_id || '')
       setLinkedinCookie(settings.linkedin_cookie || '')
+      setTavilyApiKey(settings.tavily_api_key || '')
     }
   }, [settings])
 
@@ -25,7 +27,8 @@ export default function CRMSettings() {
       await updateSettings({
         brightdata_api_key: apiKey,
         brightdata_scraper_id: scraperId,
-        linkedin_cookie: linkedinCookie
+        linkedin_cookie: linkedinCookie,
+        tavily_api_key: tavilyApiKey
       })
       alert('✅ Paramètres enregistrés avec succès !')
     } catch (err: any) {
@@ -93,6 +96,16 @@ CREATE TABLE crm_contacts (
           </p>
 
           <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div className="modal-field">
+              <span>Clé d'API Tavily (Recherche IA en direct)</span>
+              <input
+                type="password"
+                value={tavilyApiKey}
+                onChange={e => setTavilyApiKey(e.target.value)}
+                placeholder="tvly-abcdef..."
+              />
+            </div>
+
             <div className="modal-field">
               <span>Clé d'API Bright Data (https://brightdata.fr)</span>
               <input
@@ -189,6 +202,31 @@ CREATE TABLE crm_contacts (
                 {isSupabase 
                   ? 'Vos données sont stockées et synchronisées en temps réel sur votre base Supabase.'
                   : 'Les tables du CRM ne sont pas détectées dans Supabase. Les données sont conservées localement dans votre navigateur.'}
+              </div>
+            </div>
+          </div>
+
+          {/* Tavily status badge */}
+          <div 
+            style={{ 
+              padding: '16px', 
+              borderRadius: '12px', 
+              background: settings?.tavily_api_key ? 'rgba(99, 102, 241, 0.08)' : 'rgba(245, 158, 11, 0.08)',
+              border: settings?.tavily_api_key ? '1px solid rgba(99, 102, 241, 0.2)' : '1px solid rgba(245, 158, 11, 0.2)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px'
+            }}
+          >
+            <span style={{ fontSize: '1.5rem' }}>{settings?.tavily_api_key ? '⚡' : '⚠️'}</span>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '0.95rem', color: settings?.tavily_api_key ? '#a5b4fc' : '#fbbf24' }}>
+                {settings?.tavily_api_key ? 'Recherche en direct Tavily Activée' : 'Recherche en direct Désactivée'}
+              </div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                {settings?.tavily_api_key 
+                  ? 'Le CRM recherche de vraies annonces et profils LinkedIn sur le web en temps réel.'
+                  : 'Configurez votre clé Tavily pour connecter la recherche de prospects réels.'}
               </div>
             </div>
           </div>

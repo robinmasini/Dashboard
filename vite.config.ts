@@ -12,6 +12,18 @@ export default defineConfig({
       overlay: true,
       timeout: 30000, // Augmenter le timeout HMR
     },
+    proxy: {
+      '/api-tavily': {
+        target: 'https://api.tavily.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api-tavily/, '')
+      },
+      '/api-brightdata': {
+        target: 'https://api.brightdata.com',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api-brightdata/, '')
+      }
+    }
   },
   build: {
     sourcemap: true,

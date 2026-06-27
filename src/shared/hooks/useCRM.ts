@@ -222,7 +222,7 @@ export function useCRM() {
       }
 
       if (!localSett) {
-        const defaultSettings = { id: 's1', brightdata_api_key: '', brightdata_scraper_id: '', linkedin_cookie: '' }
+        const defaultSettings = { id: 's1', brightdata_api_key: '', brightdata_scraper_id: '', linkedin_cookie: '', tavily_api_key: '' }
         localStorage.setItem('crm_settings', JSON.stringify(defaultSettings))
         setSettings(defaultSettings)
       } else {
