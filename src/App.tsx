@@ -76,34 +76,26 @@ function AppRoutes() {
         path="/admin/*"
         element={
           <ProtectedRoute allowedRole={UserRole.FREELANCE}>
-            <Routes>
-              {/* Le CRM a son propre Layout (CRMLayout) qui remplace DashboardLayout */}
-              <Route path="crm/*" element={<CRMLayout />}>
-                <Route index element={<Navigate to="dashboard" replace />} />
-                <Route path="dashboard" element={<CRMDashboard />} />
-                <Route path="entreprises" element={<CRMEntreprises />} />
-                <Route path="contacts" element={<CRMContacts />} />
-                <Route path="templates" element={<CRMTemplates />} />
-                <Route path="settings" element={<CRMSettings />} />
-              </Route>
+            <DashboardLayout role={UserRole.FREELANCE}>
+              <Routes>
+                <Route index element={<Navigate to="performance" replace />} />
+                <Route path="performance" element={<FreelancePerformance />} />
+                <Route path="commandes/*" element={<FreelanceCommandes />} />
+                <Route path="time-tracking" element={<FreelanceTimeTracking />} />
+                <Route path="planning" element={<FreelancePlanning />} />
+                <Route path="clients" element={<FreelanceClients />} />
 
-              {/* Les autres pages d'administration utilisent DashboardLayout */}
-              <Route
-                path="*"
-                element={
-                  <DashboardLayout role={UserRole.FREELANCE}>
-                    <Routes>
-                      <Route index element={<Navigate to="performance" replace />} />
-                      <Route path="performance" element={<FreelancePerformance />} />
-                      <Route path="commandes/*" element={<FreelanceCommandes />} />
-                      <Route path="time-tracking" element={<FreelanceTimeTracking />} />
-                      <Route path="planning" element={<FreelancePlanning />} />
-                      <Route path="clients" element={<FreelanceClients />} />
-                    </Routes>
-                  </DashboardLayout>
-                }
-              />
-            </Routes>
+                {/* Le CRM est intégré sous DashboardLayout */}
+                <Route path="crm/*" element={<CRMLayout />}>
+                  <Route index element={<Navigate to="dashboard" replace />} />
+                  <Route path="dashboard" element={<CRMDashboard />} />
+                  <Route path="entreprises" element={<CRMEntreprises />} />
+                  <Route path="contacts" element={<CRMContacts />} />
+                  <Route path="templates" element={<CRMTemplates />} />
+                  <Route path="settings" element={<CRMSettings />} />
+                </Route>
+              </Routes>
+            </DashboardLayout>
           </ProtectedRoute>
         }
       />
