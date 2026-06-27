@@ -89,7 +89,8 @@ export class BrightDataScraperService {
         })
 
         if (!response.ok) {
-          throw new Error(`Erreur API Tavily: ${response.statusText}`)
+          const errText = await response.text()
+          throw new Error(`API Tavily a renvoyé une erreur: ${response.status} ${errText || response.statusText}`)
         }
 
         const data = await response.json()
@@ -239,12 +240,10 @@ export class BrightDataScraperService {
           return results
         }
         
-        if (onProgress) onProgress('Aucun résultat trouvé sur Tavily. Passage au mode simulation...', 45)
-        await sleep(1000)
+        throw new Error('Aucun résultat de recrutement trouvé pour cette recherche.')
       } catch (err: any) {
-        console.warn('Tavily search failed, falling back to simulation:', err.message)
-        if (onProgress) onProgress('Erreur de connexion Tavily. Passage en mode simulation...', 45)
-        await sleep(1000)
+        console.error('Tavily search failed:', err.message)
+        throw new Error(`Échec de la recherche en direct Tavily : ${err.message}`)
       }
     }
 
@@ -261,7 +260,7 @@ export class BrightDataScraperService {
         // Pour les besoins du projet, nous implémentons le connecteur API HTTP.
         // Si l'utilisateur a configuré son scraper Bright Data, nous envoyons la requête.
         // URL d'exemple : https://api.brightdata.com/dca/trigger
-        const triggerUrl = `https://api.brightdata.com/dca/trigger?collector=${scraperId}&queue=next`
+        const triggerUrl = `/api-brightdata/dca/trigger?collector=${scraperId}&queue=next`
         const response = await fetch(triggerUrl, {
           method: 'POST',
           headers: {
