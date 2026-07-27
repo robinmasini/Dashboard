@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, Navigate, useLocation } from 'react-router-dom'
+import { useAuth } from '../shared/hooks/useAuth'
 import TVLoader from '../shared/components/TVLoader'
 import tvLogo from '../assets/tv.png'
 import robinAvatar from '../assets/robin-avatar.png'
@@ -7,8 +8,10 @@ import '../shared/components/Sidebar.css'
 
 export default function TradeViewPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const { user, loading: authLoading } = useAuth()
   const [activeTab, setActiveTab] = useState('Dashboard')
-  const [loading, setLoading] = useState(true)
+  const [pageLoading, setPageLoading] = useState(true)
 
   useEffect(() => {
     document.title = 'TradeView - Interactive Brokers Scalping Robot'
@@ -26,7 +29,7 @@ export default function TradeViewPage() {
     link.href = '/tv-seul.png'
 
     const timer = setTimeout(() => {
-      setLoading(false)
+      setPageLoading(false)
     }, 750)
 
     return () => {
@@ -37,8 +40,12 @@ export default function TradeViewPage() {
     }
   }, [])
 
-  if (loading) {
+  if (authLoading || pageLoading) {
     return <TVLoader />
+  }
+
+  if (!user) {
+    return <Navigate to="/auth/freelance" state={{ from: location }} replace />
   }
 
   // Calcul de l'âge et des jours vécus depuis le dernier anniversaire

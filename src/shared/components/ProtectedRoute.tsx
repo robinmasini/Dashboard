@@ -16,19 +16,12 @@ export default function ProtectedRoute({ children, allowedRole }: ProtectedRoute
     return <RMLoader />
   }
 
-  // 1. Si pas connecté, redirection vers le login approprié
-  if (!user) {
+  // 1. Si pas connecté ou si le rôle ne correspond pas
+  if (!user || (role && role !== allowedRole)) {
     const loginPath = allowedRole === UserRole.CLIENT ? '/auth/client' : '/auth/freelance'
     return <Navigate to={loginPath} state={{ from: location }} replace />
   }
 
-  // 2. Si connecté mais pas le bon rôle
-  if (role && role !== allowedRole) {
-    // Redirection vers le dashboard approprié
-    const dashboardPath = role === UserRole.CLIENT ? '/dashboard/projet' : '/admin/performance'
-    return <Navigate to={dashboardPath} replace />
-  }
-
-  // 3. Si tout est bon, on affiche la page
+  // 2. Si connecté avec le bon rôle
   return <>{children}</>
 }

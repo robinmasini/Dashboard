@@ -22,11 +22,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   // Helper to extract role from user metadata
-  const getRoleFromUser = (user: User): UserRole | null => {
+  const getRoleFromUser = (user: User): UserRole => {
     const metadata = user.user_metadata
-    if (metadata?.role === 'freelance') return UserRole.FREELANCE
     if (metadata?.role === 'client') return UserRole.CLIENT
-    return null
+    return UserRole.FREELANCE
   }
 
   useEffect(() => {
