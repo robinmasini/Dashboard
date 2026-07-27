@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import RMLoader from '../shared/components/RMLoader'
 import heroCard from '../assets/hero-card.png'
 import logo from '../assets/logo-ds.png'
 import './LandingPage.css'
@@ -20,6 +21,18 @@ import image169Logo from '../assets/image 169.png'
 export default function LandingPage() {
     const navigate = useNavigate()
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [loading, setLoading] = useState(true)
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            setLoading(false)
+        }, 700)
+        return () => clearTimeout(timer)
+    }, [])
+
+    if (loading) {
+        return <RMLoader />
+    }
 
     const companies = [
         { name: 'Meonix', logo: group3709Logo },

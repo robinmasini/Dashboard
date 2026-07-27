@@ -2,6 +2,7 @@ import { createContext, useEffect, useState, type ReactNode } from 'react'
 import type { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../services/supabaseClient'
 import { UserRole } from '../types/roles'
+import RMLoader from '../components/RMLoader'
 
 type AuthContextType = {
   session: Session | null
@@ -99,7 +100,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={value}>
-      {!loading ? children : <div style={{ color: '#666', padding: 20, textAlign: 'center' }}>Chargement...</div>}
+      {!loading ? children : <RMLoader />}
     </AuthContext.Provider>
   )
 }

@@ -1,6 +1,7 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { UserRole } from '../types/roles'
+import RMLoader from './RMLoader'
 
 type ProtectedRouteProps = {
   children: React.ReactNode
@@ -12,17 +13,7 @@ export default function ProtectedRoute({ children, allowedRole }: ProtectedRoute
   const location = useLocation()
 
   if (loading) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'radial-gradient(circle at top, #1a1447, #05060d 60%)'
-      }}>
-        <p style={{ color: 'var(--text-muted)' }}>Chargement...</p>
-      </div>
-    )
+    return <RMLoader />
   }
 
   // 1. Si pas connecté, redirection vers le login approprié
