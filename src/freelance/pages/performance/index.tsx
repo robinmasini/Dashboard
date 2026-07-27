@@ -222,13 +222,31 @@ const OverviewContent = () => {
             padding: '28px 32px',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justify: 'space-between',
             gap: '32px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
             marginTop: '8px'
           }}
         >
-          {/* Left info column */}
+          {/* Left image display column (with floating animation) */}
+          <div style={{ flex: '1 1 45%', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2 }}>
+            <img
+              src={tvIllustration}
+              alt="TradeView Illustration"
+              className="tv-illustration-animated"
+              style={{
+                width: '100%',
+                maxWidth: '480px',
+                height: 'auto',
+                borderRadius: '16px',
+                objectFit: 'contain',
+                filter: 'drop-shadow(0 20px 35px rgba(99, 102, 241, 0.25))',
+                transition: 'transform 0.4s ease'
+              }}
+            />
+          </div>
+
+          {/* Right info column */}
           <div style={{ flex: '1 1 50%', zIndex: 2 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '12px' }}>
               <span style={{
@@ -267,23 +285,6 @@ const OverviewContent = () => {
                 <p style={{ margin: '4px 0 0 0', fontSize: '1.1rem', fontWeight: 700, color: '#6366f1' }}>CAC40 • BTC • ETH</p>
               </div>
             </div>
-          </div>
-
-          {/* Right image display column */}
-          <div style={{ flex: '1 1 45%', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2 }}>
-            <img
-              src={tvIllustration}
-              alt="TradeView Illustration"
-              style={{
-                width: '100%',
-                maxWidth: '480px',
-                height: 'auto',
-                borderRadius: '16px',
-                objectFit: 'contain',
-                filter: 'drop-shadow(0 20px 30px rgba(0, 0, 0, 0.5))',
-                transition: 'transform 0.4s ease'
-              }}
-            />
           </div>
         </article>
       </section>

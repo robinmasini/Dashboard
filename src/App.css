@@ -504,6 +504,23 @@ td {
   animation: float-jellyfish 5s ease-in-out infinite;
 }
 
+/* TV Illustration Float Animation */
+@keyframes float-tv {
+  0% {
+    transform: translateY(0px) scale(1);
+  }
+  50% {
+    transform: translateY(-10px) scale(1.02);
+  }
+  100% {
+    transform: translateY(0px) scale(1);
+  }
+}
+
+.tv-illustration-animated {
+  animation: float-tv 4.5s ease-in-out infinite;
+}
+
 /* --- DASHBOARD GRID SYSTEM --- */
 
 .performance-grid {
