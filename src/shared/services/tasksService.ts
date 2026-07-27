@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient'
-import type { TodoItem } from '../types'
+import type { TodoItem } from '../hooks/useSupabaseHooks'
 
 export const tasksService = {
   async fetchTodoItems(clientId?: string): Promise<TodoItem[]> {

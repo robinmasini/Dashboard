@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient'
-import type { Project } from '../types'
+import type { Project } from '../hooks/useSupabaseHooks'
 
 export const projectsService = {
   async fetchProjects(clientId?: string): Promise<Project[]> {

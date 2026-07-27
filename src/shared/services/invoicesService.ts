@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient'
-import type { Invoice } from '../types'
+import type { Invoice } from '../hooks/useSupabaseHooks'
 
 export const invoicesService = {
   async fetchInvoices(clientId?: string): Promise<Invoice[]> {

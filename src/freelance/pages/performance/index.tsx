@@ -54,6 +54,16 @@ const OverviewContent = () => {
     }).length
   }, [clients])
 
+  const totalPaidAmount = useMemo(() => {
+    const sum = invoices
+      .filter(inv => inv.status === 'Payée')
+      .reduce((acc, inv) => {
+        const amt = parseFloat(inv.amount.replace(/[^0-9,-]+/g, "").replace(',', '.'))
+        return acc + (isNaN(amt) ? 0 : amt)
+      }, 0)
+    return sum > 0 ? formatCurrency(sum) : walletSummary.amount
+  }, [invoices])
+
   const stripeKey = "pk_live_51Sv3ZHLkTHqEmucyTb6aAik6fRLlnMVAkSrx0Uc8k0im9pIQMxyArnXv1ZgDh4hzv6G0wSvBRrHUwuL8xZHIXkyl00pk1e2U3M"
   const stripeStatus = "Connecté"
 
@@ -153,7 +163,7 @@ const OverviewContent = () => {
           </header>
           <p className="panel__sub" style={{ marginBottom: '6px', fontSize: '0.8rem' }}>{walletSummary.provider} + STRIPE</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'white', margin: 0, lineHeight: 1 }}>{walletSummary.amount}</p>
+            <p style={{ fontSize: '1.4rem', fontWeight: 700, color: 'white', margin: 0, lineHeight: 1 }}>{totalPaidAmount}</p>
             <p style={{ color: '#10b981', fontSize: '0.8rem', fontWeight: 600, margin: 0 }}>86 % de l'objectif atteint</p>
           </div>
         </article>

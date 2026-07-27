@@ -1,5 +1,5 @@
 import { supabase } from './supabaseClient'
-import type { Appointment } from '../types'
+import type { Appointment } from '../hooks/useSupabaseHooks'
 
 export const appointmentsService = {
   async fetchAppointments(clientId?: string): Promise<Appointment[]> {
