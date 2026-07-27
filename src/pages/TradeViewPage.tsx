@@ -59,19 +59,20 @@ export default function TradeViewPage() {
       >
         {/* Top Section */}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* Logo Section with tv.png (enlarged & shifted to the left for visual alignment) */}
-          <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'center', width: '100%', marginBottom: '24px', paddingLeft: '12px', boxSizing: 'border-box' }}>
+          {/* Logo Section with tv.png (centered relative to categories, 220px x 85px) */}
+          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', marginBottom: '28px', padding: 0 }}>
             <img
               src={tvLogo}
               alt="TradeView Logo"
               style={{
-                maxWidth: '150px',
-                maxHeight: '65px',
-                width: 'auto',
+                width: '100%',
+                maxWidth: '220px',
+                maxHeight: '85px',
                 height: 'auto',
                 objectFit: 'contain',
                 cursor: 'pointer',
-                display: 'block'
+                display: 'block',
+                margin: '0 auto'
               }}
               onClick={() => navigate('/admin/performance')}
             />
