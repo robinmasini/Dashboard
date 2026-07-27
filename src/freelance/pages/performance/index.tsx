@@ -55,13 +55,14 @@ const OverviewContent = () => {
   }, [clients])
 
   const totalPaidAmount = useMemo(() => {
-    const sum = invoices
+    const baseShineBalance = 8094.76
+    const sumPaidInvoices = invoices
       .filter(inv => inv.status === 'Payée')
       .reduce((acc, inv) => {
         const amt = parseFloat(inv.amount.replace(/[^0-9,-]+/g, "").replace(',', '.'))
         return acc + (isNaN(amt) ? 0 : amt)
       }, 0)
-    return sum > 0 ? formatCurrency(sum) : walletSummary.amount
+    return formatCurrency(baseShineBalance + sumPaidInvoices)
   }, [invoices])
 
   const stripeKey = "pk_live_51Sv3ZHLkTHqEmucyTb6aAik6fRLlnMVAkSrx0Uc8k0im9pIQMxyArnXv1ZgDh4hzv6G0wSvBRrHUwuL8xZHIXkyl00pk1e2U3M"

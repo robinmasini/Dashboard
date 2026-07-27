@@ -226,7 +226,7 @@ export type Invoice = {
 
 export const invoicingQueue: Invoice[] = [
   { id: 'INV-001', client: 'Client Actif', amount: '1 040€', dueDate: '30/11/2025', status: 'À envoyer' },
-  { id: 'AC-001', client: 'Vente Directe', amount: '1 984,33€', dueDate: '14/02/2026', status: 'Payée' },
+  { id: 'STRIPE-001', client: 'Encaissement Stripe', amount: '3 753,19€', dueDate: '27/07/2026', status: 'Payée' },
 ]
 
 export type AgendaEvent = {
