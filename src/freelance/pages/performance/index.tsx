@@ -219,7 +219,7 @@ const OverviewContent = () => {
             background: 'linear-gradient(135deg, rgba(15, 21, 53, 0.85) 0%, rgba(8, 11, 28, 0.95) 100%)',
             border: '1px solid rgba(255, 255, 255, 0.08)',
             borderRadius: '20px',
-            padding: '28px 32px',
+            padding: '24px 32px 24px 0',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
@@ -228,8 +228,8 @@ const OverviewContent = () => {
             marginTop: '8px'
           }}
         >
-          {/* Left image display column (with floating animation) */}
-          <div style={{ flex: '1 1 45%', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 2 }}>
+          {/* Left image display column (flush to left edge with floating animation) */}
+          <div style={{ flex: '0 0 45%', display: 'flex', justifyContent: 'flex-start', alignItems: 'center', zIndex: 2, paddingLeft: 0 }}>
             <img
               src={tvIllustration}
               alt="TradeView Illustration"
@@ -238,8 +238,11 @@ const OverviewContent = () => {
                 width: '100%',
                 maxWidth: '480px',
                 height: 'auto',
-                borderRadius: '16px',
-                objectFit: 'contain',
+                borderTopLeftRadius: '20px',
+                borderBottomLeftRadius: '20px',
+                borderTopRightRadius: '16px',
+                borderBottomRightRadius: '16px',
+                objectFit: 'cover',
                 filter: 'drop-shadow(0 20px 35px rgba(99, 102, 241, 0.25))',
                 transition: 'transform 0.4s ease'
               }}
