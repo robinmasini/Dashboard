@@ -12,10 +12,29 @@ export default function TradeViewPage() {
 
   useEffect(() => {
     document.title = 'TradeView - Interactive Brokers Scalping Robot'
+
+    // Favicon spécifique tv-seul.png pour TradeView
+    const existingFavicon = document.querySelector("link[rel*='icon']") as HTMLLinkElement
+    const originalFaviconHref = existingFavicon ? existingFavicon.href : '/favicon.png'
+
+    let link: HTMLLinkElement = existingFavicon
+    if (!link) {
+      link = document.createElement('link')
+      link.rel = 'icon'
+      document.getElementsByTagName('head')[0].appendChild(link)
+    }
+    link.href = '/tv-seul.png'
+
     const timer = setTimeout(() => {
       setLoading(false)
     }, 750)
-    return () => clearTimeout(timer)
+
+    return () => {
+      clearTimeout(timer)
+      if (link) {
+        link.href = originalFaviconHref
+      }
+    }
   }, [])
 
   if (loading) {
