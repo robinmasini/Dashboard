@@ -55,14 +55,15 @@ const OverviewContent = () => {
   }, [clients])
 
   const totalPaidAmount = useMemo(() => {
-    const baseShineBalance = 8094.76
-    const sumPaidInvoices = invoices
-      .filter(inv => inv.status === 'Payée')
+    // Solde de référence validé (Shine 8 094,76 € + Stripe 3 753,19 € = 11 847,95 €)
+    const baseBalance = 11847.95
+    const newTransactionsSum = invoices
+      .filter(inv => inv.status === 'Payée' && inv.id !== 'STRIPE-001' && inv.id !== 'AC-001')
       .reduce((acc, inv) => {
         const amt = parseFloat(inv.amount.replace(/[^0-9,-]+/g, "").replace(',', '.'))
         return acc + (isNaN(amt) ? 0 : amt)
       }, 0)
-    return formatCurrency(baseShineBalance + sumPaidInvoices)
+    return formatCurrency(baseBalance + newTransactionsSum)
   }, [invoices])
 
   const stripeKey = "pk_live_51Sv3ZHLkTHqEmucyTb6aAik6fRLlnMVAkSrx0Uc8k0im9pIQMxyArnXv1ZgDh4hzv6G0wSvBRrHUwuL8xZHIXkyl00pk1e2U3M"
