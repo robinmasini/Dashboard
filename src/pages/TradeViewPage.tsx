@@ -95,7 +95,7 @@ export default function TradeViewPage() {
       >
         {/* Top Section */}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* Logo Section with tv.png (shifted 30px left from 68px to 38px) */}
+          {/* Logo Section with tv.png (non-clickable as requested) */}
           <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', width: '100%', marginBottom: '20px', paddingLeft: '38px' }}>
             <img
               src={tvLogo}
@@ -106,11 +106,10 @@ export default function TradeViewPage() {
                 width: 'auto',
                 height: 'auto',
                 objectFit: 'contain',
-                cursor: 'pointer',
+                cursor: 'default',
                 display: 'block',
                 transformOrigin: 'top left'
               }}
-              onClick={() => navigate('/admin/performance')}
             />
           </div>
 
