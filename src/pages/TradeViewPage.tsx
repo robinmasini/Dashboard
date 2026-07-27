@@ -88,8 +88,8 @@ export default function TradeViewPage() {
       >
         {/* Top Section */}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* Logo Section with tv.png (expanded diagonally down-right) */}
-          <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', width: '100%', marginBottom: '20px', paddingLeft: '8px' }}>
+          {/* Logo Section with tv.png (shifted 60px right as requested) */}
+          <div style={{ display: 'flex', justifyContent: 'flex-start', alignItems: 'flex-start', width: '100%', marginBottom: '20px', paddingLeft: '68px' }}>
             <img
               src={tvLogo}
               alt="TradeView Logo"
