@@ -40,92 +40,73 @@ export default function TradeViewPage() {
 
   return (
     <div style={{ display: 'flex', width: '100vw', height: '100vh', backgroundColor: '#000000', overflow: 'hidden' }}>
-      {/* TradeView Sidebar (Black background, tv.png logo, 3 categories) */}
+      {/* TradeView Sidebar (Black background, tv.png logo, 3 categories with blue beam indicator & original profile card) */}
       <aside
         className="sidebar"
         style={{
-          width: '260px',
-          minWidth: '260px',
+          width: '300px',
+          minWidth: '300px',
           height: '100vh',
           backgroundColor: '#000000',
           backgroundImage: 'none',
-          borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRight: '1px solid rgba(255, 255, 255, 0.05)',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          padding: '24px 16px',
+          padding: '32px 24px',
           boxSizing: 'border-box'
         }}
       >
-        {/* Logo Section with tv.png */}
-        <div>
-          <div className="sidebar__logo-container" style={{ padding: '8px 12px', marginBottom: '24px' }}>
+        {/* Top Section */}
+        <div style={{ position: 'relative', zIndex: 1 }}>
+          {/* Logo Section with tv.png */}
+          <div className="sidebar__logo-container" style={{ marginBottom: '32px' }}>
             <img
               src={tvLogo}
               alt="TradeView Logo"
               className="sidebar__logo"
-              style={{ maxHeight: '45px', width: 'auto', objectFit: 'contain', cursor: 'pointer' }}
+              style={{ maxHeight: '55px', width: 'auto', objectFit: 'contain', cursor: 'pointer' }}
               onClick={() => navigate('/admin/performance')}
             />
           </div>
 
-          {/* Navigation Items: Dashboard / Market / Data */}
-          <nav className="sidebar__nav" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          {/* Navigation Items: Dashboard / Market / Data with blue beam indicator */}
+          <nav className="sidebar__nav" style={{ gap: '12px' }}>
             {navItems.map((item) => (
               <button
                 key={item.id}
                 className={`sidebar__nav-item ${activeTab === item.label ? 'active' : ''}`}
                 onClick={() => setActiveTab(item.label)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px',
-                  padding: '12px 16px',
-                  borderRadius: '12px',
-                  background: activeTab === item.label ? 'rgba(99, 102, 241, 0.2)' : 'transparent',
-                  border: activeTab === item.label ? '1px solid rgba(99, 102, 241, 0.4)' : '1px solid transparent',
-                  color: activeTab === item.label ? '#ffffff' : 'rgba(255, 255, 255, 0.6)',
-                  cursor: 'pointer',
-                  fontWeight: activeTab === item.label ? 600 : 400,
-                  fontSize: '0.95rem',
-                  transition: 'all 0.2s ease'
-                }}
               >
-                <span className="sidebar__nav-icon" style={{ fontSize: '1.1rem' }}>{item.icon}</span>
+                <span className="sidebar__nav-icon">{item.icon}</span>
                 <span className="sidebar__nav-label">{item.label}</span>
               </button>
             ))}
           </nav>
         </div>
 
-        {/* Footer Profile & Logout */}
-        <div className="sidebar__footer" style={{ marginTop: 'auto', paddingTop: '16px', borderTop: '1px solid rgba(255, 255, 255, 0.08)' }}>
-          <div className="sidebar__profile-card" style={{ marginBottom: '12px' }}>
+        {/* Footer Section: Original Profile Card & Return Link */}
+        <div className="sidebar__footer" style={{ position: 'relative', zIndex: 1, marginTop: 'auto' }}>
+          {/* Profile Card matching exact design */}
+          <div className="sidebar__profile-card">
             <div className="sidebar__profile-image">
               <img src={robinAvatar} alt="Robin Masini" className="sidebar__profile-img" />
             </div>
             <div className="sidebar__profile-text">
-              <div style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '2px', fontWeight: 500 }}>
+              <div style={{ fontSize: '0.85rem', color: 'rgba(255, 255, 255, 0.5)', marginBottom: '4px', fontWeight: 500 }}>
                 {age} ans • {days} jours
               </div>
-              <div className="sidebar__contact" style={{ color: 'white', fontWeight: 600 }}>EI Robin MASINI</div>
-              <div className="sidebar__domain" style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.6)' }}>robinmasini.com</div>
+              <div className="sidebar__contact">EI Robin MASINI</div>
+              <div className="sidebar__siret">99268512300018</div>
+              <div className="sidebar__domain">robinmasini.com</div>
             </div>
           </div>
 
+          {/* Return to Main Dashboard */}
           <button
             onClick={() => navigate('/admin/performance')}
-            className="ghost-button"
+            className="logout-button"
             style={{
-              width: '100%',
-              padding: '10px',
-              borderRadius: '10px',
-              border: '1px solid rgba(255, 255, 255, 0.12)',
-              background: 'rgba(255, 255, 255, 0.04)',
-              color: '#ffffff',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              fontWeight: 500,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
