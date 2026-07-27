@@ -59,21 +59,13 @@ export default function TradeViewPage() {
       >
         {/* Top Section */}
         <div style={{ position: 'relative', zIndex: 1 }}>
-          {/* Logo Section with tv.png */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', marginBottom: '32px', padding: 0 }}>
+          {/* Logo Section with tv.png (exact size and alignment as RM logo) */}
+          <div className="sidebar__logo-container">
             <img
               src={tvLogo}
               alt="TradeView Logo"
-              style={{
-                width: '100%',
-                maxWidth: '252px',
-                maxHeight: '140px',
-                height: 'auto',
-                objectFit: 'contain',
-                cursor: 'pointer',
-                display: 'block',
-                margin: '0 auto'
-              }}
+              className="sidebar__logo"
+              style={{ cursor: 'pointer' }}
               onClick={() => navigate('/admin/performance')}
             />
           </div>
