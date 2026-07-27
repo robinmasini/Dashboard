@@ -25,7 +25,7 @@ export default function ProtectedRoute({ children, allowedRole }: ProtectedRoute
   // 2. Si connecté mais pas le bon rôle
   if (role && role !== allowedRole) {
     // Redirection vers le dashboard approprié
-    const dashboardPath = role === UserRole.CLIENT ? '/dashboard/projet' : '/admin/commandes'
+    const dashboardPath = role === UserRole.CLIENT ? '/dashboard/projet' : '/admin/performance'
     return <Navigate to={dashboardPath} replace />
   }
 

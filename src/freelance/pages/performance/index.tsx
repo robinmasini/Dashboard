@@ -352,7 +352,7 @@ export default function FreelancePerformance() {
       {/* HEADER SECTION */}
       <div className="section-header">
         <div className="section-header__tabs">
-          <p className="section-header__label">Performance</p>
+          <p className="section-header__label">Dashboard</p>
           <div className="tab-group">
             {['Vue d\'ensemble', 'Prévisionnel', 'Pérénité'].map((tab) => (
               <button
