@@ -17,8 +17,17 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
-  const [role, setRole] = useState<UserRole | null>(null)
+  const [user, setUser] = useState<User | null>(() => {
+    const isAuth = localStorage.getItem('rm_freelance_authenticated')
+    if (isAuth === 'true') {
+      return { id: 'admin-1', email: 'contact@robinmasini.com', user_metadata: { role: 'freelance' } } as any
+    }
+    return null
+  })
+  const [role, setRole] = useState<UserRole | null>(() => {
+    const isAuth = localStorage.getItem('rm_freelance_authenticated')
+    return isAuth === 'true' ? UserRole.FREELANCE : null
+  })
   const [loading, setLoading] = useState(true)
 
   // Helper to extract role from user metadata

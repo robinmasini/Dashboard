@@ -27,7 +27,7 @@ export default function FreelanceLogin() {
     const { success, error } = await login(email, password)
 
     if (success) {
-      window.location.href = from
+      navigate(from, { replace: true })
     } else {
       setError(error || 'Email ou mot de passe incorrect')
       setIsSubmitting(false)
