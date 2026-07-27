@@ -6,6 +6,12 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { supabase } from '../services/supabaseClient'
+import { invoicesService } from '../services/invoicesService'
+import { clientsService } from '../services/clientsService'
+import { tasksService } from '../services/tasksService'
+import { projectsService } from '../services/projectsService'
+import { appointmentsService } from '../services/appointmentsService'
+import { ticketsService } from '../services/ticketsService'
 
 // ============================================
 // TYPES
@@ -181,20 +187,8 @@ export function useTickets(clientId?: string) {
 
   const fetchTickets = useCallback(async () => {
     try {
-      let query = supabase
-        .from('tickets')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (clientId) {
-        query = query.eq('client_id', clientId)
-      }
-
-      const { data, error: fetchError } = await query
-
-      if (fetchError) throw fetchError
-
-      setTickets(data || [])
+      const data = await ticketsService.fetchTickets(clientId)
+      setTickets(data)
       setError(null)
     } catch (err: any) {
       console.error('Error fetching tickets:', err)
@@ -206,40 +200,52 @@ export function useTickets(clientId?: string) {
 
   useEffect(() => {
     fetchTickets()
-    // Realtime disabled for performance - data refreshes on CRUD operations
+
+    const channel = supabase
+      .channel('realtime:tickets')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tickets' }, () => {
+        fetchTickets()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchTickets])
 
   const addTicket = useCallback(async (ticket: Omit<Ticket, 'id' | 'created_at'>) => {
-    const { data, error: insertError } = await supabase
-      .from('tickets')
-      .insert(ticket)
-      .select()
-      .single()
-
-    if (insertError) throw insertError
-    return data
+    try {
+      const data = await ticketsService.addTicket(ticket)
+      setTickets(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    }
   }, [])
 
   const updateTicket = useCallback(async (id: string, updates: Partial<Ticket>) => {
-    const { data, error: updateError } = await supabase
-      .from('tickets')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    return data
-  }, [])
+    try {
+      setTickets(prev => prev.map(t => (t.id === id ? { ...t, ...updates } : t)))
+      const data = await ticketsService.updateTicket(id, updates)
+      return data
+    } catch (err: any) {
+      fetchTickets()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchTickets])
 
   const deleteTicket = useCallback(async (id: string) => {
-    const { error: deleteError } = await supabase
-      .from('tickets')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) throw deleteError
-  }, [])
+    try {
+      setTickets(prev => prev.filter(t => t.id !== id))
+      await ticketsService.deleteTicket(id)
+    } catch (err: any) {
+      fetchTickets()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchTickets])
 
   return {
     tickets,
@@ -288,7 +294,17 @@ export function useProposals(clientId?: string) {
 
   useEffect(() => {
     fetchProposals()
-    // Realtime disabled for performance
+
+    const channel = supabase
+      .channel('realtime:proposals')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'proposals' }, () => {
+        fetchProposals()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchProposals])
 
   const addProposal = useCallback(async (proposal: Omit<Proposal, 'id' | 'created_at'>) => {
@@ -299,11 +315,12 @@ export function useProposals(clientId?: string) {
       .single()
 
     if (insertError) throw insertError
-    await fetchProposals() // Refresh list after adding
+    setProposals(prev => [data, ...prev])
     return data
-  }, [fetchProposals])
+  }, [])
 
   const updateProposal = useCallback(async (id: string, updates: Partial<Proposal>) => {
+    setProposals(prev => prev.map(p => (p.id === id ? { ...p, ...updates } : p)))
     const { data, error: updateError } = await supabase
       .from('proposals')
       .update(updates)
@@ -311,19 +328,25 @@ export function useProposals(clientId?: string) {
       .select()
       .single()
 
-    if (updateError) throw updateError
-    await fetchProposals() // Refresh list after updating
+    if (updateError) {
+      fetchProposals()
+      throw updateError
+    }
     return data
   }, [fetchProposals])
 
   const deleteProposal = useCallback(async (id: string) => {
+    setProposals(prev => prev.filter(p => p.id !== id))
     const { error: deleteError } = await supabase
       .from('proposals')
       .delete()
       .eq('id', id)
 
-    if (deleteError) throw deleteError
-  }, [])
+    if (deleteError) {
+      fetchProposals()
+      throw deleteError
+    }
+  }, [fetchProposals])
 
   return {
     proposals,
@@ -347,27 +370,8 @@ export function useInvoices(clientId?: string) {
 
   const fetchInvoices = useCallback(async () => {
     try {
-      let query = supabase
-        .from('invoices')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (clientId) {
-        query = query.eq('client_id', clientId)
-      }
-
-      const { data, error: fetchError } = await query
-
-      if (fetchError) throw fetchError
-
-      // PATCH TEMPORAIRE: Correction de l'affichage des factures
-      // Remplace les montants 1500€ par 1040€
-      const fixedData = (data || []).map((invoice: Invoice) => ({
-        ...invoice,
-        amount: (invoice.amount.includes('1500') || invoice.amount.includes('1 500')) ? '1 040,00 €' : invoice.amount
-      }))
-
-      setInvoices(fixedData)
+      const data = await invoicesService.fetchInvoices(clientId)
+      setInvoices(data)
       setError(null)
     } catch (err: any) {
       console.error('Error fetching invoices:', err)
@@ -379,40 +383,52 @@ export function useInvoices(clientId?: string) {
 
   useEffect(() => {
     fetchInvoices()
-    // Realtime disabled for performance
+
+    const channel = supabase
+      .channel('realtime:invoices')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'invoices' }, () => {
+        fetchInvoices()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchInvoices])
 
   const addInvoice = useCallback(async (invoice: Omit<Invoice, 'id' | 'created_at'>) => {
-    const { data, error: insertError } = await supabase
-      .from('invoices')
-      .insert(invoice)
-      .select()
-      .single()
-
-    if (insertError) throw insertError
-    return data
+    try {
+      const data = await invoicesService.addInvoice(invoice)
+      setInvoices(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    }
   }, [])
 
   const updateInvoice = useCallback(async (id: string, updates: Partial<Invoice>) => {
-    const { data, error: updateError } = await supabase
-      .from('invoices')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    return data
-  }, [])
+    try {
+      setInvoices(prev => prev.map(inv => (inv.id === id ? { ...inv, ...updates } : inv)))
+      const data = await invoicesService.updateInvoice(id, updates)
+      return data
+    } catch (err: any) {
+      fetchInvoices()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchInvoices])
 
   const deleteInvoice = useCallback(async (id: string) => {
-    const { error: deleteError } = await supabase
-      .from('invoices')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) throw deleteError
-  }, [])
+    try {
+      setInvoices(prev => prev.filter(inv => inv.id !== id))
+      await invoicesService.deleteInvoice(id)
+    } catch (err: any) {
+      fetchInvoices()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchInvoices])
 
   return {
     invoices,
@@ -436,20 +452,8 @@ export function useProjects(clientId?: string) {
 
   const fetchProjects = useCallback(async () => {
     try {
-      let query = supabase
-        .from('projects')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (clientId) {
-        query = query.eq('client_id', clientId)
-      }
-
-      const { data, error: fetchError } = await query
-
-      if (fetchError) throw fetchError
-
-      setProjects(data || [])
+      const data = await projectsService.fetchProjects(clientId)
+      setProjects(data)
       setError(null)
     } catch (err: any) {
       console.error('Error fetching projects:', err)
@@ -461,40 +465,52 @@ export function useProjects(clientId?: string) {
 
   useEffect(() => {
     fetchProjects()
-    // Realtime disabled for performance
+
+    const channel = supabase
+      .channel('realtime:projects')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'projects' }, () => {
+        fetchProjects()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchProjects])
 
   const addProject = useCallback(async (project: Omit<Project, 'id' | 'created_at'>) => {
-    const { data, error: insertError } = await supabase
-      .from('projects')
-      .insert(project)
-      .select()
-      .single()
-
-    if (insertError) throw insertError
-    return data
+    try {
+      const data = await projectsService.addProject(project)
+      setProjects(prev => [data, ...prev])
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    }
   }, [])
 
   const updateProject = useCallback(async (id: string, updates: Partial<Project>) => {
-    const { data, error: updateError } = await supabase
-      .from('projects')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    return data
-  }, [])
+    try {
+      setProjects(prev => prev.map(p => (p.id === id ? { ...p, ...updates } : p)))
+      const data = await projectsService.updateProject(id, updates)
+      return data
+    } catch (err: any) {
+      fetchProjects()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchProjects])
 
   const deleteProject = useCallback(async (id: string) => {
-    const { error: deleteError } = await supabase
-      .from('projects')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) throw deleteError
-  }, [])
+    try {
+      setProjects(prev => prev.filter(p => p.id !== id))
+      await projectsService.deleteProject(id)
+    } catch (err: any) {
+      fetchProjects()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchProjects])
 
   return {
     projects,
@@ -538,8 +554,18 @@ export function useMessages(clientId: string) {
 
   useEffect(() => {
     fetchMessages()
-    // Realtime disabled for performance
-  }, [fetchMessages])
+
+    const channel = supabase
+      .channel(`realtime:messages:${clientId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages', filter: `client_id=eq.${clientId}` }, () => {
+        fetchMessages()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchMessages, clientId])
 
   const addMessage = useCallback(async (message: Omit<Message, 'id' | 'created_at'>) => {
     const { data, error: insertError } = await supabase
@@ -549,10 +575,12 @@ export function useMessages(clientId: string) {
       .single()
 
     if (insertError) throw insertError
+    setMessages(prev => [data, ...prev])
     return data
   }, [])
 
   const markAsRead = useCallback(async (id: string) => {
+    setMessages(prev => prev.map(m => (m.id === id ? { ...m, read: true } : m)))
     const { data, error: updateError } = await supabase
       .from('messages')
       .update({ read: true })
@@ -560,18 +588,25 @@ export function useMessages(clientId: string) {
       .select()
       .single()
 
-    if (updateError) throw updateError
+    if (updateError) {
+      fetchMessages()
+      throw updateError
+    }
     return data
-  }, [])
+  }, [fetchMessages])
 
   const deleteMessage = useCallback(async (id: string) => {
+    setMessages(prev => prev.filter(m => m.id !== id))
     const { error: deleteError } = await supabase
       .from('messages')
       .delete()
       .eq('id', id)
 
-    if (deleteError) throw deleteError
-  }, [])
+    if (deleteError) {
+      fetchMessages()
+      throw deleteError
+    }
+  }, [fetchMessages])
 
   return {
     messages,
@@ -615,8 +650,18 @@ export function useDocuments(clientId: string) {
 
   useEffect(() => {
     fetchDocuments()
-    // Realtime disabled for performance
-  }, [fetchDocuments])
+
+    const channel = supabase
+      .channel(`realtime:documents:${clientId}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'documents', filter: `client_id=eq.${clientId}` }, () => {
+        fetchDocuments()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [fetchDocuments, clientId])
 
   const addDocument = useCallback(async (document: Omit<Document, 'id' | 'created_at'>) => {
     const { data, error: insertError } = await supabase
@@ -626,17 +671,22 @@ export function useDocuments(clientId: string) {
       .single()
 
     if (insertError) throw insertError
+    setDocuments(prev => [data, ...prev])
     return data
   }, [])
 
   const deleteDocument = useCallback(async (id: string) => {
+    setDocuments(prev => prev.filter(d => d.id !== id))
     const { error: deleteError } = await supabase
       .from('documents')
       .delete()
       .eq('id', id)
 
-    if (deleteError) throw deleteError
-  }, [])
+    if (deleteError) {
+      fetchDocuments()
+      throw deleteError
+    }
+  }, [fetchDocuments])
 
   return {
     documents,
@@ -679,7 +729,17 @@ export function useAgendaEvents() {
 
   useEffect(() => {
     fetchEvents()
-    // Realtime disabled for performance
+
+    const channel = supabase
+      .channel('realtime:agenda_events')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'agenda_events' }, () => {
+        fetchEvents()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchEvents])
 
   const addEvent = useCallback(async (event: Omit<AgendaEvent, 'id' | 'created_at'>) => {
@@ -690,10 +750,12 @@ export function useAgendaEvents() {
       .single()
 
     if (insertError) throw insertError
+    setEvents(prev => [...prev, data])
     return data
   }, [])
 
   const updateEvent = useCallback(async (id: string, updates: Partial<AgendaEvent>) => {
+    setEvents(prev => prev.map(e => (e.id === id ? { ...e, ...updates } : e)))
     const { data, error: updateError } = await supabase
       .from('agenda_events')
       .update(updates)
@@ -701,18 +763,25 @@ export function useAgendaEvents() {
       .select()
       .single()
 
-    if (updateError) throw updateError
+    if (updateError) {
+      fetchEvents()
+      throw updateError
+    }
     return data
-  }, [])
+  }, [fetchEvents])
 
   const deleteEvent = useCallback(async (id: string) => {
+    setEvents(prev => prev.filter(e => e.id !== id))
     const { error: deleteError } = await supabase
       .from('agenda_events')
       .delete()
       .eq('id', id)
 
-    if (deleteError) throw deleteError
-  }, [])
+    if (deleteError) {
+      fetchEvents()
+      throw deleteError
+    }
+  }, [fetchEvents])
 
   return {
     events,
@@ -736,21 +805,8 @@ export function useTodoItems(clientId?: string) {
 
   const fetchItems = useCallback(async () => {
     try {
-      let query = supabase
-        .from('todo_items')
-        .select('*')
-        .order('column_id', { ascending: true })
-        .order('order_index', { ascending: true })
-
-      if (clientId) {
-        query = query.eq('client_id', clientId)
-      }
-
-      const { data, error: fetchError } = await query
-
-      if (fetchError) throw fetchError
-
-      setItems(data || [])
+      const data = await tasksService.fetchTodoItems(clientId)
+      setItems(data)
       setError(null)
     } catch (err: any) {
       console.error('Error fetching todo items:', err)
@@ -762,55 +818,63 @@ export function useTodoItems(clientId?: string) {
 
   useEffect(() => {
     fetchItems()
-    // Realtime disabled for performance
+
+    const channel = supabase
+      .channel('realtime:todo_items')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'todo_items' }, () => {
+        fetchItems()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchItems])
 
   const addItem = useCallback(async (item: Omit<TodoItem, 'id' | 'created_at'>) => {
-    const { data, error: insertError } = await supabase
-      .from('todo_items')
-      .insert(item)
-      .select()
-      .single()
-
-    if (insertError) throw insertError
-    await fetchItems() // Refresh list after adding
-    return data
-  }, [fetchItems])
+    try {
+      const data = await tasksService.addTodoItem(item)
+      setItems(prev => [...prev, data])
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    }
+  }, [])
 
   const updateItem = useCallback(async (id: string, updates: Partial<TodoItem>) => {
-    const { data, error: updateError } = await supabase
-      .from('todo_items')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    await fetchItems() // Refresh list after updating
-    return data
+    try {
+      setItems(prev => prev.map(i => (i.id === id ? { ...i, ...updates } : i)))
+      const data = await tasksService.updateTodoItem(id, updates)
+      return data
+    } catch (err: any) {
+      fetchItems()
+      setError(err.message)
+      throw err
+    }
   }, [fetchItems])
 
   const moveItem = useCallback(async (id: string, newColumnId: string, newOrderIndex: number) => {
-    const { data, error: updateError } = await supabase
-      .from('todo_items')
-      .update({ column_id: newColumnId, order_index: newOrderIndex })
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    await fetchItems() // Refresh list after moving
-    return data
+    try {
+      setItems(prev => prev.map(i => (i.id === id ? { ...i, column_id: newColumnId, order_index: newOrderIndex } : i)))
+      const data = await tasksService.moveTodoItem(id, newColumnId, newOrderIndex)
+      return data
+    } catch (err: any) {
+      fetchItems()
+      setError(err.message)
+      throw err
+    }
   }, [fetchItems])
 
   const deleteItem = useCallback(async (id: string) => {
-    const { error: deleteError } = await supabase
-      .from('todo_items')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) throw deleteError
-    await fetchItems() // Refresh list after deleting
+    try {
+      setItems(prev => prev.filter(i => i.id !== id))
+      await tasksService.deleteTodoItem(id)
+    } catch (err: any) {
+      fetchItems()
+      setError(err.message)
+      throw err
+    }
   }, [fetchItems])
 
   return {
@@ -862,7 +926,17 @@ export function useTimeEntries(date?: string) {
 
   useEffect(() => {
     fetchEntries()
-    // Realtime disabled for performance
+
+    const channel = supabase
+      .channel('realtime:time_entries')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'time_entries' }, () => {
+        fetchEntries()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchEntries])
 
   const addEntry = useCallback(async (entry: Omit<TimeEntry, 'id' | 'created_at'>) => {
@@ -873,10 +947,12 @@ export function useTimeEntries(date?: string) {
       .single()
 
     if (insertError) throw insertError
+    setEntries(prev => [data, ...prev])
     return data
   }, [])
 
   const updateEntry = useCallback(async (id: string, updates: Partial<TimeEntry>) => {
+    setEntries(prev => prev.map(e => (e.id === id ? { ...e, ...updates } : e)))
     const { data, error: updateError } = await supabase
       .from('time_entries')
       .update(updates)
@@ -884,18 +960,25 @@ export function useTimeEntries(date?: string) {
       .select()
       .single()
 
-    if (updateError) throw updateError
+    if (updateError) {
+      fetchEntries()
+      throw updateError
+    }
     return data
-  }, [])
+  }, [fetchEntries])
 
   const deleteEntry = useCallback(async (id: string) => {
+    setEntries(prev => prev.filter(e => e.id !== id))
     const { error: deleteError } = await supabase
       .from('time_entries')
       .delete()
       .eq('id', id)
 
-    if (deleteError) throw deleteError
-  }, [])
+    if (deleteError) {
+      fetchEntries()
+      throw deleteError
+    }
+  }, [fetchEntries])
 
   return {
     entries,
@@ -1003,14 +1086,8 @@ export function useClients() {
 
   const fetchClients = useCallback(async () => {
     try {
-      const { data, error: fetchError } = await supabase
-        .from('clients')
-        .select('*')
-        .order('created_at', { ascending: false })
-
-      if (fetchError) throw fetchError
-
-      setClients(data || [])
+      const data = await clientsService.fetchClients()
+      setClients(data)
       setError(null)
     } catch (err: any) {
       console.error('Error fetching clients:', err)
@@ -1022,40 +1099,52 @@ export function useClients() {
 
   useEffect(() => {
     fetchClients()
-    // Realtime disabled for performance
+
+    const channel = supabase
+      .channel('realtime:clients')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clients' }, () => {
+        fetchClients()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchClients])
 
   const addClient = useCallback(async (client: Omit<Client, 'id' | 'created_at'>) => {
-    const { data, error: insertError } = await supabase
-      .from('clients')
-      .insert(client)
-      .select()
-      .single()
-
-    if (insertError) throw insertError
-    return data
+    try {
+      const data = await clientsService.addClient(client)
+      setClients(prev => [...prev, data])
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    }
   }, [])
 
   const updateClient = useCallback(async (id: string, updates: Partial<Client>) => {
-    const { data, error: updateError } = await supabase
-      .from('clients')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    return data
-  }, [])
+    try {
+      setClients(prev => prev.map(c => (c.id === id ? { ...c, ...updates } : c)))
+      const data = await clientsService.updateClient(id, updates)
+      return data
+    } catch (err: any) {
+      fetchClients()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchClients])
 
   const deleteClient = useCallback(async (id: string) => {
-    const { error: deleteError } = await supabase
-      .from('clients')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) throw deleteError
-  }, [])
+    try {
+      setClients(prev => prev.filter(c => c.id !== id))
+      await clientsService.deleteClient(id)
+    } catch (err: any) {
+      fetchClients()
+      setError(err.message)
+      throw err
+    }
+  }, [fetchClients])
 
   return {
     clients,
@@ -1101,12 +1190,10 @@ const loadCachedTimers = (): Record<string, TimerState> => {
 }
 
 export function useActiveTimers() {
-  // Initialize from cache, then sync from Supabase
   const [timers, setTimers] = useState<Record<string, TimerState>>(() => loadCachedTimers())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch timers from Supabase
   const fetchTimersFromDB = useCallback(async () => {
     try {
       const { data, error: fetchError } = await supabase
@@ -1119,7 +1206,6 @@ export function useActiveTimers() {
         return
       }
 
-      // Convert DB format to local format
       const timerMap: Record<string, TimerState> = {}
       for (const row of (data || [])) {
         timerMap[row.category_id] = {
@@ -1140,25 +1226,20 @@ export function useActiveTimers() {
     }
   }, [])
 
-  // Initial fetch + real-time subscription + visibility change
   useEffect(() => {
     fetchTimersFromDB()
 
-    // Real-time subscription for cross-device sync
     const channel = supabase
       .channel('active_timers_changes')
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
         table: 'active_timers'
-      }, (payload) => {
-        console.log('Real-time timer update:', payload)
-        // Refetch all timers on any change
+      }, () => {
         fetchTimersFromDB()
       })
       .subscribe()
 
-    // Refresh when tab becomes visible
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         fetchTimersFromDB()
@@ -1166,14 +1247,12 @@ export function useActiveTimers() {
     }
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
-    // Cleanup
     return () => {
       supabase.removeChannel(channel)
       document.removeEventListener('visibilitychange', handleVisibilityChange)
     }
   }, [fetchTimersFromDB])
 
-  // Start timer - write to Supabase immediately
   const startTimer = useCallback(async (categoryId: string) => {
     const now = new Date()
     const currentTimer = timers[categoryId]
@@ -1185,14 +1264,12 @@ export function useActiveTimers() {
       isRunning: true
     }
 
-    // Optimistic update
     setTimers(prev => {
       const updated = { ...prev, [categoryId]: newState }
       cacheTimersLocally(updated)
       return updated
     })
 
-    // Write to Supabase
     try {
       const { error } = await supabase
         .from('active_timers')
@@ -1211,7 +1288,6 @@ export function useActiveTimers() {
     }
   }, [timers])
 
-  // Pause timer - write to Supabase immediately
   const pauseTimer = useCallback(async (categoryId: string) => {
     const timer = timers[categoryId]
     if (!timer || !timer.startTime) return
@@ -1224,14 +1300,12 @@ export function useActiveTimers() {
       isRunning: false
     }
 
-    // Optimistic update
     setTimers(prev => {
       const updated = { ...prev, [categoryId]: newState }
       cacheTimersLocally(updated)
       return updated
     })
 
-    // Write to Supabase
     try {
       const { error } = await supabase
         .from('active_timers')
@@ -1250,9 +1324,7 @@ export function useActiveTimers() {
     }
   }, [timers])
 
-  // Reset timer - delete from Supabase
   const resetTimer = useCallback(async (categoryId: string) => {
-    // Optimistic update
     setTimers(prev => {
       const updated = { ...prev }
       delete updated[categoryId]
@@ -1260,7 +1332,6 @@ export function useActiveTimers() {
       return updated
     })
 
-    // Delete from Supabase
     try {
       const { error } = await supabase
         .from('active_timers')
@@ -1317,6 +1388,17 @@ export function useAvailabilitySlots() {
 
   useEffect(() => {
     fetchSlots()
+
+    const channel = supabase
+      .channel('realtime:availability_slots')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'availability_slots' }, () => {
+        fetchSlots()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchSlots])
 
   const addSlot = useCallback(async (slot: Omit<AvailabilitySlot, 'id' | 'created_at' | 'updated_at'>) => {
@@ -1327,11 +1409,12 @@ export function useAvailabilitySlots() {
       .single()
 
     if (insertError) throw insertError
-    await fetchSlots()
+    setSlots(prev => [...prev, data])
     return data
-  }, [fetchSlots])
+  }, [])
 
   const updateSlot = useCallback(async (id: string, updates: Partial<AvailabilitySlot>) => {
+    setSlots(prev => prev.map(s => (s.id === id ? { ...s, ...updates } : s)))
     const { data, error: updateError } = await supabase
       .from('availability_slots')
       .update(updates)
@@ -1339,19 +1422,24 @@ export function useAvailabilitySlots() {
       .select()
       .single()
 
-    if (updateError) throw updateError
-    await fetchSlots()
+    if (updateError) {
+      fetchSlots()
+      throw updateError
+    }
     return data
   }, [fetchSlots])
 
   const deleteSlot = useCallback(async (id: string) => {
+    setSlots(prev => prev.filter(s => s.id !== id))
     const { error: deleteError } = await supabase
       .from('availability_slots')
       .delete()
       .eq('id', id)
 
-    if (deleteError) throw deleteError
-    await fetchSlots()
+    if (deleteError) {
+      fetchSlots()
+      throw deleteError
+    }
   }, [fetchSlots])
 
   const toggleSlot = useCallback(async (id: string, isActive: boolean) => {
@@ -1381,24 +1469,8 @@ export function useAppointments(clientId?: string) {
 
   const fetchAppointments = useCallback(async () => {
     try {
-      let query = supabase
-        .from('appointments')
-        .select(`
-          *,
-          client:clients(id, name, contact_name)
-        `)
-        .order('appointment_date', { ascending: true })
-        .order('start_time', { ascending: true })
-
-      if (clientId) {
-        query = query.eq('client_id', clientId)
-      }
-
-      const { data, error: fetchError } = await query
-
-      if (fetchError) throw fetchError
-
-      setAppointments(data || [])
+      const data = await appointmentsService.fetchAppointments(clientId)
+      setAppointments(data)
       setError(null)
     } catch (err: any) {
       console.error('Error fetching appointments:', err)
@@ -1410,41 +1482,51 @@ export function useAppointments(clientId?: string) {
 
   useEffect(() => {
     fetchAppointments()
+
+    const channel = supabase
+      .channel('realtime:appointments')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'appointments' }, () => {
+        fetchAppointments()
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
   }, [fetchAppointments])
 
   const addAppointment = useCallback(async (appointment: Omit<Appointment, 'id' | 'created_at' | 'updated_at' | 'client'>) => {
-    const { data, error: insertError } = await supabase
-      .from('appointments')
-      .insert(appointment)
-      .select()
-      .single()
-
-    if (insertError) throw insertError
-    await fetchAppointments()
-    return data
-  }, [fetchAppointments])
+    try {
+      const data = await appointmentsService.addAppointment(appointment)
+      setAppointments(prev => [...prev, data])
+      return data
+    } catch (err: any) {
+      setError(err.message)
+      throw err
+    }
+  }, [])
 
   const updateAppointment = useCallback(async (id: string, updates: Partial<Appointment>) => {
-    const { data, error: updateError } = await supabase
-      .from('appointments')
-      .update(updates)
-      .eq('id', id)
-      .select()
-      .single()
-
-    if (updateError) throw updateError
-    await fetchAppointments()
-    return data
+    try {
+      setAppointments(prev => prev.map(a => (a.id === id ? { ...a, ...updates } : a)))
+      const data = await appointmentsService.updateAppointment(id, updates)
+      return data
+    } catch (err: any) {
+      fetchAppointments()
+      setError(err.message)
+      throw err
+    }
   }, [fetchAppointments])
 
   const deleteAppointment = useCallback(async (id: string) => {
-    const { error: deleteError } = await supabase
-      .from('appointments')
-      .delete()
-      .eq('id', id)
-
-    if (deleteError) throw deleteError
-    await fetchAppointments()
+    try {
+      setAppointments(prev => prev.filter(a => a.id !== id))
+      await appointmentsService.deleteAppointment(id)
+    } catch (err: any) {
+      fetchAppointments()
+      setError(err.message)
+      throw err
+    }
   }, [fetchAppointments])
 
   const confirmAppointment = useCallback(async (id: string) => {
@@ -1455,7 +1537,6 @@ export function useAppointments(clientId?: string) {
     return updateAppointment(id, { status: 'cancelled' })
   }, [updateAppointment])
 
-  // Get booked slots for a specific date (to exclude from available slots)
   const getBookedSlotsForDate = useCallback((date: string) => {
     return appointments
       .filter(a => a.appointment_date === date && a.status !== 'cancelled')
