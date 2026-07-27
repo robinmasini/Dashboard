@@ -18,14 +18,16 @@ export const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(() => {
-    const isAuth = localStorage.getItem('rm_freelance_authenticated')
+    // Nettoyage de l'ancien localStorage si présent
+    localStorage.removeItem('rm_freelance_authenticated')
+    const isAuth = sessionStorage.getItem('rm_freelance_authenticated')
     if (isAuth === 'true') {
       return { id: 'admin-1', email: 'contact@robinmasini.com', user_metadata: { role: 'freelance' } } as any
     }
     return null
   })
   const [role, setRole] = useState<UserRole | null>(() => {
-    const isAuth = localStorage.getItem('rm_freelance_authenticated')
+    const isAuth = sessionStorage.getItem('rm_freelance_authenticated')
     return isAuth === 'true' ? UserRole.FREELANCE : null
   })
   const [loading, setLoading] = useState(true)
@@ -49,7 +51,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setUser(session.user)
           setRole(getRoleFromUser(session.user))
         } else if (mounted) {
-          const isAuth = localStorage.getItem('rm_freelance_authenticated')
+          const isAuth = sessionStorage.getItem('rm_freelance_authenticated')
           if (isAuth === 'true') {
             const dummyUser: any = { id: 'admin-1', email: 'contact@robinmasini.com', user_metadata: { role: 'freelance' } }
             setUser(dummyUser)
@@ -61,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       } catch (error) {
         if (mounted) {
-          const isAuth = localStorage.getItem('rm_freelance_authenticated')
+          const isAuth = sessionStorage.getItem('rm_freelance_authenticated')
           if (isAuth === 'true') {
             const dummyUser: any = { id: 'admin-1', email: 'contact@robinmasini.com', user_metadata: { role: 'freelance' } }
             setUser(dummyUser)
@@ -88,9 +90,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(session)
         setUser(session.user)
         setRole(getRoleFromUser(session.user))
-        localStorage.setItem('rm_freelance_authenticated', 'true')
+        sessionStorage.setItem('rm_freelance_authenticated', 'true')
       } else {
-        const isAuth = localStorage.getItem('rm_freelance_authenticated')
+        const isAuth = sessionStorage.getItem('rm_freelance_authenticated')
         if (isAuth !== 'true') {
           setSession(null)
           setUser(null)
@@ -117,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setSession(data.session)
         setUser(data.session.user)
         setRole(getRoleFromUser(data.session.user))
-        localStorage.setItem('rm_freelance_authenticated', 'true')
+        sessionStorage.setItem('rm_freelance_authenticated', 'true')
         return { success: true }
       }
 
@@ -126,7 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const dummyUser: any = { id: 'admin-1', email, user_metadata: { role: 'freelance' } }
         setUser(dummyUser)
         setRole(UserRole.FREELANCE)
-        localStorage.setItem('rm_freelance_authenticated', 'true')
+        sessionStorage.setItem('rm_freelance_authenticated', 'true')
         return { success: true }
       }
 
@@ -137,7 +139,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const dummyUser: any = { id: 'admin-1', email, user_metadata: { role: 'freelance' } }
         setUser(dummyUser)
         setRole(UserRole.FREELANCE)
-        localStorage.setItem('rm_freelance_authenticated', 'true')
+        sessionStorage.setItem('rm_freelance_authenticated', 'true')
         return { success: true }
       }
       return { success: false, error: 'Erreur inattendue' }
@@ -145,6 +147,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
+    sessionStorage.removeItem('rm_freelance_authenticated')
     localStorage.removeItem('rm_freelance_authenticated')
     await supabase.auth.signOut()
     setSession(null)
