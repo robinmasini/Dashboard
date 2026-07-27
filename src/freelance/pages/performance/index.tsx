@@ -222,7 +222,7 @@ const OverviewContent = () => {
             padding: '28px 32px',
             display: 'flex',
             alignItems: 'center',
-            justify: 'space-between',
+            justifyContent: 'space-between',
             gap: '32px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
             marginTop: '8px'
