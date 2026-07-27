@@ -44,7 +44,9 @@ export default function TradeViewPage() {
     return <TVLoader />
   }
 
-  if (!user) {
+  const isTradeViewUnlocked = sessionStorage.getItem('rm_tradeview_unlocked') === 'true'
+
+  if (!user || !isTradeViewUnlocked) {
     return <Navigate to="/auth/freelance" state={{ from: location }} replace />
   }
 

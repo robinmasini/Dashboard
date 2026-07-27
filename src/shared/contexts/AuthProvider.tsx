@@ -120,6 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(data.session.user)
         setRole(getRoleFromUser(data.session.user))
         sessionStorage.setItem('rm_freelance_authenticated', 'true')
+        sessionStorage.setItem('rm_tradeview_unlocked', 'true')
         return { success: true }
       }
 
@@ -129,6 +130,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(dummyUser)
         setRole(UserRole.FREELANCE)
         sessionStorage.setItem('rm_freelance_authenticated', 'true')
+        sessionStorage.setItem('rm_tradeview_unlocked', 'true')
         return { success: true }
       }
 
@@ -140,6 +142,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setUser(dummyUser)
         setRole(UserRole.FREELANCE)
         sessionStorage.setItem('rm_freelance_authenticated', 'true')
+        sessionStorage.setItem('rm_tradeview_unlocked', 'true')
         return { success: true }
       }
       return { success: false, error: 'Erreur inattendue' }

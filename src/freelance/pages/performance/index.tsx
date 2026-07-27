@@ -215,7 +215,10 @@ const OverviewContent = () => {
         {/* Row 2: TradeView & Financial Intelligence Banner */}
         <article
           className="panel col-span-12"
-          onClick={() => navigate('/tradeview')}
+          onClick={() => {
+            sessionStorage.setItem('rm_tradeview_unlocked', 'true')
+            navigate('/tradeview')
+          }}
           style={{
             position: 'relative',
             overflow: 'hidden',
