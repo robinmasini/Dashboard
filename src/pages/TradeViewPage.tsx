@@ -60,12 +60,12 @@ export default function TradeViewPage() {
         {/* Top Section */}
         <div style={{ position: 'relative', zIndex: 1 }}>
           {/* Logo Section with tv.png */}
-          <div className="sidebar__logo-container" style={{ marginBottom: '32px' }}>
+          <div className="sidebar__logo-container" style={{ marginBottom: '28px' }}>
             <img
               src={tvLogo}
               alt="TradeView Logo"
               className="sidebar__logo"
-              style={{ maxHeight: '55px', width: 'auto', objectFit: 'contain', cursor: 'pointer' }}
+              style={{ maxHeight: '90px', maxWidth: '240px', width: 'auto', objectFit: 'contain', cursor: 'pointer' }}
               onClick={() => navigate('/admin/performance')}
             />
           </div>
