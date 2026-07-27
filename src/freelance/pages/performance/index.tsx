@@ -287,6 +287,7 @@ export default function FreelancePerformance() {
   const [activeTab, setActiveTab] = useState('Vue d\'ensemble')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [modalSchema, setModalSchema] = useState<any>(null)
+  const { addInvoice } = useInvoices()
 
   const handleOpenModal = () => {
     const schemaKey = activeTab === 'Vue d\'ensemble' ? 'performance:overview' :
@@ -299,6 +300,27 @@ export default function FreelancePerformance() {
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setModalSchema(null)
+  }
+
+  const handleModalSubmit = async (values: Record<string, string>) => {
+    try {
+      if (activeTab === 'Vue d\'ensemble') {
+        const rawAmount = parseFloat(values.amount?.replace(',', '.') || '0')
+        if (!isNaN(rawAmount) && rawAmount > 0) {
+          const formattedAmount = `${rawAmount.toLocaleString('fr-FR', { minimumFractionDigits: 2 })} €`
+          await addInvoice({
+            client_id: values.source || 'Transaction Directe',
+            amount: formattedAmount,
+            due_date: values.date || new Date().toISOString().split('T')[0],
+            status: 'Payée',
+            notes: values.notes || 'Transaction signalée via Performance'
+          })
+        }
+      }
+    } catch (err) {
+      console.error('Error submitting transaction:', err)
+    }
+    handleCloseModal()
   }
 
   return (
@@ -386,7 +408,7 @@ export default function FreelancePerformance() {
         open={isModalOpen}
         schema={modalSchema}
         onClose={handleCloseModal}
-        onSubmit={() => handleCloseModal()}
+        onSubmit={handleModalSubmit}
       />
 
       {/* DASHBOARD CONTENT */}
