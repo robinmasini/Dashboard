@@ -43,8 +43,15 @@ function AppRoutes() {
       {/* Landing Page - Page d'accueil publique */}
       <Route path="/" element={<LandingPage />} />
 
-      {/* Page TradeView indépendante (Robot Scalping InteractiveBrokers) */}
-      <Route path="/tradeview" element={<TradeViewPage />} />
+      {/* Page TradeView indépendante (Robot Scalping InteractiveBrokers) - Protégée par authentification Freelance */}
+      <Route
+        path="/tradeview"
+        element={
+          <ProtectedRoute allowedRole={UserRole.FREELANCE}>
+            <TradeViewPage />
+          </ProtectedRoute>
+        }
+      />
 
       {/* Routes d'authentification */}
       <Route path="/auth/client" element={<ClientLogin />} />

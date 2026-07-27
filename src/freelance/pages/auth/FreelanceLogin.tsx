@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../../shared/hooks/useAuth'
 import '../../../App.css'
 
@@ -11,6 +11,8 @@ export default function FreelanceLogin() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+  const from = location.state?.from?.pathname || '/admin/performance'
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -25,7 +27,7 @@ export default function FreelanceLogin() {
     const { success, error } = await login(email, password)
 
     if (success) {
-      window.location.href = '/admin'
+      window.location.href = from
     } else {
       setError(error || 'Email ou mot de passe incorrect')
       setIsSubmitting(false)
