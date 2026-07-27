@@ -8,6 +8,7 @@ import AutoLogin from './client/pages/auth/AutoLogin'
 import FreelanceLogin from './freelance/pages/auth/FreelanceLogin'
 import DashboardLayout from './layouts/DashboardLayout'
 import LandingPage from './pages/LandingPage'
+import TradeViewPage from './pages/TradeViewPage'
 import './App.css'
 
 // Import des pages côté client
@@ -41,6 +42,9 @@ function AppRoutes() {
     <Routes>
       {/* Landing Page - Page d'accueil publique */}
       <Route path="/" element={<LandingPage />} />
+
+      {/* Page TradeView indépendante (Robot Scalping InteractiveBrokers) */}
+      <Route path="/tradeview" element={<TradeViewPage />} />
 
       {/* Routes d'authentification */}
       <Route path="/auth/client" element={<ClientLogin />} />

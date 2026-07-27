@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import ActionModal from '../../components/ActionModal'
 import { actionSchemas } from '../../../data/dashboard'
 import { useTodayDate } from '../../../shared/utils/date'
@@ -15,6 +16,7 @@ const formatCurrency = (amount: number) => {
 // --- Overview Content ---
 
 const OverviewContent = () => {
+  const navigate = useNavigate()
   const formattedDate = useTodayDate()
   const { invoices } = useInvoices()
   const { clients } = useClients()
@@ -213,6 +215,7 @@ const OverviewContent = () => {
         {/* Row 2: TradeView & Financial Intelligence Banner */}
         <article
           className="panel col-span-12"
+          onClick={() => navigate('/tradeview')}
           style={{
             position: 'relative',
             overflow: 'hidden',
@@ -225,7 +228,17 @@ const OverviewContent = () => {
             justifyContent: 'space-between',
             gap: '28px',
             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.4)',
-            marginTop: '8px'
+            marginTop: '8px',
+            cursor: 'pointer',
+            transition: 'transform 0.25 ease, border-color 0.25s ease, box-shadow 0.25s ease'
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(99, 102, 241, 0.4)'
+            e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(99, 102, 241, 0.2)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.08)'
+            e.currentTarget.style.boxShadow = '0 25px 50px -12px rgba(0, 0, 0, 0.4)'
           }}
         >
           {/* Left image display column (with subtle left padding & floating animation) */}
