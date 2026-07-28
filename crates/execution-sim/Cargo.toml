@@ -1,0 +1,15 @@
+[package]
+name = "tradeview-execution-sim"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-domain = { path = "../domain" }
+tradeview-oms = { path = "../oms" }
+tradeview-risk-engine = { path = "../risk-engine" }
+rust_decimal.workspace = true
+chrono.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+tracing.workspace = true

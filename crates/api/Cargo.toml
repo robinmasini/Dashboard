@@ -1,0 +1,17 @@
+[package]
+name = "tradeview-api"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-domain = { path = "../domain" }
+tradeview-oms = { path = "../oms" }
+tradeview-execution-sim = { path = "../execution-sim" }
+tradeview-event-store = { path = "../event-store" }
+axum.workspace = true
+tokio.workspace = true
+tower-http.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+futures-util.workspace = true
+tracing.workspace = true

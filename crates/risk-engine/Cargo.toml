@@ -1,0 +1,10 @@
+[package]
+name = "tradeview-risk-engine"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-domain = { path = "../domain" }
+tradeview-oms = { path = "../oms" }
+rust_decimal.workspace = true
+serde.workspace = true
