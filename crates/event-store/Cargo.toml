@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 tradeview-domain = { path = "../domain" }
+tradeview-clock = { path = "../clock" }
 serde.workspace = true
-serde_json.workspace = true
-chrono.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+
+[dev-dependencies]
+chrono.workspace = true

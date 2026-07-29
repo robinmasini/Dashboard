@@ -5,8 +5,10 @@ edition = "2021"
 
 [dependencies]
 tradeview-domain = { path = "../domain" }
+tradeview-clock = { path = "../clock" }
 tokio.workspace = true
 chrono.workspace = true
 rust_decimal.workspace = true
 rand.workspace = true
+rand_chacha.workspace = true
 tracing.workspace = true

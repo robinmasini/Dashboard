@@ -12,14 +12,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::{broadcast, mpsc};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::{info, warn};
-use tradeview_oms::PlaceOrderCommand;
+use tracing::info;
+use tradeview_domain::{InstrumentId, PlaceOrderCommand};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "action", content = "payload")]
 pub enum ClientWsCommand {
     PlaceOrder(PlaceOrderCommand),
-    ClosePosition { symbol: String },
+    ClosePosition { symbol: InstrumentId },
     ResetAccount,
 }
 
@@ -51,10 +51,7 @@ async fn health_handler() -> impl IntoResponse {
     }))
 }
 
-async fn ws_handler(
-    ws: WebSocketUpgrade,
-    State(state): State<AppState>,
-) -> impl IntoResponse {
+async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
     ws.on_upgrade(|socket| handle_websocket(socket, state))
 }
 

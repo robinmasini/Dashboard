@@ -5,8 +5,7 @@ edition = "2021"
 
 [dependencies]
 tradeview-domain = { path = "../../crates/domain" }
-tradeview-oms = { path = "../../crates/oms" }
-tradeview-risk-engine = { path = "../../crates/risk-engine" }
+tradeview-clock = { path = "../../crates/clock" }
 tradeview-execution-sim = { path = "../../crates/execution-sim" }
 tradeview-market-data = { path = "../../crates/market-data" }
 tradeview-candle-engine = { path = "../../crates/candle-engine" }
@@ -15,7 +14,6 @@ tradeview-api = { path = "../../crates/api" }
 axum.workspace = true
 tokio.workspace = true
 rust_decimal.workspace = true
-uuid.workspace = true
 serde_json.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
