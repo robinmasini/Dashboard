@@ -1,0 +1,19 @@
+[package]
+name = "tradeview-server"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-domain = { path = "../../crates/domain" }
+tradeview-clock = { path = "../../crates/clock" }
+tradeview-execution-sim = { path = "../../crates/execution-sim" }
+tradeview-market-data = { path = "../../crates/market-data" }
+tradeview-candle-engine = { path = "../../crates/candle-engine" }
+tradeview-event-store = { path = "../../crates/event-store" }
+tradeview-api = { path = "../../crates/api" }
+axum.workspace = true
+tokio.workspace = true
+rust_decimal.workspace = true
+serde_json.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true

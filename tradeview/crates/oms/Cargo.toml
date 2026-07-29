@@ -1,0 +1,13 @@
+[package]
+name = "tradeview-oms"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-common = { path = "../common" }
+tradeview-domain = { path = "../domain" }
+serde.workspace = true
+chrono.workspace = true
+
+[dev-dependencies]
+rust_decimal.workspace = true

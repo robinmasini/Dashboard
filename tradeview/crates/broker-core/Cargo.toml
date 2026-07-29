@@ -1,0 +1,14 @@
+[package]
+name = "tradeview-broker-core"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-common = { path = "../common" }
+tradeview-domain = { path = "../domain" }
+async-trait.workspace = true
+serde.workspace = true
+tokio = { workspace = true }
+
+[dev-dependencies]
+rust_decimal.workspace = true

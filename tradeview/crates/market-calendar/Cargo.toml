@@ -1,0 +1,10 @@
+[package]
+name = "tradeview-market-calendar"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-domain = { path = "../domain" }
+chrono.workspace = true
+chrono-tz.workspace = true
+serde.workspace = true

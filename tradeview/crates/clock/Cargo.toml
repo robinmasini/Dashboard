@@ -1,0 +1,8 @@
+[package]
+name = "tradeview-clock"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-domain = { path = "../domain" }
+chrono.workspace = true
