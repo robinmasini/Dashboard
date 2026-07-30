@@ -25,9 +25,23 @@ interface DailyPnlCalendarProps {
   rangeFrom: number
 }
 
+const COLLAPSE_KEY = 'tradeview.calendar.collapsed'
+
 export default function DailyPnlCalendar({ stats, rangeFrom }: DailyPnlCalendarProps) {
   const now = new Date()
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() })
+  // Kept across reloads: whoever folds this away wants the chart to stay in view.
+  const [collapsed, setCollapsed] = useState(
+    () => localStorage.getItem(COLLAPSE_KEY) === '1'
+  )
+
+  const toggleCollapsed = () => {
+    setCollapsed((previous) => {
+      const next = !previous
+      localStorage.setItem(COLLAPSE_KEY, next ? '1' : '0')
+      return next
+    })
+  }
 
   const byDate = useMemo(() => {
     const map = new Map<string, DayStat>()
@@ -64,10 +78,15 @@ export default function DailyPnlCalendar({ stats, rangeFrom }: DailyPnlCalendarP
           justifyContent: 'space-between',
           flexWrap: 'wrap',
           gap: 12,
-          marginBottom: 18,
+          marginBottom: collapsed ? 0 : 18,
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <NavButton
+            label={collapsed ? '▸' : '▾'}
+            onClick={toggleCollapsed}
+            title={collapsed ? 'Déplier le récap du mois' : 'Réduire le récap du mois'}
+          />
           <NavButton label="‹" onClick={() => shiftMonth(-1)} />
           <span style={{ fontSize: '1rem', fontWeight: 700, minWidth: 150 }}>
             {MONTHS[cursor.month]} {cursor.year}
@@ -91,7 +110,7 @@ export default function DailyPnlCalendar({ stats, rangeFrom }: DailyPnlCalendarP
         </div>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div style={{ overflowX: 'auto', display: collapsed ? 'none' : 'block' }}>
         <div style={{ minWidth: 560 }}>
           <div
             style={{
@@ -209,7 +228,7 @@ export default function DailyPnlCalendar({ stats, rangeFrom }: DailyPnlCalendarP
         </div>
       </div>
 
-      {stats.length === 0 && (
+      {!collapsed && stats.length === 0 && (
         <div
           style={{
             marginTop: 16,
@@ -226,10 +245,19 @@ export default function DailyPnlCalendar({ stats, rangeFrom }: DailyPnlCalendarP
   )
 }
 
-function NavButton({ label, onClick }: { label: string; onClick: () => void }) {
+function NavButton({
+  label,
+  onClick,
+  title,
+}: {
+  label: string
+  onClick: () => void
+  title?: string
+}) {
   return (
     <button
       onClick={onClick}
+      title={title}
       style={{
         width: 26,
         height: 26,

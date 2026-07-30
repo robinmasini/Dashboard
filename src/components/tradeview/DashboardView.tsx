@@ -37,10 +37,27 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
 
   const from = useMemo(() => rangeStart(range), [range])
   const dailyStats = useMemo(() => deriveDailyStats(equityCurve), [equityCurve])
-  const metrics = useMemo(
+  const observed = useMemo(
     () => rangeMetrics(equityCurve, from, dailyStats),
     [equityCurve, from, dailyStats]
   )
+
+  // "Since inception" is answered by the engine itself, which knows the funding
+  // amount and the lifetime counters. Deriving it from samples collected after
+  // the page loaded would report +$0 on a reload despite a moved balance.
+  const metrics = useMemo(() => {
+    if (range !== 'all') return observed
+    return {
+      realized: num(account.realized_pnl),
+      trades: account.total_trades_count || 0,
+      wins: account.winning_trades_count || 0,
+      losses: account.losing_trades_count || 0,
+      openingEquity: initialCapital,
+      closingEquity: equity,
+      pct: initialCapital !== 0 ? ((equity - initialCapital) / initialCapital) * 100 : 0,
+      tradedDays: observed?.tradedDays ?? (account.total_trades_count > 0 ? 1 : 0),
+    }
+  }, [range, observed, account, initialCapital, equity])
 
   const visibleCurve = useMemo(
     () => (range === 'all' ? equityCurve : equityCurve.filter((point) => point.t >= from)),
