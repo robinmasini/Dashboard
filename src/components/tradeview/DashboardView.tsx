@@ -1,5 +1,10 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
+import CapitalChart from './CapitalChart'
+import DailyPnlCalendar from './DailyPnlCalendar'
+import StatsPanel from './StatsPanel'
+import { deriveDailyStats } from './dailyPnl'
+import { exactMoney, money, pnlColor, signedPct, tv } from './theme'
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
 
@@ -7,59 +12,92 @@ interface DashboardViewProps {
   tradeState: TradeViewState
 }
 
-export default function DashboardView({ tradeState }: DashboardViewProps) {
-  const [filter, setFilter] = useState<'week' | 'month' | 'year' | 'all'>('all')
+const RANGES = [
+  { key: 'week', label: 'Cette semaine', days: 7 },
+  { key: 'month', label: 'Ce mois', days: 30 },
+  { key: 'year', label: 'Cette année', days: 365 },
+  { key: 'all', label: 'Depuis le début', days: Infinity },
+] as const
 
-  const currentCapital = parseFloat(String(tradeState.account.current_capital || 100000))
-  const realizedPnl = parseFloat(String(tradeState.account.realized_pnl || 0))
-  const totalTrades = tradeState.account.total_trades_count || 0
-  const winTrades = tradeState.account.winning_trades_count || 0
-  const loseTrades = tradeState.account.losing_trades_count || 0
-  const winRate = totalTrades > 0 ? ((winTrades / totalTrades) * 100).toFixed(1) : '0.0'
+const num = (value: string | number | undefined, fallback = 0) => {
+  if (value === undefined) return fallback
+  const parsed = typeof value === 'string' ? parseFloat(value) : value
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+export default function DashboardView({ tradeState }: DashboardViewProps) {
+  const [range, setRange] = useState<(typeof RANGES)[number]['key']>('all')
+
+  const { account, equityCurve, positions } = tradeState
+  const initialCapital = num(account.initial_capital, 100_000)
+  const currentCapital = num(account.current_capital, initialCapital)
+  const unrealized = num(account.unrealized_pnl)
+  const equity = currentCapital + unrealized
+  const progressPct =
+    initialCapital !== 0 ? ((equity - initialCapital) / initialCapital) * 100 : 0
+
+  const visibleCurve = useMemo(() => {
+    const days = RANGES.find((r) => r.key === range)!.days
+    if (!Number.isFinite(days)) return equityCurve
+    const cutoff = Date.now() - days * 86_400_000
+    return equityCurve.filter((point) => point.t >= cutoff)
+  }, [equityCurve, range])
+
+  const dailyStats = useMemo(() => deriveDailyStats(equityCurve), [equityCurve])
+  const tradedDays = dailyStats.filter((s) => s.trades > 0).length
+  const totalRealized = dailyStats.reduce((sum, s) => sum + s.pnl, 0)
+  const avgPerDay = tradedDays > 0 ? totalRealized / tradedDays : 0
 
   return (
     <div
       style={{
         display: 'flex',
         flexDirection: 'column',
-        gap: '20px',
-        padding: '24px',
-        backgroundColor: '#000000',
-        color: '#ffffff',
+        gap: 16,
+        padding: 24,
+        backgroundColor: tv.bg,
+        color: tv.text,
         height: 'calc(100vh - 60px)',
         overflowY: 'auto',
         boxSizing: 'border-box',
       }}
     >
-      {/* Top Filter Bar */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
         <div
           style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '8px',
-            backgroundColor: '#050708',
-            padding: '4px',
-            borderRadius: '20px',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
+            gap: 4,
+            backgroundColor: tv.card,
+            padding: 4,
+            borderRadius: 20,
+            border: `1px solid ${tv.border}`,
           }}
         >
-          {['Cette semaine', 'Ce mois', 'Cette année', 'Depuis le début'].map((label, idx) => {
-            const keys = ['week', 'month', 'year', 'all'] as const
-            const isSelected = filter === keys[idx]
+          {RANGES.map(({ key, label }) => {
+            const active = range === key
             return (
               <button
-                key={label}
-                onClick={() => setFilter(keys[idx])}
+                key={key}
+                onClick={() => setRange(key)}
                 style={{
-                  padding: '6px 16px',
-                  borderRadius: '16px',
+                  padding: '6px 14px',
+                  borderRadius: 16,
                   border: 'none',
-                  backgroundColor: isSelected ? 'rgba(255, 255, 255, 0.12)' : 'transparent',
-                  color: isSelected ? '#ffffff' : 'rgba(255, 255, 255, 0.5)',
-                  fontSize: '0.8rem',
-                  fontWeight: isSelected ? 600 : 400,
+                  backgroundColor: active ? 'rgba(255,255,255,0.12)' : 'transparent',
+                  color: active ? tv.text : tv.textMuted,
+                  fontSize: '0.76rem',
+                  fontWeight: active ? 600 : 400,
                   cursor: 'pointer',
+                  whiteSpace: 'nowrap',
                 }}
               >
                 {label}
@@ -68,137 +106,119 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
           })}
         </div>
 
-        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
-          Session active • NVDA Scalping SIM Engine
+        <div style={{ fontSize: '0.72rem', color: tv.textFaint, fontFamily: tv.mono }}>
+          {tradeState.connected ? 'Session active' : 'Moteur déconnecté'} •{' '}
+          {tradeState.symbol} {tradeState.dataMode} Engine
         </div>
       </div>
 
-      {/* Main KPI & Chart Row */}
-      <div style={{ display: 'flex', gap: '20px', height: '320px' }}>
-        {/* Left Column KPIs */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', width: '220px' }}>
-          {/* Capital Card */}
+      <div style={{ display: 'flex', gap: 16, height: 330, flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 12,
+            width: 220,
+            flexShrink: 0,
+          }}
+        >
           <div
+            title={[
+              'Capital courant (équité)',
+              `Capital de départ    ${money(initialCapital)}`,
+              `PnL réalisé          ${exactMoney(num(account.realized_pnl))}`,
+              `PnL latent           ${exactMoney(unrealized)}`,
+              `Équité               ${money(equity)}`,
+            ].join('\n')}
             style={{
               flex: 1,
-              backgroundColor: '#040607',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '16px',
-              padding: '20px',
+              backgroundColor: tv.card,
+              border: `1px solid ${tv.border}`,
+              borderRadius: 16,
+              padding: 20,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
+              cursor: 'help',
             }}
           >
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-              CAPITAL SIM (USD)
+            <div
+              style={{
+                fontSize: '0.62rem',
+                color: tv.textFaint,
+                fontWeight: 700,
+                fontFamily: tv.mono,
+                textAlign: 'right',
+              }}
+            >
+              USD
             </div>
-            <div style={{ fontSize: '1.6rem', fontWeight: 800, fontFamily: 'monospace' }}>
-              ${currentCapital.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+            <div style={{ fontSize: '1.55rem', fontWeight: 800, fontFamily: tv.mono }}>
+              {money(equity)}
             </div>
           </div>
 
-          {/* Realized PnL Card */}
           <div
+            title={[
+              'Résultat depuis le départ',
+              `Gain / perte         ${exactMoney(equity - initialCapital)}`,
+              `Rendement            ${signedPct(progressPct)}`,
+              `Trades gagnants      ${account.winning_trades_count || 0}`,
+              `Trades perdants      ${account.losing_trades_count || 0}`,
+              `Jours tradés         ${tradedDays}`,
+            ].join('\n')}
             style={{
               flex: 1,
-              backgroundColor: '#040607',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              borderRadius: '16px',
-              padding: '20px',
+              backgroundColor: tv.card,
+              border: `1px solid ${tv.border}`,
+              borderRadius: 16,
+              padding: 20,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'space-between',
+              cursor: 'help',
             }}
           >
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-              PNL RÉALISÉ
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <span
+                style={{
+                  padding: '3px 9px',
+                  borderRadius: 10,
+                  fontSize: '0.65rem',
+                  fontWeight: 700,
+                  fontFamily: tv.mono,
+                  color: pnlColor(progressPct),
+                  backgroundColor: progressPct >= 0 ? tv.accentSoft : tv.lossSoft,
+                }}
+              >
+                {signedPct(progressPct)}
+              </span>
             </div>
             <div
               style={{
-                fontSize: '1.6rem',
+                fontSize: '1.55rem',
                 fontWeight: 800,
-                color: realizedPnl >= 0 ? '#00e599' : '#ff4d4d',
-                fontFamily: 'monospace',
+                fontFamily: tv.mono,
+                color: pnlColor(equity - initialCapital),
               }}
             >
-              {realizedPnl >= 0 ? '+' : ''}${realizedPnl.toFixed(2)}
+              {money(equity - initialCapital)}
             </div>
           </div>
         </div>
 
-        {/* Right Chart Card */}
-        <div
-          style={{
-            flex: 1,
-            backgroundColor: '#040607',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
-            padding: '20px',
-            position: 'relative',
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-            <span
-              style={{
-                padding: '4px 12px',
-                borderRadius: '12px',
-                backgroundColor: '#ffffff',
-                color: '#000000',
-                fontSize: '0.75rem',
-                fontWeight: 700,
-              }}
-            >
-              Capital Evolution
-            </span>
-          </div>
+        <CapitalChart curve={visibleCurve} initialCapital={initialCapital} />
 
-          <div style={{ flex: 1, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.3)', fontFamily: 'monospace' }}>
-              Graphique en temps réel alimenté par les exécutions Rust
-            </span>
-          </div>
-        </div>
+        <StatsPanel
+          winTrades={account.winning_trades_count || 0}
+          loseTrades={account.losing_trades_count || 0}
+          avgPerDay={avgPerDay}
+          tradedDays={tradedDays}
+          openPositions={positions.length}
+        />
       </div>
 
-      {/* Summary Metrics Panel */}
-      <div style={{ display: 'flex', gap: '20px', flex: 1 }}>
-        <div
-          style={{
-            flex: 1,
-            backgroundColor: '#040607',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            borderRadius: '16px',
-            padding: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-around',
-          }}
-        >
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-              WIN RATE
-            </div>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#00e599', fontFamily: 'monospace', margin: '4px 0' }}>
-              {winRate}%
-            </div>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
-              {winTrades}W / {loseTrades}L ({totalTrades} trades)
-            </div>
-          </div>
-
-          <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)', fontWeight: 700 }}>
-              POSITIONS OUVERTES
-            </div>
-            <div style={{ fontSize: '2rem', fontWeight: 800, color: '#ffffff', fontFamily: 'monospace', margin: '4px 0' }}>
-              {tradeState.positions.length}
-            </div>
-          </div>
-        </div>
-      </div>
+      <DailyPnlCalendar stats={dailyStats} />
     </div>
   )
 }

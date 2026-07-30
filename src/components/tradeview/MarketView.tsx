@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
+import { tv } from './theme'
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
 
@@ -102,7 +103,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontWeight: 600 }}>Candle</span>
-            <input type="checkbox" defaultChecked style={{ accentColor: '#00e599' }} />
+            <input type="checkbox" defaultChecked style={{ accentColor: tv.accent }} />
           </div>
           <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
             <div>bougies: {tradeState.candles.length}</div>
@@ -114,7 +115,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
             <span style={{ fontWeight: 600 }}>Spread</span>
-            <span style={{ color: '#00e599', fontFamily: 'monospace' }}>
+            <span style={{ color: tv.accent, fontFamily: 'monospace' }}>
               ${tradeState.spread.toFixed(2)}
             </span>
           </div>
@@ -122,7 +123,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
 
         {/* Error notification if any */}
         {tradeState.lastError && (
-          <div style={{ padding: '8px', borderRadius: '6px', backgroundColor: '#ff4d4d22', color: '#ff4d4d', fontSize: '0.7rem' }}>
+          <div style={{ padding: '8px', borderRadius: '6px', backgroundColor: tv.lossSoft, color: tv.loss, fontSize: '0.7rem' }}>
             {tradeState.lastError}
           </div>
         )}
@@ -216,7 +217,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
               const cl = parseFloat(String(c.close))
 
               const isBull = cl >= o
-              const color = isBull ? '#00e599' : '#ff4d4d'
+              const color = isBull ? tv.accent : tv.loss
 
               const x = 50 + index * 24
               const yHigh = ((maxPrice - h) / priceRange) * 350 + 20
@@ -252,7 +253,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
                     y1={currentY}
                     x2="100%"
                     y2={currentY}
-                    stroke="#00e599"
+                    stroke={tv.accent}
                     strokeWidth="1"
                   />
                   <rect
@@ -260,7 +261,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
                     y={currentY - 10}
                     width="70"
                     height="20"
-                    fill="#00e599"
+                    fill={tv.accent}
                     rx="4"
                   />
                   <text
@@ -300,7 +301,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             style={{
               padding: '8px 20px',
               borderRadius: '16px',
-              backgroundColor: '#00e599',
+              backgroundColor: tv.accent,
               border: 'none',
               color: '#000000',
               fontWeight: 800,
@@ -318,7 +319,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             style={{
               padding: '8px 20px',
               borderRadius: '16px',
-              backgroundColor: '#ff4d4d',
+              backgroundColor: tv.loss,
               border: 'none',
               color: '#ffffff',
               fontWeight: 800,
@@ -355,7 +356,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              backgroundColor: '#00e599',
+              backgroundColor: tv.accent,
               border: 'none',
               color: '#000',
               fontWeight: 'bold',
@@ -370,7 +371,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
           <button style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
             ⏭
           </button>
-          <span style={{ fontSize: '0.75rem', color: '#00e599', fontFamily: 'monospace' }}>
+          <span style={{ fontSize: '0.75rem', color: tv.accent, fontFamily: 'monospace' }}>
             {replaySpeed} tk/s
           </span>
         </div>
@@ -491,7 +492,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <span style={{ color: pos.side === 'BUY' ? '#00e599' : '#ff4d4d', fontWeight: 800, fontSize: '0.8rem' }}>
+                        <span style={{ color: pos.side === 'BUY' ? tv.accent : tv.loss, fontWeight: 800, fontSize: '0.8rem' }}>
                           {pos.side} {symbolStr}
                         </span>
                         <button
@@ -516,7 +517,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
                       <div
                         style={{
                           fontSize: '0.85rem',
-                          color: isPosPositive ? '#00e599' : '#ff4d4d',
+                          color: isPosPositive ? tv.accent : tv.loss,
                           fontWeight: 800,
                           marginTop: '6px',
                         }}
@@ -559,7 +560,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
                       fontFamily: 'monospace',
                     }}
                   >
-                    <span style={{ color: exec.side === 'BUY' ? '#00e599' : '#ff4d4d' }}>
+                    <span style={{ color: exec.side === 'BUY' ? tv.accent : tv.loss }}>
                       {exec.side} {exec.quantity}
                     </span>
                     <span>${priceVal.toFixed(2)}</span>

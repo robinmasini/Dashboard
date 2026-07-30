@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import AccountSelector from './AccountSelector'
 import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
+import { tv } from './theme'
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
 
@@ -164,8 +165,8 @@ export default function HeaderGlobal({
           style={{
             padding: '4px 12px',
             borderRadius: '12px',
-            backgroundColor: isPnlPositive ? 'rgba(0, 229, 153, 0.15)' : 'rgba(255, 77, 77, 0.15)',
-            color: isPnlPositive ? '#00e599' : '#ff4d4d',
+            backgroundColor: isPnlPositive ? tv.accentSoft : tv.lossSoft,
+            color: isPnlPositive ? tv.accent : tv.loss,
             fontSize: '0.8rem',
             fontFamily: 'monospace',
             fontWeight: 700,

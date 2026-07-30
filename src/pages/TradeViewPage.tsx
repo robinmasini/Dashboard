@@ -155,7 +155,9 @@ export default function TradeViewPage() {
       </aside>
 
       {/* Main Workspace Area with Global Header */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#000000', overflow: 'hidden' }}>
+      {/* The sidebar is position:fixed, so it is out of the flex flow: offset the
+          workspace by its width or it slides underneath. */}
+      <div style={{ flex: 1, marginLeft: '280px', minWidth: 0, display: 'flex', flexDirection: 'column', height: '100vh', backgroundColor: '#000000', overflow: 'hidden' }}>
         <HeaderGlobal
           activeTab={activeTab}
           setActiveTab={(tab) => setActiveTab(tab as any)}

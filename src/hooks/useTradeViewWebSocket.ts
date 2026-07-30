@@ -78,6 +78,14 @@ export interface AccountState {
   losing_trades_count: number
 }
 
+/** One sample of account equity, accumulated client-side as the engine reports. */
+export interface EquityPoint {
+  t: number
+  equity: number
+  realized: number
+  trades: number
+}
+
 export type MarketEvent =
   | { type: 'Tick'; payload: TradeTick }
   | { type: 'Quote'; payload: Quote }
@@ -86,7 +94,11 @@ export type MarketEvent =
   | { type: 'AccountUpdated'; payload: AccountState }
   | { type: 'PositionUpdated'; payload: PositionRecord[] }
   | { type: 'ExecutionOccurred'; payload: ExecutionRecord }
-  | { type: 'OrderRejected'; payload: { client_order_id: string; reason: string } }
+  | { type: 'OrderRejected'; payload: { client_order_id: string; decision: RiskDecision } }
+
+export type RiskDecision =
+  | { decision: 'ACCEPTED' }
+  | { decision: 'REJECTED'; reason: string; detail: string }
 
 export interface TradeViewState {
   connected: boolean
@@ -103,8 +115,12 @@ export interface TradeViewState {
   account: AccountState
   positions: PositionRecord[]
   executions: ExecutionRecord[]
+  equityCurve: EquityPoint[]
   lastError: string | null
 }
+
+const num = (value: string | number) =>
+  typeof value === 'string' ? parseFloat(value) : value
 
 export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
   const [state, setState] = useState<TradeViewState>({
@@ -132,18 +148,40 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     },
     positions: [],
     executions: [],
+    equityCurve: [],
     lastError: null,
   })
 
   const wsRef = useRef<WebSocket | null>(null)
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const intentionalCloseRef = useRef(false)
+
+  const clearReconnect = () => {
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current)
+      reconnectTimerRef.current = null
+    }
+  }
 
   const connect = useCallback(() => {
+    // Never stack sockets: React re-mounts (StrictMode) and stale reconnect
+    // timers would otherwise churn connections, leaving `wsRef` pointing at a
+    // socket that is still CONNECTING when a command is sent.
+    const existing = wsRef.current
+    if (
+      existing &&
+      (existing.readyState === WebSocket.OPEN || existing.readyState === WebSocket.CONNECTING)
+    ) {
+      return
+    }
+
     try {
+      intentionalCloseRef.current = false
       const ws = new WebSocket(url)
       wsRef.current = ws
 
       ws.onopen = () => {
+        clearReconnect()
         setState((prev) => ({ ...prev, connected: true }))
       }
 
@@ -200,7 +238,30 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
             }))
           } else if (parsed.type === 'AccountUpdated') {
             const acc = parsed.payload
-            setState((prev) => ({ ...prev, account: acc }))
+            setState((prev) => {
+              const realized = num(acc.realized_pnl)
+              const equity = num(acc.current_capital) + num(acc.unrealized_pnl)
+              const last = prev.equityCurve[prev.equityCurve.length - 1]
+
+              // Only sample when the account actually moved, so the curve does
+              // not grow by one point per incoming tick.
+              const moved =
+                !last || last.equity !== equity || last.realized !== realized
+              if (!moved) return { ...prev, account: acc }
+
+              const point: EquityPoint = {
+                t: Date.now(),
+                equity,
+                realized,
+                trades: acc.total_trades_count,
+              }
+              const curve = [...prev.equityCurve, point]
+              return {
+                ...prev,
+                account: acc,
+                equityCurve: curve.length > 5000 ? curve.slice(-5000) : curve,
+              }
+            })
           } else if (parsed.type === 'PositionUpdated') {
             const pos = parsed.payload
             setState((prev) => ({ ...prev, positions: pos }))
@@ -211,8 +272,12 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
               executions: [exec, ...prev.executions.slice(0, 49)],
             }))
           } else if (parsed.type === 'OrderRejected') {
-            const err = parsed.payload
-            setState((prev) => ({ ...prev, lastError: err.reason }))
+            const { decision } = parsed.payload
+            const message =
+              decision.decision === 'REJECTED'
+                ? `${decision.reason}: ${decision.detail}`
+                : 'Order rejected'
+            setState((prev) => ({ ...prev, lastError: message }))
           }
         } catch {
           // Ignore parse errors
@@ -220,7 +285,10 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
       }
 
       ws.onclose = () => {
+        if (wsRef.current === ws) wsRef.current = null
         setState((prev) => ({ ...prev, connected: false }))
+        if (intentionalCloseRef.current) return
+        clearReconnect()
         reconnectTimerRef.current = setTimeout(connect, 3000)
       }
 
@@ -228,53 +296,62 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
         ws.close()
       }
     } catch {
+      clearReconnect()
       reconnectTimerRef.current = setTimeout(connect, 5000)
     }
   }, [url])
 
-  const placeOrder = useCallback((side: 'BUY' | 'SELL', quantity: number = 100) => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      const client_order_id = `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`
-      const payload = {
-        action: 'PlaceOrder',
-        payload: {
-          client_order_id,
-          instrument: 'NVDA',
-          side,
-          order_type: 'MARKET',
-          price: null,
-          quantity: quantity.toString(),
-        },
-      }
-      wsRef.current.send(JSON.stringify(payload))
+  /** Sends a command, surfacing the failure rather than dropping it silently. */
+  const send = useCallback((payload: object, description: string) => {
+    const ws = wsRef.current
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      setState((prev) => ({
+        ...prev,
+        lastError: `${description} non envoyé : moteur non connecté`,
+      }))
+      return false
     }
+    ws.send(JSON.stringify(payload))
+    return true
   }, [])
 
-  const closePosition = useCallback((symbol: string = 'NVDA') => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      const payload = {
-        action: 'ClosePosition',
-        payload: { symbol },
-      }
-      wsRef.current.send(JSON.stringify(payload))
-    }
-  }, [])
+  const placeOrder = useCallback(
+    (side: 'BUY' | 'SELL', quantity: number = 100) => {
+      send(
+        {
+          action: 'PlaceOrder',
+          payload: {
+            client_order_id: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+            instrument: 'NVDA',
+            side,
+            order_type: 'MARKET',
+            price: null,
+            quantity: quantity.toString(),
+          },
+        },
+        `Ordre ${side}`
+      )
+    },
+    [send]
+  )
+
+  const closePosition = useCallback(
+    (symbol: string = 'NVDA') => {
+      send({ action: 'ClosePosition', payload: { symbol } }, 'Fermeture de position')
+    },
+    [send]
+  )
 
   const resetAccount = useCallback(() => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      const payload = {
-        action: 'ResetAccount',
-        payload: {},
-      }
-      wsRef.current.send(JSON.stringify(payload))
-    }
-  }, [])
+    send({ action: 'ResetAccount', payload: {} }, 'Réinitialisation du compte')
+  }, [send])
 
   useEffect(() => {
     connect()
     return () => {
-      if (wsRef.current) wsRef.current.close()
-      if (reconnectTimerRef.current) clearTimeout(reconnectTimerRef.current)
+      clearReconnect()
+      intentionalCloseRef.current = true
+      wsRef.current?.close()
     }
   }, [connect])
 

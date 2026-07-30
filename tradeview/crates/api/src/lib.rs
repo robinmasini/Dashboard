@@ -12,7 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use tokio::sync::{broadcast, mpsc};
 use tower_http::cors::{Any, CorsLayer};
-use tracing::info;
+use tracing::{info, warn};
 use tradeview_domain::{InstrumentId, PlaceOrderCommand};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -73,8 +73,13 @@ async fn handle_websocket(stream: WebSocket, state: AppState) {
     let mut recv_task = tokio::spawn(async move {
         while let Some(Ok(msg)) = receiver.next().await {
             if let Message::Text(text) = msg {
-                if let Ok(cmd) = serde_json::from_str::<ClientWsCommand>(&text) {
-                    let _ = cmd_tx.send(cmd).await;
+                match serde_json::from_str::<ClientWsCommand>(&text) {
+                    Ok(cmd) => {
+                        let _ = cmd_tx.send(cmd).await;
+                    }
+                    // A command the engine cannot read must never be dropped in
+                    // silence: the client believes it was accepted.
+                    Err(error) => warn!(%error, %text, "rejected malformed client command"),
                 }
             } else if let Message::Close(_) = msg {
                 break;
