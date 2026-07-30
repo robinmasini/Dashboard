@@ -30,7 +30,7 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
   const [range, setRange] = useState<RangeKey>('all')
 
   const { account, equityCurve, positions } = tradeState
-  const initialCapital = num(account.initial_capital, 100_000)
+  const initialCapital = num(account.initial_capital, 39_000)
   const currentCapital = num(account.current_capital, initialCapital)
   const unrealized = num(account.unrealized_pnl)
   const equity = currentCapital + unrealized

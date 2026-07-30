@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import AccountSelector from './AccountSelector'
 import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
-import { tv } from './theme'
+import { money, tv } from './theme'
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
 
@@ -177,7 +177,11 @@ export default function HeaderGlobal({
 
         <button
           onClick={() => tradeState.resetAccount()}
-          title="Réinitialiser le compte SIM à $100,000"
+          title={`Réinitialiser le compte SIM à ${money(
+            typeof tradeState.account.initial_capital === 'string'
+              ? parseFloat(tradeState.account.initial_capital)
+              : tradeState.account.initial_capital
+          )}`}
           style={{
             padding: '4px 10px',
             borderRadius: '12px',

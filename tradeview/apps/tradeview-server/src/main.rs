@@ -18,6 +18,30 @@ use tradeview_market_data::SyntheticMarketGenerator;
 const SYMBOL: &str = "NVDA";
 const MARKET_DATA_SEED: u64 = 42;
 
+/// Starting capital of the SIM account, overridable with TRADEVIEW_INITIAL_CAPITAL.
+const DEFAULT_INITIAL_CAPITAL: i64 = 39_000;
+
+/// Reads the starting capital from the environment, refusing a value that would
+/// make the account meaningless rather than silently falling back.
+fn initial_capital() -> Result<Money, String> {
+    let raw = match std::env::var("TRADEVIEW_INITIAL_CAPITAL") {
+        Ok(value) => value,
+        Err(_) => return Ok(Money::new(Decimal::from(DEFAULT_INITIAL_CAPITAL))),
+    };
+
+    let parsed: Decimal = raw
+        .trim()
+        .parse()
+        .map_err(|_| format!("TRADEVIEW_INITIAL_CAPITAL is not a number: {raw:?}"))?;
+
+    if parsed <= Decimal::ZERO {
+        return Err(format!(
+            "TRADEVIEW_INITIAL_CAPITAL must be positive, got {parsed}"
+        ));
+    }
+    Ok(Money::new(parsed))
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let subscriber = FmtSubscriber::builder()
@@ -40,9 +64,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clock.clone(),
     ));
     let candle_engine = Arc::new(Mutex::new(CandleEngine::new()));
+    let starting_capital = initial_capital()?;
+    info!(capital = %starting_capital, "SIM account funded");
     let sim_engine = Arc::new(Mutex::new(SimExecutionEngine::new(
-        AccountId::new("demo-paper-100k"),
-        Money::new(Decimal::from(100_000)),
+        AccountId::new("sim-account"),
+        starting_capital,
         clock.clone(),
     )));
 

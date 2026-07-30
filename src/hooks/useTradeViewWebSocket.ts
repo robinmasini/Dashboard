@@ -140,8 +140,9 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     marketStatus: null,
     account: {
       account_id: 'demo-paper-100k',
-      initial_capital: 100000,
-      current_capital: 100000,
+      // Placeholder until the engine reports; it owns the real funding amount.
+      initial_capital: 39000,
+      current_capital: 39000,
       realized_pnl: 0,
       unrealized_pnl: 0,
       open_positions_count: 0,
