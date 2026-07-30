@@ -21,9 +21,11 @@ const MONTHS = [
 
 interface DailyPnlCalendarProps {
   stats: DayStat[]
+  /** Days before this instant are dimmed: they fall outside the active filter. */
+  rangeFrom: number
 }
 
-export default function DailyPnlCalendar({ stats }: DailyPnlCalendarProps) {
+export default function DailyPnlCalendar({ stats, rangeFrom }: DailyPnlCalendarProps) {
   const now = new Date()
   const [cursor, setCursor] = useState({ year: now.getFullYear(), month: now.getMonth() })
 
@@ -126,6 +128,8 @@ export default function DailyPnlCalendar({ stats }: DailyPnlCalendarProps) {
               ).padStart(2, '0')}`
               const stat = byDate.get(date)
               const isToday = date === todayKey
+              const inRange =
+                new Date(cursor.year, cursor.month, day).getTime() >= rangeFrom
 
               const tooltip = stat
                 ? [
@@ -149,6 +153,7 @@ export default function DailyPnlCalendar({ stats }: DailyPnlCalendarProps) {
                     border: `1px solid ${isToday ? tv.borderStrong : tv.border}`,
                     display: 'flex',
                     flexDirection: 'column',
+                    opacity: inRange ? 1 : 0.35,
                   }}
                 >
                   <div

@@ -83,7 +83,10 @@ export interface EquityPoint {
   t: number
   equity: number
   realized: number
+  /** Cumulative counters, so any window can be derived by differencing. */
   trades: number
+  wins: number
+  losses: number
 }
 
 export type MarketEvent =
@@ -254,6 +257,8 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
                 equity,
                 realized,
                 trades: acc.total_trades_count,
+                wins: acc.winning_trades_count,
+                losses: acc.losing_trades_count,
               }
               const curve = [...prev.equityCurve, point]
               return {

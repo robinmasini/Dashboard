@@ -78,6 +78,79 @@ export function monthTotals(stats: DayStat[], year: number, month: number): Mont
   }
 }
 
+export type RangeKey = 'week' | 'month' | 'year' | 'all'
+
+/**
+ * Start of a named calendar period — "this week" means since Monday, not the
+ * last seven days.
+ */
+export function rangeStart(key: RangeKey, now = new Date()): number {
+  switch (key) {
+    case 'week': {
+      const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      // getDay(): 0 = Sunday, so Sunday belongs to the week that began 6 days back.
+      const offset = (monday.getDay() + 6) % 7
+      monday.setDate(monday.getDate() - offset)
+      return monday.getTime()
+    }
+    case 'month':
+      return new Date(now.getFullYear(), now.getMonth(), 1).getTime()
+    case 'year':
+      return new Date(now.getFullYear(), 0, 1).getTime()
+    case 'all':
+      return 0
+  }
+}
+
+export interface RangeMetrics {
+  realized: number
+  trades: number
+  wins: number
+  losses: number
+  openingEquity: number
+  closingEquity: number
+  pct: number
+  tradedDays: number
+}
+
+/**
+ * Metrics for a window, differenced against the last sample taken before it so
+ * the period reflects its own activity rather than the whole session.
+ */
+export function rangeMetrics(
+  curve: EquityPoint[],
+  from: number,
+  stats: DayStat[]
+): RangeMetrics | null {
+  if (curve.length === 0) return null
+
+  const inRange = curve.filter((point) => point.t >= from)
+  if (inRange.length === 0) return null
+
+  const before = [...curve].reverse().find((point) => point.t < from)
+  const first = inRange[0]
+  const last = inRange[inRange.length - 1]
+  const baseline = before ?? first
+
+  const realized = last.realized - baseline.realized
+  // Undo the in-window realized move to recover the equity the window opened on.
+  const openingEquity = before ? before.equity : first.equity - (first.realized - baseline.realized)
+
+  const fromKey = dayKey(new Date(from))
+  const tradedDays = stats.filter((s) => s.date >= fromKey && s.trades > 0).length
+
+  return {
+    realized,
+    trades: last.trades - baseline.trades,
+    wins: last.wins - baseline.wins,
+    losses: last.losses - baseline.losses,
+    openingEquity,
+    closingEquity: last.equity,
+    pct: openingEquity !== 0 ? ((last.equity - openingEquity) / openingEquity) * 100 : 0,
+    tradedDays,
+  }
+}
+
 /**
  * Calendar cells for a month, Sunday-first, padded so the 1st lands on its
  * real weekday. `null` marks a padding cell.

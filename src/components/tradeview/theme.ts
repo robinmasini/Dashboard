@@ -34,8 +34,15 @@ export function money(value: number, currency = '$'): string {
   })}`
 }
 
-export function axisMoney(value: number, currency = '$'): string {
-  return `${currency}${(value / 1000).toFixed(1)}k`
+/**
+ * Axis labels sized to the span on screen. Collapsing to `k` is only safe when
+ * the range is wide enough; on a $10 move it would print the same tick several
+ * times over.
+ */
+export function makeAxisFormatter(span: number, currency = '$') {
+  const decimals =
+    span >= 20_000 ? 0 : span >= 2_000 ? 1 : span >= 200 ? 2 : span >= 20 ? 3 : 4
+  return (v: number) => `${currency}${(v / 1000).toFixed(decimals)}k`
 }
 
 export function signedPct(value: number): string {

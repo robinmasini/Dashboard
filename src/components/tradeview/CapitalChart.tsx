@@ -10,7 +10,7 @@ import {
   YAxis,
 } from 'recharts'
 import type { EquityPoint } from '../../hooks/useTradeViewWebSocket'
-import { axisMoney, exactMoney, fullDateTime, money, pnlColor, signedPct, tv } from './theme'
+import { exactMoney, fullDateTime, makeAxisFormatter, money, pnlColor, signedPct, tv } from './theme'
 
 type Mode = 'capital' | 'performance'
 
@@ -101,8 +101,12 @@ export default function CapitalChart({ curve, initialCapital }: CapitalChartProp
 
   const isUp = mode === 'capital' ? current >= initialCapital : current >= 0
   const stroke = isUp ? tv.accent : tv.loss
+
+  const span = max - min
+  const axisMoneyFmt = makeAxisFormatter(span)
+  const pctDecimals = span >= 5 ? 1 : span >= 0.5 ? 2 : 3
   const format = (value: number) =>
-    mode === 'capital' ? axisMoney(value) : `${value.toFixed(1)}%`
+    mode === 'capital' ? axisMoneyFmt(value) : `${value.toFixed(pctDecimals)}%`
 
   return (
     <div
@@ -164,7 +168,7 @@ export default function CapitalChart({ curve, initialCapital }: CapitalChartProp
       ) : (
         <div style={{ flex: 1, minHeight: 0 }}>
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={data} margin={{ top: 8, right: 56, bottom: 4, left: 4 }}>
+            <AreaChart data={data} margin={{ top: 8, right: 74, bottom: 4, left: 4 }}>
               <defs>
                 <linearGradient id="tvCapitalFill" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="0%" stopColor={stroke} stopOpacity={0.28} />
@@ -192,7 +196,7 @@ export default function CapitalChart({ curve, initialCapital }: CapitalChartProp
                 tickFormatter={format}
                 axisLine={false}
                 tickLine={false}
-                width={52}
+                width={70}
                 tick={{ fill: tv.textFaint, fontSize: 10, fontFamily: tv.mono }}
               />
 

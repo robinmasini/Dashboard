@@ -3,7 +3,8 @@ import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
 import CapitalChart from './CapitalChart'
 import DailyPnlCalendar from './DailyPnlCalendar'
 import StatsPanel from './StatsPanel'
-import { deriveDailyStats } from './dailyPnl'
+import type { RangeKey } from './dailyPnl'
+import { deriveDailyStats, rangeMetrics, rangeStart } from './dailyPnl'
 import { exactMoney, money, pnlColor, signedPct, tv } from './theme'
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
@@ -12,12 +13,12 @@ interface DashboardViewProps {
   tradeState: TradeViewState
 }
 
-const RANGES = [
-  { key: 'week', label: 'Cette semaine', days: 7 },
-  { key: 'month', label: 'Ce mois', days: 30 },
-  { key: 'year', label: 'Cette année', days: 365 },
-  { key: 'all', label: 'Depuis le début', days: Infinity },
-] as const
+const RANGES: { key: RangeKey; label: string }[] = [
+  { key: 'week', label: 'Cette semaine' },
+  { key: 'month', label: 'Ce mois' },
+  { key: 'year', label: 'Cette année' },
+  { key: 'all', label: 'Depuis le début' },
+]
 
 const num = (value: string | number | undefined, fallback = 0) => {
   if (value === undefined) return fallback
@@ -26,27 +27,34 @@ const num = (value: string | number | undefined, fallback = 0) => {
 }
 
 export default function DashboardView({ tradeState }: DashboardViewProps) {
-  const [range, setRange] = useState<(typeof RANGES)[number]['key']>('all')
+  const [range, setRange] = useState<RangeKey>('all')
 
   const { account, equityCurve, positions } = tradeState
   const initialCapital = num(account.initial_capital, 100_000)
   const currentCapital = num(account.current_capital, initialCapital)
   const unrealized = num(account.unrealized_pnl)
   const equity = currentCapital + unrealized
-  const progressPct =
-    initialCapital !== 0 ? ((equity - initialCapital) / initialCapital) * 100 : 0
 
-  const visibleCurve = useMemo(() => {
-    const days = RANGES.find((r) => r.key === range)!.days
-    if (!Number.isFinite(days)) return equityCurve
-    const cutoff = Date.now() - days * 86_400_000
-    return equityCurve.filter((point) => point.t >= cutoff)
-  }, [equityCurve, range])
-
+  const from = useMemo(() => rangeStart(range), [range])
   const dailyStats = useMemo(() => deriveDailyStats(equityCurve), [equityCurve])
-  const tradedDays = dailyStats.filter((s) => s.trades > 0).length
-  const totalRealized = dailyStats.reduce((sum, s) => sum + s.pnl, 0)
-  const avgPerDay = tradedDays > 0 ? totalRealized / tradedDays : 0
+  const metrics = useMemo(
+    () => rangeMetrics(equityCurve, from, dailyStats),
+    [equityCurve, from, dailyStats]
+  )
+
+  const visibleCurve = useMemo(
+    () => (range === 'all' ? equityCurve : equityCurve.filter((point) => point.t >= from)),
+    [equityCurve, from, range]
+  )
+
+  // Everything below reflects the selected period; the capital card alone is
+  // absolute, since equity is a level rather than a movement.
+  const periodResult = metrics ? metrics.closingEquity - metrics.openingEquity : 0
+  const periodPct = metrics?.pct ?? 0
+  const baseline = metrics?.openingEquity ?? initialCapital
+  const tradedDays = metrics?.tradedDays ?? 0
+  const avgPerDay = tradedDays > 0 ? (metrics?.realized ?? 0) / tradedDays : 0
+  const rangeLabel = RANGES.find((r) => r.key === range)!.label.toLowerCase()
 
   return (
     <div
@@ -69,6 +77,7 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
           alignItems: 'center',
           flexWrap: 'wrap',
           gap: 12,
+          flexShrink: 0,
         }}
       >
         <div
@@ -107,12 +116,23 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
         </div>
 
         <div style={{ fontSize: '0.72rem', color: tv.textFaint, fontFamily: tv.mono }}>
-          {tradeState.connected ? 'Session active' : 'Moteur déconnecté'} •{' '}
-          {tradeState.symbol} {tradeState.dataMode} Engine
+          {tradeState.connected ? 'Session active' : 'Moteur déconnecté'} • {tradeState.symbol}{' '}
+          {tradeState.dataMode} Engine
         </div>
       </div>
 
-      <div style={{ display: 'flex', gap: 16, height: 330, flexWrap: 'wrap' }}>
+      {/* Fixed-size band: the cards and the chart keep their full height, so the
+          calendar below can never eat into them — it is reached by scrolling. */}
+      <div
+        style={{
+          display: 'flex',
+          gap: 16,
+          minHeight: 340,
+          flexShrink: 0,
+          flexWrap: 'wrap',
+          alignItems: 'stretch',
+        }}
+      >
         <div
           style={{
             display: 'flex',
@@ -126,7 +146,7 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
             title={[
               'Capital courant (équité)',
               `Capital de départ    ${money(initialCapital)}`,
-              `PnL réalisé          ${exactMoney(num(account.realized_pnl))}`,
+              `PnL réalisé (total)  ${exactMoney(num(account.realized_pnl))}`,
               `PnL latent           ${exactMoney(unrealized)}`,
               `Équité               ${money(equity)}`,
             ].join('\n')}
@@ -144,27 +164,31 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
           >
             <div
               style={{
+                display: 'flex',
+                justifyContent: 'space-between',
                 fontSize: '0.62rem',
                 color: tv.textFaint,
                 fontWeight: 700,
                 fontFamily: tv.mono,
-                textAlign: 'right',
               }}
             >
-              USD
+              <span>CAPITAL</span>
+              <span>USD</span>
             </div>
-            <div style={{ fontSize: '1.55rem', fontWeight: 800, fontFamily: tv.mono }}>
+            <div style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: tv.mono }}>
               {money(equity)}
             </div>
           </div>
 
           <div
             title={[
-              'Résultat depuis le départ',
-              `Gain / perte         ${exactMoney(equity - initialCapital)}`,
-              `Rendement            ${signedPct(progressPct)}`,
-              `Trades gagnants      ${account.winning_trades_count || 0}`,
-              `Trades perdants      ${account.losing_trades_count || 0}`,
+              `Résultat — ${rangeLabel}`,
+              `Équité au départ     ${money(baseline)}`,
+              `Équité actuelle      ${money(equity)}`,
+              `Variation            ${exactMoney(periodResult)}`,
+              `Rendement            ${signedPct(periodPct)}`,
+              `PnL réalisé          ${exactMoney(metrics?.realized ?? 0)}`,
+              `Trades               ${metrics?.trades ?? 0}`,
               `Jours tradés         ${tradedDays}`,
             ].join('\n')}
             style={{
@@ -179,7 +203,24 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
               cursor: 'help',
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                gap: 8,
+              }}
+            >
+              <span
+                style={{
+                  fontSize: '0.62rem',
+                  color: tv.textFaint,
+                  fontWeight: 700,
+                  fontFamily: tv.mono,
+                }}
+              >
+                RÉSULTAT
+              </span>
               <span
                 style={{
                   padding: '3px 9px',
@@ -187,38 +228,40 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
                   fontSize: '0.65rem',
                   fontWeight: 700,
                   fontFamily: tv.mono,
-                  color: pnlColor(progressPct),
-                  backgroundColor: progressPct >= 0 ? tv.accentSoft : tv.lossSoft,
+                  color: pnlColor(periodPct),
+                  backgroundColor: periodPct >= 0 ? tv.accentSoft : tv.lossSoft,
                 }}
               >
-                {signedPct(progressPct)}
+                {signedPct(periodPct)}
               </span>
             </div>
             <div
               style={{
-                fontSize: '1.55rem',
+                fontSize: '1.5rem',
                 fontWeight: 800,
                 fontFamily: tv.mono,
-                color: pnlColor(equity - initialCapital),
+                color: pnlColor(periodResult),
               }}
             >
-              {money(equity - initialCapital)}
+              {exactMoney(periodResult)}
             </div>
           </div>
         </div>
 
-        <CapitalChart curve={visibleCurve} initialCapital={initialCapital} />
+        <CapitalChart curve={visibleCurve} initialCapital={baseline} />
 
         <StatsPanel
-          winTrades={account.winning_trades_count || 0}
-          loseTrades={account.losing_trades_count || 0}
+          winTrades={metrics?.wins ?? 0}
+          loseTrades={metrics?.losses ?? 0}
           avgPerDay={avgPerDay}
           tradedDays={tradedDays}
           openPositions={positions.length}
         />
       </div>
 
-      <DailyPnlCalendar stats={dailyStats} />
+      <div style={{ flexShrink: 0 }}>
+        <DailyPnlCalendar stats={dailyStats} rangeFrom={from} />
+      </div>
     </div>
   )
 }
