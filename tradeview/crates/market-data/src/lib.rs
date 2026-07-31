@@ -38,7 +38,10 @@ impl InstrumentProfile {
             floor_price: Decimal::new(500_000, 2),
             reset_price: Decimal::new(650_000, 2),
             tick_size: Decimal::new(25, 2),
-            max_move_ticks: 6,
+            // One tick per print. At a few prints a second this already yields
+            // 15-second bars spanning a point or two, which is what the real
+            // contract does; six ticks a print produced 40-point bars.
+            max_move_ticks: 1,
             half_spread: Decimal::new(125, 3),
         }
     }

@@ -1868,6 +1868,7 @@ version = "0.1.0"
 dependencies = [
  "rust_decimal",
  "serde",
+ "serde_json",
  "tradeview-domain",
 ]
 
@@ -1931,6 +1932,7 @@ dependencies = [
  "tradeview-domain",
  "tradeview-event-store",
  "tradeview-execution-sim",
+ "tradeview-indicators",
  "tradeview-market-data",
 ]
 

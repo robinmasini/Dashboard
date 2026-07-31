@@ -5,7 +5,9 @@
 //! and what the robot trades on from drifting apart.
 
 pub mod blocks;
+pub mod event;
 pub mod steps;
 
 pub use blocks::{analyse as analyse_blocks, Block, BlockAnalysis, BlockDirection, BlockStats};
+pub use event::{IndicatorEvent, IndicatorSnapshot, IndicatorWindow};
 pub use steps::{analyse as analyse_steps, Leg, LegDirection, StepAnalysis};

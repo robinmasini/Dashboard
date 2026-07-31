@@ -1,6 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
 import { tv } from './theme'
+
+const MIN_VISIBLE_CANDLES = 12
+const MAX_VISIBLE_CANDLES = 160
+const CHART_TOP = 20
+const CHART_HEIGHT = 350
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
 
@@ -14,11 +19,65 @@ export default function MarketView({ tradeState }: MarketViewProps) {
   const [replaySpeed] = useState<number>(100)
   const [isReplaying, setIsReplaying] = useState<boolean>(true)
 
-  // Extract recent candles for chart rendering
-  const activeCandles = tradeState.candles.slice(-30)
+  // The engine broadcasts candles for every timeframe. Drawing them all at once
+  // stacks 1s bars on top of 5m ones; the analysed timeframe is the authority.
+  const analysisTimeframe = tradeState.indicators?.timeframe ?? 'S15'
+  const timeframeCandles = tradeState.candles.filter((c) => c.timeframe === analysisTimeframe)
+
+  // Zoom is how many bars are on screen; the spacing follows from the width so
+  // the series always fills the canvas.
+  const [visibleCandles, setVisibleCandles] = useState(40)
+  const chartRef = useRef<HTMLDivElement>(null)
+  const [chartWidth, setChartWidth] = useState(900)
+
+  useEffect(() => {
+    const element = chartRef.current
+    if (!element) return
+    const observer = new ResizeObserver(([entry]) => {
+      setChartWidth(entry.contentRect.width)
+    })
+    observer.observe(element)
+    return () => observer.disconnect()
+  }, [])
+
+  const zoom = (delta: number) =>
+    setVisibleCandles((current) =>
+      Math.min(MAX_VISIBLE_CANDLES, Math.max(MIN_VISIBLE_CANDLES, current + delta))
+    )
+
+  const activeCandles = timeframeCandles.slice(-visibleCandles)
   const maxPrice = Math.max(...activeCandles.map((c) => parseFloat(String(c.high))), tradeState.lastPrice + 1)
   const minPrice = Math.min(...activeCandles.map((c) => parseFloat(String(c.low))), tradeState.lastPrice - 1)
   const priceRange = Math.max(0.5, maxPrice - minPrice)
+
+  const leftGutter = 50
+  const rightGutter = 90
+  const plotWidth = Math.max(120, chartWidth - leftGutter - rightGutter)
+  const spacing = plotWidth / Math.max(1, activeCandles.length)
+  const bodyWidth = Math.max(2, Math.min(14, spacing * 0.6))
+
+  const xOf = (index: number) => leftGutter + index * spacing + spacing / 2
+  const yOf = (price: number) => ((maxPrice - price) / priceRange) * CHART_HEIGHT + CHART_TOP
+
+  // Blocks and legs are timestamped; the chart is indexed. This maps one to the
+  // other so an overlay can never drift from the bars beneath it.
+  const indexByOpenTime = new Map<string, number>()
+  activeCandles.forEach((candle, index) => indexByOpenTime.set(candle.open_time, index))
+
+  const indexForTime = (iso: string): number | null => {
+    const direct = indexByOpenTime.get(iso)
+    if (direct !== undefined) return direct
+    const target = Date.parse(iso)
+    if (Number.isNaN(target)) return null
+    for (let i = 0; i < activeCandles.length; i += 1) {
+      const open = Date.parse(activeCandles[i].open_time)
+      const close = Date.parse(activeCandles[i].close_time)
+      if (target >= open && target <= close) return i
+    }
+    return null
+  }
+
+  const indicators = tradeState.indicators
 
   return (
     <div
@@ -106,7 +165,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             <input type="checkbox" defaultChecked style={{ accentColor: tv.accent }} />
           </div>
           <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.4)' }}>
-            <div>bougies: {tradeState.candles.length}</div>
+            <div>bougies: {timeframeCandles.length} ({analysisTimeframe})</div>
             <div>ticks: {tradeState.ticksCount}</div>
           </div>
         </div>
@@ -118,6 +177,48 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             <span style={{ color: tv.accent, fontFamily: 'monospace' }}>
               ${tradeState.spread.toFixed(2)}
             </span>
+          </div>
+        </div>
+
+        {/* Step grid, as computed by the engine */}
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontWeight: 600 }}>Step</span>
+            <span style={{ color: tv.textFaint, fontFamily: tv.mono, fontSize: '0.7rem' }}>
+              {analysisTimeframe}
+            </span>
+          </div>
+          <div style={{ fontSize: '0.7rem', color: tv.textMuted, fontFamily: tv.mono }}>
+            <Row label="finestStep" value={indicators?.steps.finest_step ?? '—'} />
+            <Row label="step" value={indicators?.steps.step ?? '—'} />
+            <Row label="densité" value={String(indicators?.steps.density ?? '—')} />
+            <Row label="jambes" value={String(indicators?.steps.legs.length ?? 0)} />
+          </div>
+        </div>
+
+        {/* Block runs */}
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <span style={{ fontWeight: 600 }}>Block</span>
+            <span style={{ color: tv.textFaint, fontFamily: tv.mono, fontSize: '0.7rem' }}>
+              {indicators?.blocks.stats.total ?? 0}
+            </span>
+          </div>
+          <div style={{ fontSize: '0.7rem', fontFamily: tv.mono }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: tv.accent }}>
+              <span>▲ {indicators?.blocks.stats.up_count ?? 0}</span>
+              <span style={{ color: tv.textMuted }}>
+                max {indicators?.blocks.stats.up_max_length ?? 0} · moy{' '}
+                {indicators?.blocks.stats.up_mean_length ?? '0'}
+              </span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: tv.loss }}>
+              <span>▼ {indicators?.blocks.stats.down_count ?? 0}</span>
+              <span style={{ color: tv.textMuted }}>
+                max {indicators?.blocks.stats.down_max_length ?? 0} · moy{' '}
+                {indicators?.blocks.stats.down_mean_length ?? '0'}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -172,6 +273,11 @@ export default function MarketView({ tradeState }: MarketViewProps) {
 
         {/* SVG Interactive Chart Canvas */}
         <div
+          ref={chartRef}
+          onWheel={(event) => {
+            event.preventDefault()
+            zoom(event.deltaY > 0 ? 4 : -4)
+          }}
           style={{
             flex: 1,
             width: '100%',
@@ -209,6 +315,35 @@ export default function MarketView({ tradeState }: MarketViewProps) {
               )
             })}
 
+            {/* Blocks: runs of same-direction candles, drawn behind the bars */}
+            {indicators?.blocks.blocks.map((block, i) => {
+              const startIndex = indexForTime(block.start_time)
+              if (startIndex === null) return null
+              const endIndex = Math.min(
+                activeCandles.length - 1,
+                startIndex + block.length - 1
+              )
+              const high = parseFloat(block.high)
+              const low = parseFloat(block.low)
+              const colour = block.direction === 'UP' ? tv.accent : tv.loss
+
+              return (
+                <rect
+                  key={`block-${i}`}
+                  x={xOf(startIndex) - spacing / 2}
+                  y={yOf(high)}
+                  width={(endIndex - startIndex + 1) * spacing}
+                  height={Math.max(1, yOf(low) - yOf(high))}
+                  fill={colour}
+                  fillOpacity={block.is_live ? 0.06 : 0.11}
+                  stroke={colour}
+                  strokeOpacity={0.25}
+                  strokeDasharray={block.is_live ? '3 3' : undefined}
+                  rx="2"
+                />
+              )
+            })}
+
             {/* Candlesticks Rendering */}
             {activeCandles.map((c, index) => {
               const o = parseFloat(String(c.open))
@@ -219,22 +354,22 @@ export default function MarketView({ tradeState }: MarketViewProps) {
               const isBull = cl >= o
               const color = isBull ? tv.accent : tv.loss
 
-              const x = 50 + index * 24
-              const yHigh = ((maxPrice - h) / priceRange) * 350 + 20
-              const yLow = ((maxPrice - l) / priceRange) * 350 + 20
-              const yOpen = ((maxPrice - o) / priceRange) * 350 + 20
-              const yClose = ((maxPrice - cl) / priceRange) * 350 + 20
+              const x = xOf(index)
+              const yHigh = yOf(h)
+              const yLow = yOf(l)
+              const yOpen = yOf(o)
+              const yClose = yOf(cl)
 
               const bodyTop = Math.min(yOpen, yClose)
-              const bodyHeight = Math.max(3, Math.abs(yClose - yOpen))
+              const bodyHeight = Math.max(2, Math.abs(yClose - yOpen))
 
               return (
                 <g key={index}>
                   <line x1={x} y1={yHigh} x2={x} y2={yLow} stroke={color} strokeWidth="1.5" />
                   <rect
-                    x={x - 6}
+                    x={x - bodyWidth / 2}
                     y={bodyTop}
-                    width="12"
+                    width={bodyWidth}
                     height={bodyHeight}
                     fill={color}
                     rx="1"
@@ -243,9 +378,55 @@ export default function MarketView({ tradeState }: MarketViewProps) {
               )
             })}
 
+            {/* Steps: the swing structure, each leg labelled with its size */}
+            {indicators?.steps.legs.map((leg, i) => {
+              const fromIndex = indexForTime(leg.from_time)
+              const toIndex = indexForTime(leg.to_time)
+              if (fromIndex === null || toIndex === null) return null
+
+              const x1 = xOf(fromIndex)
+              const y1 = yOf(parseFloat(leg.from_price))
+              const x2 = xOf(toIndex)
+              const y2 = yOf(parseFloat(leg.to_price))
+
+              return (
+                <g key={`leg-${i}`}>
+                  <line
+                    x1={x1}
+                    y1={y1}
+                    x2={x2}
+                    y2={y2}
+                    stroke="#ffffff"
+                    strokeWidth="1.5"
+                    strokeOpacity={leg.is_confirmed ? 0.85 : 0.35}
+                    strokeDasharray={leg.is_confirmed ? undefined : '4 4'}
+                  />
+                  <circle
+                    cx={(x1 + x2) / 2}
+                    cy={(y1 + y2) / 2}
+                    r="9"
+                    fill="#000000"
+                    stroke={leg.direction === 'UP' ? tv.accent : tv.loss}
+                    strokeWidth="1.5"
+                  />
+                  <text
+                    x={(x1 + x2) / 2}
+                    y={(y1 + y2) / 2 + 3.5}
+                    fill="#ffffff"
+                    fontSize="10"
+                    fontWeight="700"
+                    textAnchor="middle"
+                    fontFamily="monospace"
+                  >
+                    {leg.steps}
+                  </text>
+                </g>
+              )
+            })}
+
             {/* Current Price Line */}
             {(() => {
-              const currentY = ((maxPrice - tradeState.lastPrice) / priceRange) * 350 + 20
+              const currentY = yOf(tradeState.lastPrice)
               return (
                 <g>
                   <line
@@ -370,6 +551,31 @@ export default function MarketView({ tradeState }: MarketViewProps) {
           </button>
           <button style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
             ⏭
+          </button>
+          <button
+            onClick={() => zoom(6)}
+            title="Dézoomer (molette vers le bas)"
+            style={zoomButtonStyle}
+          >
+            −
+          </button>
+          <span
+            style={{
+              fontSize: '0.7rem',
+              color: tv.textMuted,
+              fontFamily: tv.mono,
+              minWidth: 64,
+              textAlign: 'center',
+            }}
+          >
+            {activeCandles.length} bougies
+          </span>
+          <button
+            onClick={() => zoom(-6)}
+            title="Zoomer (molette vers le haut)"
+            style={zoomButtonStyle}
+          >
+            +
           </button>
           <span style={{ fontSize: '0.75rem', color: tv.accent, fontFamily: 'monospace' }}>
             {replaySpeed} tk/s
@@ -572,6 +778,27 @@ export default function MarketView({ tradeState }: MarketViewProps) {
           </div>
         )}
       </aside>
+    </div>
+  )
+}
+
+const zoomButtonStyle: React.CSSProperties = {
+  width: 24,
+  height: 24,
+  borderRadius: 8,
+  border: `1px solid ${tv.border}`,
+  backgroundColor: 'transparent',
+  color: tv.textMuted,
+  cursor: 'pointer',
+  fontSize: '0.9rem',
+  lineHeight: 1,
+}
+
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+      <span>{label}</span>
+      <span style={{ color: tv.text }}>{value}</span>
     </div>
   )
 }

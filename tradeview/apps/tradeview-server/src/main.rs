@@ -10,14 +10,40 @@ use tradeview_candle_engine::CandleEngine;
 use tradeview_clock::{SystemClock, TradingClock};
 use tradeview_domain::{
     AccountId, ClientOrderId, InstrumentId, MarketEvent, Money, OrderType, PlaceOrderCommand,
+    Timeframe,
 };
 use tradeview_event_store::LocalEventStore;
 use tradeview_execution_sim::SimExecutionEngine;
+use tradeview_indicators::{IndicatorEvent, IndicatorWindow};
 use tradeview_market_data::SyntheticMarketGenerator;
 
 /// Micro E-mini S&P 500 — the single instrument traded for now.
 const DEFAULT_SYMBOL: &str = "MES";
 const MARKET_DATA_SEED: u64 = 42;
+
+/// Timeframe the chart draws, and therefore the one the analytics describe.
+/// S15 by default: on M5 a session shows a single bar for its first five
+/// minutes, leaving nothing to analyse.
+const DEFAULT_INDICATOR_TIMEFRAME: Timeframe = Timeframe::S15;
+
+fn indicator_timeframe() -> Timeframe {
+    match std::env::var("TRADEVIEW_INDICATOR_TIMEFRAME")
+        .unwrap_or_default()
+        .to_uppercase()
+        .as_str()
+    {
+        "S1" => Timeframe::S1,
+        "S5" => Timeframe::S5,
+        "S15" => Timeframe::S15,
+        "M1" => Timeframe::M1,
+        "M5" => Timeframe::M5,
+        _ => DEFAULT_INDICATOR_TIMEFRAME,
+    }
+}
+/// Bars retained for the block and step analysis.
+const INDICATOR_WINDOW: usize = 240;
+/// Grid density; 1 is the coarsest, matching the reference layout.
+const INDICATOR_DENSITY: u32 = 1;
 
 fn symbol() -> String {
     std::env::var("TRADEVIEW_SYMBOL").unwrap_or_else(|_| DEFAULT_SYMBOL.to_string())
@@ -71,6 +97,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clock.clone(),
     ));
     let candle_engine = Arc::new(Mutex::new(CandleEngine::new()));
+    let analysis_timeframe = indicator_timeframe();
+    info!(timeframe = ?analysis_timeframe, "indicator timeframe");
+    let indicator_window = Arc::new(Mutex::new(IndicatorWindow::new(
+        analysis_timeframe,
+        INDICATOR_WINDOW,
+        INDICATOR_DENSITY,
+    )));
     let starting_capital = initial_capital()?;
     info!(capital = %starting_capital, "SIM account funded");
     let sim_engine = Arc::new(Mutex::new(SimExecutionEngine::new(
@@ -85,6 +118,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let store = event_store.clone();
     let candles = candle_engine.clone();
     let market_execution = sim_engine.clone();
+    let indicators = indicator_window.clone();
+    let indicator_instrument = InstrumentId::new(&symbol);
 
     tokio::spawn(async move {
         while let Some(event) = event_rx.recv().await {
@@ -99,11 +134,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 MarketEvent::Quote(quote) => execution.on_quote(quote),
                 MarketEvent::Tick(tick) => {
                     let produced = candles.lock().await.process_tick(tick);
+                    let mut window = indicators.lock().await;
+                    let mut analytics_changed = false;
+
                     for candle in produced {
+                        analytics_changed |= window.accept(&candle);
                         if let Ok(json) = serde_json::to_string(&MarketEvent::Candle(candle)) {
                             let _ = market_broadcast.send(json);
                         }
                     }
+
+                    // Recomputed only when the analysed timeframe moved, rather
+                    // than on every tick: the whole window is walked each time.
+                    if analytics_changed {
+                        let snapshot = window.analyse(&indicator_instrument);
+                        if let Ok(json) =
+                            serde_json::to_string(&IndicatorEvent::Indicators(snapshot))
+                        {
+                            let _ = market_broadcast.send(json);
+                        }
+                    }
+                    drop(window);
+
                     execution.on_tick(tick)
                 }
                 _ => Vec::new(),

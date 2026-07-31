@@ -89,6 +89,46 @@ export interface EquityPoint {
   losses: number
 }
 
+export interface Block {
+  direction: 'UP' | 'DOWN'
+  length: number
+  high: string
+  low: string
+  open: string
+  close: string
+  start_time: string
+  end_time: string
+  is_live: boolean
+}
+
+export interface BlockStats {
+  total: number
+  up_count: number
+  down_count: number
+  up_max_length: number
+  down_max_length: number
+  up_mean_length: string
+  down_mean_length: string
+}
+
+export interface Leg {
+  direction: 'UP' | 'DOWN'
+  from_price: string
+  to_price: string
+  from_time: string
+  to_time: string
+  steps: number
+  is_confirmed: boolean
+}
+
+export interface IndicatorSnapshot {
+  instrument: string
+  timeframe: 'S1' | 'S5' | 'S15' | 'M1' | 'M5'
+  candles: number
+  blocks: { blocks: Block[]; stats: BlockStats }
+  steps: { finest_step: string; step: string; density: number; legs: Leg[] }
+}
+
 export type MarketEvent =
   | { type: 'Tick'; payload: TradeTick }
   | { type: 'Quote'; payload: Quote }
@@ -98,6 +138,7 @@ export type MarketEvent =
   | { type: 'PositionUpdated'; payload: PositionRecord[] }
   | { type: 'ExecutionOccurred'; payload: ExecutionRecord }
   | { type: 'OrderRejected'; payload: { client_order_id: string; decision: RiskDecision } }
+  | { type: 'Indicators'; payload: IndicatorSnapshot }
 
 export type RiskDecision =
   | { decision: 'ACCEPTED' }
@@ -119,8 +160,12 @@ export interface TradeViewState {
   positions: PositionRecord[]
   executions: ExecutionRecord[]
   equityCurve: EquityPoint[]
+  indicators: IndicatorSnapshot | null
   lastError: string | null
 }
+
+/** Bars retained per timeframe, independently of the other series. */
+const CANDLES_PER_TIMEFRAME = 300
 
 const num = (value: string | number) =>
   typeof value === 'string' ? parseFloat(value) : value
@@ -154,6 +199,7 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     positions: [],
     executions: [],
     equityCurve: [],
+    indicators: null,
     lastError: null,
   })
 
@@ -228,8 +274,15 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
                 nextCandles[existingIdx] = candle
               } else {
                 nextCandles.push(candle)
-                if (nextCandles.length > 200) {
-                  nextCandles = nextCandles.slice(-200)
+                // Trim per timeframe. A shared cap lets the 1-second stream,
+                // which arrives far more often, evict the slower series the
+                // chart is actually drawing.
+                const sameTimeframe = nextCandles.filter((c) => c.timeframe === candle.timeframe)
+                if (sameTimeframe.length > CANDLES_PER_TIMEFRAME) {
+                  const cutoff = sameTimeframe[sameTimeframe.length - CANDLES_PER_TIMEFRAME]
+                  nextCandles = nextCandles.filter(
+                    (c) => c.timeframe !== candle.timeframe || c.open_time >= cutoff.open_time
+                  )
                 }
               }
               return { ...prev, candles: nextCandles }
@@ -282,6 +335,9 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
               ...prev,
               executions: [exec, ...prev.executions.slice(0, 49)],
             }))
+          } else if (parsed.type === 'Indicators') {
+            const snapshot = parsed.payload
+            setState((prev) => ({ ...prev, indicators: snapshot }))
           } else if (parsed.type === 'OrderRejected') {
             const { decision } = parsed.payload
             const message =
