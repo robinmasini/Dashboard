@@ -1520,6 +1520,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "tradeview-indicators"
+version = "0.1.0"
+dependencies = [
+ "rust_decimal",
+ "serde",
+ "tradeview-domain",
+]
+
+[[package]]
 name = "tradeview-market-calendar"
 version = "0.1.0"
 dependencies = [

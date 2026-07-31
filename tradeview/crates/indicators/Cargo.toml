@@ -1,0 +1,9 @@
+[package]
+name = "tradeview-indicators"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-domain = { path = "../domain" }
+serde = { workspace = true }
+rust_decimal = { workspace = true }
