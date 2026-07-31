@@ -129,7 +129,8 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
   const [state, setState] = useState<TradeViewState>({
     connected: false,
     dataMode: 'SYNTHETIC',
-    symbol: 'NVDA',
+    // Placeholder only: the engine announces the instrument it is running.
+    symbol: 'MES',
     lastPrice: 211.75,
     bidPrice: 211.74,
     askPrice: 211.76,
@@ -235,10 +236,14 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
             })
           } else if (parsed.type === 'Status') {
             const st = parsed.payload
+            const announced =
+              typeof st.active_symbol === 'string' ? st.active_symbol : st.active_symbol?.[0]
             setState((prev) => ({
               ...prev,
               dataMode: st.mode,
               marketStatus: st,
+              // The engine is the authority on which instrument is running.
+              symbol: announced || prev.symbol,
             }))
           } else if (parsed.type === 'AccountUpdated') {
             const acc = parsed.payload
@@ -321,6 +326,11 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     return true
   }, [])
 
+  // The instrument is read back from state so an order can never be sent on a
+  // symbol the engine is not running.
+  const symbolRef = useRef(state.symbol)
+  symbolRef.current = state.symbol
+
   const placeOrder = useCallback(
     (side: 'BUY' | 'SELL', quantity: number = 100) => {
       send(
@@ -328,7 +338,7 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
           action: 'PlaceOrder',
           payload: {
             client_order_id: `ORD-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-            instrument: 'NVDA',
+            instrument: symbolRef.current,
             side,
             order_type: 'MARKET',
             price: null,
@@ -342,8 +352,11 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
   )
 
   const closePosition = useCallback(
-    (symbol: string = 'NVDA') => {
-      send({ action: 'ClosePosition', payload: { symbol } }, 'Fermeture de position')
+    (symbol?: string) => {
+      send(
+        { action: 'ClosePosition', payload: { symbol: symbol ?? symbolRef.current } },
+        'Fermeture de position'
+      )
     },
     [send]
   )

@@ -151,7 +151,7 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             gap: '12px',
           }}
         >
-          <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>NVDA</h2>
+          <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800 }}>{tradeState.symbol}</h2>
           <span
             style={{
               padding: '2px 8px',

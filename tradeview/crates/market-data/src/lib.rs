@@ -11,14 +11,50 @@ use tradeview_domain::{
     SequenceNumber, TradeTick,
 };
 
-const FLOOR_PRICE: Decimal = Decimal::from_parts(15_000, 0, 0, false, 2);
-const RESET_PRICE: Decimal = Decimal::from_parts(20_000, 0, 0, false, 2);
-const HALF_SPREAD: Decimal = Decimal::from_parts(1, 0, 0, false, 2);
+/// Price behaviour of the instrument being simulated. Kept out of the
+/// generator because a feed quoting a $211 stock is not a stand-in for an
+/// index at 6,800 points: the tick size, the spread and the scale of a move
+/// all differ, and every downstream figure inherits them.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct InstrumentProfile {
+    pub start_price: Decimal,
+    /// Below this the walk is reset, so a long run cannot drift to zero.
+    pub floor_price: Decimal,
+    pub reset_price: Decimal,
+    /// Smallest price increment. Every emitted price is a multiple of it.
+    pub tick_size: Decimal,
+    /// Widest single move, expressed in ticks.
+    pub max_move_ticks: i64,
+    /// Half the bid/ask spread, also a multiple of the tick.
+    pub half_spread: Decimal,
+}
+
+impl InstrumentProfile {
+    /// Micro E-mini S&P 500: quarter-point ticks, a spread that is usually a
+    /// single tick, and an index level in the thousands.
+    pub fn micro_es() -> Self {
+        Self {
+            start_price: Decimal::new(680_000, 2),
+            floor_price: Decimal::new(500_000, 2),
+            reset_price: Decimal::new(650_000, 2),
+            tick_size: Decimal::new(25, 2),
+            max_move_ticks: 6,
+            half_spread: Decimal::new(125, 3),
+        }
+    }
+}
+
+impl Default for InstrumentProfile {
+    fn default() -> Self {
+        Self::micro_es()
+    }
+}
 
 /// Seeded synthetic feed: the same seed and the same clock always yield the
 /// same sequence of events, which is what makes a replay reproducible.
 pub struct SyntheticMarketGenerator {
     symbol: InstrumentId,
+    profile: InstrumentProfile,
     rng: ChaCha8Rng,
     price: Decimal,
     sequence: SequenceNumber,
@@ -28,10 +64,20 @@ pub struct SyntheticMarketGenerator {
 
 impl SyntheticMarketGenerator {
     pub fn new(symbol: &str, seed: u64, clock: Arc<dyn TradingClock>) -> Self {
+        Self::with_profile(symbol, seed, InstrumentProfile::default(), clock)
+    }
+
+    pub fn with_profile(
+        symbol: &str,
+        seed: u64,
+        profile: InstrumentProfile,
+        clock: Arc<dyn TradingClock>,
+    ) -> Self {
         Self {
             symbol: InstrumentId::new(symbol),
+            price: profile.start_price,
+            profile,
             rng: ChaCha8Rng::seed_from_u64(seed),
-            price: Decimal::new(21_175, 2),
             sequence: SequenceNumber::ZERO,
             events_emitted: 0,
             clock,
@@ -44,10 +90,15 @@ impl SyntheticMarketGenerator {
 
     /// Advances the generator by one tick, returning the events it produced.
     pub fn step(&mut self) -> Vec<MarketEvent> {
-        let delta = Decimal::new(self.rng.gen_range(-35..=35), 2);
+        // Moves are whole ticks: a real book never prints between them, and a
+        // sub-tick walk would hand the indicators a precision that cannot exist.
+        let ticks = self
+            .rng
+            .gen_range(-self.profile.max_move_ticks..=self.profile.max_move_ticks);
+        let delta = Decimal::from(ticks) * self.profile.tick_size;
         self.price += delta;
-        if self.price < FLOOR_PRICE {
-            self.price = RESET_PRICE;
+        if self.price < self.profile.floor_price {
+            self.price = self.profile.reset_price;
         }
 
         self.sequence = self.sequence.next();
@@ -74,10 +125,12 @@ impl SyntheticMarketGenerator {
         let quote = Quote {
             sequence_number: self.sequence,
             instrument: self.symbol.clone(),
-            bid_price: Price::new(self.price - HALF_SPREAD).expect("bid stays above zero"),
+            bid_price: Price::new(self.price - self.profile.half_spread)
+                .expect("bid stays above zero"),
             bid_size: Quantity::new(Decimal::from(self.rng.gen_range(100..1000)))
                 .expect("positive"),
-            ask_price: Price::new(self.price + HALF_SPREAD).expect("ask stays above zero"),
+            ask_price: Price::new(self.price + self.profile.half_spread)
+                .expect("ask stays above zero"),
             ask_size: Quantity::new(Decimal::from(self.rng.gen_range(100..1000)))
                 .expect("positive"),
             timestamp: now,
@@ -125,8 +178,60 @@ mod tests {
 
     fn generator(seed: u64) -> (SyntheticMarketGenerator, Arc<VirtualClock>) {
         let clock = Arc::new(VirtualClock::from_nanos(1_700_000_000_000_000_000));
-        let generator = SyntheticMarketGenerator::new("NVDA", seed, clock.clone());
+        let generator = SyntheticMarketGenerator::new("MES", seed, clock.clone());
         (generator, clock)
+    }
+
+    #[test]
+    fn every_price_lands_on_a_whole_tick() {
+        let profile = InstrumentProfile::micro_es();
+        for event in run(11, 400) {
+            let price = match event {
+                MarketEvent::Tick(tick) => tick.price.value(),
+                _ => continue,
+            };
+            assert_eq!(
+                price % profile.tick_size,
+                Decimal::ZERO,
+                "{price} is not a multiple of {}",
+                profile.tick_size
+            );
+        }
+    }
+
+    #[test]
+    fn the_spread_is_one_tick_wide() {
+        let profile = InstrumentProfile::micro_es();
+        for event in run(12, 100) {
+            if let MarketEvent::Quote(quote) = event {
+                let spread = quote.ask_price.value() - quote.bid_price.value();
+                assert_eq!(spread, profile.tick_size);
+            }
+        }
+    }
+
+    #[test]
+    fn prices_stay_at_an_index_level_not_a_share_price() {
+        // A feed sitting near $211 would not be the S&P 500 by any other name.
+        for event in run(13, 300) {
+            if let MarketEvent::Tick(tick) = event {
+                assert!(
+                    tick.price.value() > Decimal::from(1000),
+                    "index level expected, got {}",
+                    tick.price.value()
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn the_walk_never_falls_through_the_floor() {
+        let profile = InstrumentProfile::micro_es();
+        for event in run(14, 2000) {
+            if let MarketEvent::Tick(tick) = event {
+                assert!(tick.price.value() >= profile.floor_price);
+            }
+        }
     }
 
     fn run(seed: u64, steps: usize) -> Vec<MarketEvent> {
@@ -181,7 +286,8 @@ mod tests {
         for event in generator.step() {
             if let MarketEvent::Quote(quote) = event {
                 assert!(quote.bid_price < quote.ask_price);
-                assert_eq!(quote.spread(), Decimal::new(2, 2));
+                // Taken from the profile: the spread belongs to the instrument.
+                assert_eq!(quote.spread(), InstrumentProfile::micro_es().tick_size);
             }
         }
     }

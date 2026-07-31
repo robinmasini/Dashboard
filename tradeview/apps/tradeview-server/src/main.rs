@@ -15,8 +15,13 @@ use tradeview_event_store::LocalEventStore;
 use tradeview_execution_sim::SimExecutionEngine;
 use tradeview_market_data::SyntheticMarketGenerator;
 
-const SYMBOL: &str = "NVDA";
+/// Micro E-mini S&P 500 — the single instrument traded for now.
+const DEFAULT_SYMBOL: &str = "MES";
 const MARKET_DATA_SEED: u64 = 42;
+
+fn symbol() -> String {
+    std::env::var("TRADEVIEW_SYMBOL").unwrap_or_else(|_| DEFAULT_SYMBOL.to_string())
+}
 
 /// Starting capital of the SIM account, overridable with TRADEVIEW_INITIAL_CAPITAL.
 const DEFAULT_INITIAL_CAPITAL: i64 = 39_000;
@@ -52,14 +57,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting TradeView engine (SIM mode)");
 
     let clock: Arc<dyn TradingClock> = Arc::new(SystemClock::new());
-    let instrument = InstrumentId::new(SYMBOL);
+    let symbol = symbol();
+    let instrument = InstrumentId::new(&symbol);
+    info!(%symbol, "instrument under simulation");
 
     let (event_tx, mut event_rx) = mpsc::channel::<MarketEvent>(1000);
     let (cmd_tx, mut cmd_rx) = mpsc::channel::<ClientWsCommand>(100);
     let (broadcast_tx, _) = broadcast::channel::<String>(1000);
 
     let event_store = Arc::new(LocalEventStore::new(
-        "session-nvda-01",
+        &format!("session-{}", symbol.to_lowercase()),
         instrument,
         clock.clone(),
     ));
@@ -72,7 +79,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clock.clone(),
     )));
 
-    SyntheticMarketGenerator::new(SYMBOL, MARKET_DATA_SEED, clock.clone()).spawn(event_tx);
+    SyntheticMarketGenerator::new(&symbol, MARKET_DATA_SEED, clock.clone()).spawn(event_tx);
 
     let market_broadcast = broadcast_tx.clone();
     let store = event_store.clone();
