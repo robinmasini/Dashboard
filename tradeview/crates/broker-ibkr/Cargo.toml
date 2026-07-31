@@ -1,0 +1,17 @@
+[package]
+name = "tradeview-broker-ibkr"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-common = { path = "../common" }
+tradeview-domain = { path = "../domain" }
+tradeview-broker-core = { path = "../broker-core" }
+tradeview-clock = { path = "../clock" }
+ibapi = "3.3"
+tokio = { workspace = true }
+async-trait = { workspace = true }
+rust_decimal = { workspace = true }
+tracing = { workspace = true }
+chrono = { workspace = true }
+tokio-stream = "0.1"

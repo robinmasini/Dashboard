@@ -11,9 +11,11 @@ members = [
     "crates/market-data",
     "crates/candle-engine",
     "crates/indicators",
+    "crates/broker-ibkr",
     "crates/event-store",
     "crates/api",
     "apps/tradeview-server",
+    "apps/ibkr-probe",
 ]
 resolver = "2"
 

@@ -1,0 +1,11 @@
+[package]
+name = "ibkr-probe"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tradeview-broker-ibkr = { path = "../../crates/broker-ibkr" }
+tradeview-broker-core = { path = "../../crates/broker-core" }
+tradeview-clock = { path = "../../crates/clock" }
+tradeview-domain = { path = "../../crates/domain" }
+tokio = { workspace = true }
