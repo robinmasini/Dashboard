@@ -71,6 +71,7 @@ mod tests {
             mode: MarketDataMode::Synthetic,
             active_symbol: InstrumentId::new("NVDA"),
             connected: true,
+            feed_running: true,
             events_received: 1,
             events_lost: 0,
             estimated_delay_ms: 0,

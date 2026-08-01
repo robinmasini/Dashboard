@@ -38,6 +38,7 @@ export interface MarketStatus {
   mode: 'REALTIME' | 'DELAYED' | 'FROZEN' | 'REPLAY' | 'SYNTHETIC' | 'UNKNOWN'
   active_symbol: { 0: string } | string
   connected: boolean
+  feed_running: boolean
   events_received: number
   events_lost: number
   estimated_delay_ms: number
@@ -161,6 +162,8 @@ export interface TradeViewState {
   executions: ExecutionRecord[]
   equityCurve: EquityPoint[]
   indicators: IndicatorSnapshot | null
+  /** Mirrors the engine, not the click: the button shows what is really running. */
+  feedRunning: boolean
   lastError: string | null
 }
 
@@ -200,6 +203,7 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     executions: [],
     equityCurve: [],
     indicators: null,
+    feedRunning: false,
     lastError: null,
   })
 
@@ -295,6 +299,7 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
               ...prev,
               dataMode: st.mode,
               marketStatus: st,
+              feedRunning: st.feed_running ?? prev.feedRunning,
               // The engine is the authority on which instrument is running.
               symbol: announced || prev.symbol,
             }))
@@ -417,6 +422,16 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     [send]
   )
 
+  const setMarketFeed = useCallback(
+    (running: boolean) => {
+      send(
+        { action: 'SetMarketFeed', payload: { running } },
+        running ? 'Démarrage du marché' : 'Arrêt du marché'
+      )
+    },
+    [send]
+  )
+
   const resetAccount = useCallback(() => {
     send({ action: 'ResetAccount', payload: {} }, 'Réinitialisation du compte')
   }, [send])
@@ -435,5 +450,6 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     placeOrder,
     closePosition,
     resetAccount,
+    setMarketFeed,
   }
 }

@@ -1,6 +1,6 @@
 use rust_decimal::Decimal;
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
 use tracing::{info, Level};
@@ -9,8 +9,8 @@ use tradeview_api::{create_router, AppState, ClientWsCommand};
 use tradeview_candle_engine::CandleEngine;
 use tradeview_clock::{SystemClock, TradingClock};
 use tradeview_domain::{
-    AccountId, ClientOrderId, InstrumentId, MarketEvent, Money, OrderType, PlaceOrderCommand,
-    Timeframe,
+    AccountId, ClientOrderId, InstrumentId, MarketDataMode, MarketEvent, MarketStatus, Money,
+    OrderType, PlaceOrderCommand, Timeframe,
 };
 use tradeview_event_store::LocalEventStore;
 use tradeview_execution_sim::SimExecutionEngine;
@@ -112,7 +112,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clock.clone(),
     )));
 
-    SyntheticMarketGenerator::new(&symbol, MARKET_DATA_SEED, clock.clone()).spawn(event_tx);
+    // The market starts halted: arriving on the screen should not silently set
+    // a feed running, and in SIM a running feed means fills.
+    let feed_running = Arc::new(AtomicBool::new(false));
+    SyntheticMarketGenerator::new(&symbol, MARKET_DATA_SEED, clock.clone())
+        .spawn_gated(event_tx, feed_running.clone());
+    info!("market feed halted — waiting for the operator to start it");
 
     let market_broadcast = broadcast_tx.clone();
     let store = event_store.clone();
@@ -172,6 +177,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command_broadcast = broadcast_tx.clone();
     let command_execution = sim_engine.clone();
     let order_counter = AtomicU64::new(0);
+    let command_feed = feed_running.clone();
+    let feed_symbol = InstrumentId::new(&symbol);
+    let feed_clock = clock.clone();
 
     tokio::spawn(async move {
         while let Some(command) = cmd_rx.recv().await {
@@ -207,6 +215,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ClientWsCommand::ResetAccount => {
                     info!("reset account");
                     execution.reset()
+                }
+                ClientWsCommand::SetMarketFeed { running } => {
+                    info!(running, "market feed");
+                    command_feed.store(running, Ordering::Relaxed);
+
+                    // Echo the state so the button reflects the engine rather
+                    // than what the client hoped for.
+                    let status = MarketEvent::Status(MarketStatus {
+                        mode: MarketDataMode::Synthetic,
+                        active_symbol: feed_symbol.clone(),
+                        connected: true,
+                        feed_running: running,
+                        events_received: 0,
+                        events_lost: 0,
+                        estimated_delay_ms: 0,
+                        last_timestamp: feed_clock.now(),
+                    });
+                    if let Ok(json) = serde_json::to_string(&status) {
+                        let _ = command_broadcast.send(json);
+                    }
+                    Vec::new()
                 }
             };
 

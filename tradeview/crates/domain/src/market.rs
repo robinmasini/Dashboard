@@ -95,6 +95,9 @@ pub struct MarketStatus {
     pub mode: MarketDataMode,
     pub active_symbol: InstrumentId,
     pub connected: bool,
+    /// False while the feed is deliberately halted. Distinct from `connected`:
+    /// the source is reachable, it is simply not being consumed.
+    pub feed_running: bool,
     pub events_received: u64,
     pub events_lost: u64,
     pub estimated_delay_ms: i64,

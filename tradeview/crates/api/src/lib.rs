@@ -21,6 +21,7 @@ pub enum ClientWsCommand {
     PlaceOrder(PlaceOrderCommand),
     ClosePosition { symbol: InstrumentId },
     ResetAccount,
+    SetMarketFeed { running: bool },
 }
 
 #[derive(Clone)]

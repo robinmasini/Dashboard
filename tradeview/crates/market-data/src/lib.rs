@@ -2,6 +2,7 @@ use rand::Rng;
 use rand::SeedableRng;
 use rand_chacha::ChaCha8Rng;
 use rust_decimal::Decimal;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::time::{sleep, Duration};
@@ -146,6 +147,7 @@ impl SyntheticMarketGenerator {
                 mode: MarketDataMode::Synthetic,
                 active_symbol: self.symbol.clone(),
                 connected: true,
+                feed_running: true,
                 events_received: self.events_emitted,
                 events_lost: 0,
                 estimated_delay_ms: 2,
@@ -158,9 +160,25 @@ impl SyntheticMarketGenerator {
 
     /// Drives `step` in wall-clock time. The pacing is deliberately outside the
     /// generator: replay drives `step` directly instead.
-    pub fn spawn(mut self, tx: mpsc::Sender<MarketEvent>) -> tokio::task::JoinHandle<()> {
+    pub fn spawn(self, tx: mpsc::Sender<MarketEvent>) -> tokio::task::JoinHandle<()> {
+        self.spawn_gated(tx, Arc::new(AtomicBool::new(true)))
+    }
+
+    /// Same, but halted whenever `running` is false. Pausing stops the feed at
+    /// the source rather than freezing the display: a chart frozen over a
+    /// engine that kept filling would show prices nobody could have traded on.
+    pub fn spawn_gated(
+        mut self,
+        tx: mpsc::Sender<MarketEvent>,
+        running: Arc<AtomicBool>,
+    ) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             loop {
+                if !running.load(Ordering::Relaxed) {
+                    sleep(Duration::from_millis(100)).await;
+                    continue;
+                }
+
                 for event in self.step() {
                     if tx.send(event).await.is_err() {
                         return;
@@ -307,5 +325,34 @@ mod tests {
                 .count();
         }
         assert_eq!(statuses, 2);
+    }
+
+    #[tokio::test]
+    async fn a_halted_feed_emits_nothing() {
+        let clock = Arc::new(VirtualClock::from_nanos(1_700_000_000_000_000_000));
+        let (tx, mut rx) = mpsc::channel(64);
+        let running = Arc::new(AtomicBool::new(false));
+
+        SyntheticMarketGenerator::new("MES", 1, clock).spawn_gated(tx, running.clone());
+        tokio::time::sleep(Duration::from_millis(400)).await;
+
+        assert!(
+            rx.try_recv().is_err(),
+            "a paused feed must not deliver market data"
+        );
+    }
+
+    #[tokio::test]
+    async fn resuming_restarts_the_feed() {
+        let clock = Arc::new(VirtualClock::from_nanos(1_700_000_000_000_000_000));
+        let (tx, mut rx) = mpsc::channel(64);
+        let running = Arc::new(AtomicBool::new(false));
+
+        SyntheticMarketGenerator::new("MES", 1, clock).spawn_gated(tx, running.clone());
+        tokio::time::sleep(Duration::from_millis(200)).await;
+        running.store(true, Ordering::Relaxed);
+        tokio::time::sleep(Duration::from_millis(400)).await;
+
+        assert!(rx.try_recv().is_ok(), "resuming must deliver data again");
     }
 }

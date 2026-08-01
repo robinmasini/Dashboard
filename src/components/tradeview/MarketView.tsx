@@ -17,7 +17,6 @@ export default function MarketView({ tradeState }: MarketViewProps) {
   const [rightTab, setRightTab] = useState<'STRATEGY' | 'POSITION'>('POSITION')
   const [orderQty, setOrderQty] = useState<number>(100)
   const [replaySpeed] = useState<number>(100)
-  const [isReplaying, setIsReplaying] = useState<boolean>(true)
 
   // The engine broadcasts candles for every timeframe. Drawing them all at once
   // stacks 1s bars on top of 5m ones; the analysed timeframe is the authority.
@@ -286,6 +285,35 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             boxSizing: 'border-box',
           }}
         >
+          {!tradeState.feedRunning && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 70,
+                left: 0,
+                right: 0,
+                display: 'flex',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+                zIndex: 5,
+              }}
+            >
+              <span
+                style={{
+                  padding: '5px 14px',
+                  borderRadius: 14,
+                  border: `1px solid ${tv.borderStrong}`,
+                  backgroundColor: tv.card,
+                  color: tv.textMuted,
+                  fontSize: '0.72rem',
+                  fontFamily: tv.mono,
+                }}
+              >
+                Marché à l'arrêt — appuyez sur ▶ pour lancer le flux
+              </span>
+            </div>
+          )}
+
           <svg style={{ width: '100%', height: '100%', overflow: 'visible' }}>
             {/* Grid Lines */}
             {[0.2, 0.4, 0.6, 0.8].map((ratio, i) => {
@@ -532,19 +560,24 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             ◀
           </button>
           <button
-            onClick={() => setIsReplaying(!isReplaying)}
+            onClick={() => tradeState.setMarketFeed(!tradeState.feedRunning)}
+            title={
+              tradeState.feedRunning
+                ? 'Arrêter le flux de marché — plus aucun prix ni exécution'
+                : 'Démarrer le flux de marché'
+            }
             style={{
               width: '36px',
               height: '36px',
               borderRadius: '50%',
-              backgroundColor: tv.accent,
-              border: 'none',
-              color: '#000',
+              backgroundColor: tradeState.feedRunning ? tv.accent : 'transparent',
+              border: `1px solid ${tradeState.feedRunning ? tv.accent : tv.borderStrong}`,
+              color: tradeState.feedRunning ? '#000' : tv.text,
               fontWeight: 'bold',
               cursor: 'pointer',
             }}
           >
-            {isReplaying ? '❚❚' : '▶'}
+            {tradeState.feedRunning ? '❚❚' : '▶'}
           </button>
           <button style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer' }}>
             ▶

@@ -53,8 +53,9 @@ mod tests {
     fn sample_status() -> MarketStatus {
         MarketStatus {
             mode: MarketDataMode::Synthetic,
-            active_symbol: InstrumentId::new("NVDA"),
+            active_symbol: InstrumentId::new("MES"),
             connected: true,
+            feed_running: true,
             events_received: 10,
             events_lost: 0,
             estimated_delay_ms: 3,
@@ -78,7 +79,7 @@ mod tests {
     fn market_events_are_tagged_so_the_front_can_discriminate_them() {
         let json = serde_json::to_value(MarketEvent::Status(sample_status())).unwrap();
         assert_eq!(json["type"], "Status");
-        assert_eq!(json["payload"]["active_symbol"], "NVDA");
+        assert_eq!(json["payload"]["active_symbol"], "MES");
     }
 
     #[test]
