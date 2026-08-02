@@ -46,6 +46,28 @@ impl InstrumentProfile {
             half_spread: Decimal::new(125, 3),
         }
     }
+
+    /// Micro E-mini Nasdaq-100: the same quarter-point tick, but an index some
+    /// four times higher and visibly more volatile than the S&P.
+    pub fn micro_nasdaq() -> Self {
+        Self {
+            start_price: Decimal::new(2_500_000, 2),
+            floor_price: Decimal::new(1_500_000, 2),
+            reset_price: Decimal::new(2_400_000, 2),
+            tick_size: Decimal::new(25, 2),
+            max_move_ticks: 3,
+            half_spread: Decimal::new(125, 3),
+        }
+    }
+
+    /// Profile for a known CME micro contract, if there is one.
+    pub fn for_symbol(symbol: &str) -> Option<Self> {
+        match symbol.to_uppercase().as_str() {
+            "MES" | "ES" => Some(Self::micro_es()),
+            "MNQ" | "NQ" => Some(Self::micro_nasdaq()),
+            _ => None,
+        }
+    }
 }
 
 impl Default for InstrumentProfile {

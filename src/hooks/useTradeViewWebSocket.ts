@@ -145,15 +145,34 @@ export type RiskDecision =
   | { decision: 'ACCEPTED' }
   | { decision: 'REJECTED'; reason: string; detail: string }
 
-export interface TradeViewState {
-  connected: boolean
-  dataMode: 'REALTIME' | 'DELAYED' | 'FROZEN' | 'REPLAY' | 'SYNTHETIC' | 'UNKNOWN'
-  symbol: string
+/** Per-instrument quote state; the engine streams several at once. */
+export interface SymbolQuote {
   lastPrice: number
   bidPrice: number
   askPrice: number
   spread: number
   ticksCount: number
+}
+
+const emptyQuote = (): SymbolQuote => ({
+  lastPrice: 0,
+  bidPrice: 0,
+  askPrice: 0,
+  spread: 0,
+  ticksCount: 0,
+})
+
+/** Instruments carry a plain symbol; older payloads wrapped it in a tuple. */
+const symbolOf = (instrument: { 0: string } | string): string =>
+  typeof instrument === 'string' ? instrument : instrument[0]
+
+export interface TradeViewState {
+  connected: boolean
+  dataMode: 'REALTIME' | 'DELAYED' | 'FROZEN' | 'REPLAY' | 'SYNTHETIC' | 'UNKNOWN'
+  /** Every instrument the engine has announced. */
+  symbols: string[]
+  selectedSymbol: string
+  bySymbol: Record<string, SymbolQuote>
   candles: Candle[]
   recentTicks: TradeTick[]
   marketStatus: MarketStatus | null
@@ -161,7 +180,8 @@ export interface TradeViewState {
   positions: PositionRecord[]
   executions: ExecutionRecord[]
   equityCurve: EquityPoint[]
-  indicators: IndicatorSnapshot | null
+  /** One analysis per instrument: merging two series would invent structure. */
+  indicators: Record<string, IndicatorSnapshot>
   /** Mirrors the engine, not the click: the button shows what is really running. */
   feedRunning: boolean
   lastError: string | null
@@ -177,13 +197,10 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
   const [state, setState] = useState<TradeViewState>({
     connected: false,
     dataMode: 'SYNTHETIC',
-    // Placeholder only: the engine announces the instrument it is running.
-    symbol: 'MES',
-    lastPrice: 211.75,
-    bidPrice: 211.74,
-    askPrice: 211.76,
-    spread: 0.02,
-    ticksCount: 0,
+    // Placeholder only: the engine announces the instruments it is running.
+    symbols: [],
+    selectedSymbol: 'MES',
+    bySymbol: {},
     candles: [],
     recentTicks: [],
     marketStatus: null,
@@ -202,7 +219,7 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     positions: [],
     executions: [],
     equityCurve: [],
-    indicators: null,
+    indicators: {},
     feedRunning: false,
     lastError: null,
   })
@@ -247,13 +264,20 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
           if (parsed.type === 'Tick') {
             const tick = parsed.payload
             const p = typeof tick.price === 'string' ? parseFloat(tick.price) : tick.price
+            const instrument = symbolOf(tick.instrument)
             setState((prev) => {
-              const updatedTicks = [tick, ...prev.recentTicks.slice(0, 49)]
+              const current = prev.bySymbol[instrument] ?? emptyQuote()
               return {
                 ...prev,
-                lastPrice: p,
-                ticksCount: prev.ticksCount + 1,
-                recentTicks: updatedTicks,
+                bySymbol: {
+                  ...prev.bySymbol,
+                  [instrument]: {
+                    ...current,
+                    lastPrice: p,
+                    ticksCount: current.ticksCount + 1,
+                  },
+                },
+                recentTicks: [tick, ...prev.recentTicks.slice(0, 49)],
               }
             })
           } else if (parsed.type === 'Quote') {
@@ -261,12 +285,22 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
             const bp = typeof q.bid_price === 'string' ? parseFloat(q.bid_price) : q.bid_price
             const ap = typeof q.ask_price === 'string' ? parseFloat(q.ask_price) : q.ask_price
             const sp = parseFloat((ap - bp).toFixed(4))
-            setState((prev) => ({
-              ...prev,
-              bidPrice: bp,
-              askPrice: ap,
-              spread: Math.max(0, sp),
-            }))
+            const instrument = symbolOf(q.instrument)
+            setState((prev) => {
+              const current = prev.bySymbol[instrument] ?? emptyQuote()
+              return {
+                ...prev,
+                bySymbol: {
+                  ...prev.bySymbol,
+                  [instrument]: {
+                    ...current,
+                    bidPrice: bp,
+                    askPrice: ap,
+                    spread: Math.max(0, sp),
+                  },
+                },
+              }
+            })
           } else if (parsed.type === 'Candle') {
             const candle = parsed.payload
             setState((prev) => {
@@ -293,16 +327,22 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
             })
           } else if (parsed.type === 'Status') {
             const st = parsed.payload
-            const announced =
-              typeof st.active_symbol === 'string' ? st.active_symbol : st.active_symbol?.[0]
-            setState((prev) => ({
-              ...prev,
-              dataMode: st.mode,
-              marketStatus: st,
-              feedRunning: st.feed_running ?? prev.feedRunning,
-              // The engine is the authority on which instrument is running.
-              symbol: announced || prev.symbol,
-            }))
+            const announced = symbolOf(st.active_symbol)
+            setState((prev) => {
+              const symbols = prev.symbols.includes(announced)
+                ? prev.symbols
+                : [...prev.symbols, announced].sort()
+              return {
+                ...prev,
+                dataMode: st.mode,
+                marketStatus: st,
+                feedRunning: st.feed_running ?? prev.feedRunning,
+                symbols,
+                // Announcements register an instrument; they never move the
+                // operator's selection out from under them.
+                selectedSymbol: prev.symbols.length === 0 ? announced : prev.selectedSymbol,
+              }
+            })
           } else if (parsed.type === 'AccountUpdated') {
             const acc = parsed.payload
             setState((prev) => {
@@ -342,7 +382,11 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
             }))
           } else if (parsed.type === 'Indicators') {
             const snapshot = parsed.payload
-            setState((prev) => ({ ...prev, indicators: snapshot }))
+            const instrument = symbolOf(snapshot.instrument as unknown as string)
+            setState((prev) => ({
+              ...prev,
+              indicators: { ...prev.indicators, [instrument]: snapshot },
+            }))
           } else if (parsed.type === 'OrderRejected') {
             const { decision } = parsed.payload
             const message =
@@ -387,10 +431,10 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     return true
   }, [])
 
-  // The instrument is read back from state so an order can never be sent on a
-  // symbol the engine is not running.
-  const symbolRef = useRef(state.symbol)
-  symbolRef.current = state.symbol
+  // Orders follow the instrument on screen, so a click can never land on a
+  // series the operator is not looking at.
+  const symbolRef = useRef(state.selectedSymbol)
+  symbolRef.current = state.selectedSymbol
 
   const placeOrder = useCallback(
     (side: 'BUY' | 'SELL', quantity: number = 100) => {
@@ -445,11 +489,30 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     }
   }, [connect])
 
+  const selectSymbol = useCallback((symbol: string) => {
+    setState((prev) => ({ ...prev, selectedSymbol: symbol }))
+  }, [])
+
+  // Views read one instrument at a time. Exposing the selected one under the
+  // old flat names keeps every component honest about which series it draws,
+  // without each of them reaching into the per-symbol maps.
+  const selected = state.bySymbol[state.selectedSymbol] ?? emptyQuote()
+
   return {
     ...state,
+    symbol: state.selectedSymbol,
+    lastPrice: selected.lastPrice,
+    bidPrice: selected.bidPrice,
+    askPrice: selected.askPrice,
+    spread: selected.spread,
+    ticksCount: selected.ticksCount,
+    /** Analysis of the selected instrument only. */
+    indicators: state.indicators[state.selectedSymbol] ?? null,
+    indicatorsBySymbol: state.indicators,
     placeOrder,
     closePosition,
     resetAccount,
     setMarketFeed,
+    selectSymbol,
   }
 }

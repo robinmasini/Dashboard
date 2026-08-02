@@ -21,7 +21,14 @@ export default function MarketView({ tradeState }: MarketViewProps) {
   // The engine broadcasts candles for every timeframe. Drawing them all at once
   // stacks 1s bars on top of 5m ones; the analysed timeframe is the authority.
   const analysisTimeframe = tradeState.indicators?.timeframe ?? 'S15'
-  const timeframeCandles = tradeState.candles.filter((c) => c.timeframe === analysisTimeframe)
+  // Filtered on both axes: the engine streams several instruments and every
+  // timeframe of each, and mixing either would draw a series that never traded.
+  const timeframeCandles = tradeState.candles.filter(
+    (c) =>
+      c.timeframe === analysisTimeframe &&
+      (typeof c.instrument === 'string' ? c.instrument : c.instrument[0]) ===
+        tradeState.symbol
+  )
 
   // Zoom is how many bars are on screen; the spacing follows from the width so
   // the series always fills the canvas.
@@ -133,6 +140,48 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             INDICATOR
           </button>
         </div>
+
+        {/* Instrument selector */}
+        {tradeState.symbols.length > 1 && (
+          <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>
+            <label
+              style={{
+                fontSize: '0.7rem',
+                color: 'rgba(255,255,255,0.4)',
+                display: 'block',
+                marginBottom: '6px',
+              }}
+            >
+              INSTRUMENT
+            </label>
+            <div style={{ display: 'flex', gap: '6px' }}>
+              {tradeState.symbols.map((symbol) => {
+                const active = symbol === tradeState.symbol
+                return (
+                  <button
+                    key={symbol}
+                    onClick={() => tradeState.selectSymbol(symbol)}
+                    title={symbol === 'MES' ? 'Micro E-mini S&P 500' : symbol === 'MNQ' ? 'Micro E-mini Nasdaq-100' : symbol}
+                    style={{
+                      flex: 1,
+                      padding: '6px',
+                      borderRadius: '6px',
+                      border: `1px solid ${active ? tv.accent : tv.border}`,
+                      backgroundColor: active ? tv.accentSoft : 'transparent',
+                      color: active ? tv.accent : tv.textMuted,
+                      fontWeight: active ? 700 : 500,
+                      fontSize: '0.75rem',
+                      fontFamily: tv.mono,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {symbol}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Order Size Setting */}
         <div style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '12px' }}>

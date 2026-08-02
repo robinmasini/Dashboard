@@ -1,4 +1,5 @@
 use rust_decimal::Decimal;
+use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
@@ -15,10 +16,10 @@ use tradeview_domain::{
 use tradeview_event_store::LocalEventStore;
 use tradeview_execution_sim::SimExecutionEngine;
 use tradeview_indicators::{IndicatorEvent, IndicatorWindow};
-use tradeview_market_data::SyntheticMarketGenerator;
+use tradeview_market_data::{InstrumentProfile, SyntheticMarketGenerator};
 
-/// Micro E-mini S&P 500 — the single instrument traded for now.
-const DEFAULT_SYMBOL: &str = "MES";
+/// Micro E-mini S&P 500 and Micro E-mini Nasdaq-100.
+const DEFAULT_SYMBOLS: &str = "MES,MNQ";
 const MARKET_DATA_SEED: u64 = 42;
 
 /// Timeframe the chart draws, and therefore the one the analytics describe.
@@ -45,8 +46,13 @@ const INDICATOR_WINDOW: usize = 240;
 /// Grid density; 1 is the coarsest, matching the reference layout.
 const INDICATOR_DENSITY: u32 = 1;
 
-fn symbol() -> String {
-    std::env::var("TRADEVIEW_SYMBOL").unwrap_or_else(|_| DEFAULT_SYMBOL.to_string())
+fn symbols() -> Vec<String> {
+    std::env::var("TRADEVIEW_SYMBOLS")
+        .unwrap_or_else(|_| DEFAULT_SYMBOLS.to_string())
+        .split(',')
+        .map(|part| part.trim().to_uppercase())
+        .filter(|part| !part.is_empty())
+        .collect()
 }
 
 /// Starting capital of the SIM account, overridable with TRADEVIEW_INITIAL_CAPITAL.
@@ -83,27 +89,43 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     info!("Starting TradeView engine (SIM mode)");
 
     let clock: Arc<dyn TradingClock> = Arc::new(SystemClock::new());
-    let symbol = symbol();
-    let instrument = InstrumentId::new(&symbol);
-    info!(%symbol, "instrument under simulation");
+    let symbols = symbols();
+    if symbols.is_empty() {
+        return Err("TRADEVIEW_SYMBOLS resolved to no instrument".into());
+    }
+    info!(?symbols, "instruments under simulation");
 
     let (event_tx, mut event_rx) = mpsc::channel::<MarketEvent>(1000);
     let (cmd_tx, mut cmd_rx) = mpsc::channel::<ClientWsCommand>(100);
     let (broadcast_tx, _) = broadcast::channel::<String>(1000);
 
     let event_store = Arc::new(LocalEventStore::new(
-        &format!("session-{}", symbol.to_lowercase()),
-        instrument,
+        &format!("session-{}", symbols.join("-").to_lowercase()),
+        InstrumentId::new(&symbols[0]),
         clock.clone(),
     ));
     let candle_engine = Arc::new(Mutex::new(CandleEngine::new()));
     let analysis_timeframe = indicator_timeframe();
     info!(timeframe = ?analysis_timeframe, "indicator timeframe");
-    let indicator_window = Arc::new(Mutex::new(IndicatorWindow::new(
-        analysis_timeframe,
-        INDICATOR_WINDOW,
-        INDICATOR_DENSITY,
-    )));
+
+    // One analysis window per instrument: blocks and steps describe a single
+    // series, and merging two would invent structure that exists in neither.
+    let indicator_windows: Arc<Mutex<HashMap<InstrumentId, IndicatorWindow>>> =
+        Arc::new(Mutex::new(
+            symbols
+                .iter()
+                .map(|symbol| {
+                    (
+                        InstrumentId::new(symbol),
+                        IndicatorWindow::new(
+                            analysis_timeframe,
+                            INDICATOR_WINDOW,
+                            INDICATOR_DENSITY,
+                        ),
+                    )
+                })
+                .collect(),
+        ));
     let starting_capital = initial_capital()?;
     info!(capital = %starting_capital, "SIM account funded");
     let sim_engine = Arc::new(Mutex::new(SimExecutionEngine::new(
@@ -115,16 +137,22 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // The market starts halted: arriving on the screen should not silently set
     // a feed running, and in SIM a running feed means fills.
     let feed_running = Arc::new(AtomicBool::new(false));
-    SyntheticMarketGenerator::new(&symbol, MARKET_DATA_SEED, clock.clone())
-        .spawn_gated(event_tx, feed_running.clone());
+    for (offset, symbol) in symbols.iter().enumerate() {
+        let profile = InstrumentProfile::for_symbol(symbol).unwrap_or_default();
+        // A distinct seed per instrument, still derived from the session seed:
+        // sharing one would make the two indices move in lockstep.
+        let seed = MARKET_DATA_SEED.wrapping_add(offset as u64 * 1_000);
+        SyntheticMarketGenerator::with_profile(symbol, seed, profile, clock.clone())
+            .spawn_gated(event_tx.clone(), feed_running.clone());
+    }
+    drop(event_tx);
     info!("market feed halted — waiting for the operator to start it");
 
     let market_broadcast = broadcast_tx.clone();
     let store = event_store.clone();
     let candles = candle_engine.clone();
     let market_execution = sim_engine.clone();
-    let indicators = indicator_window.clone();
-    let indicator_instrument = InstrumentId::new(&symbol);
+    let indicators = indicator_windows.clone();
 
     tokio::spawn(async move {
         while let Some(event) = event_rx.recv().await {
@@ -139,11 +167,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 MarketEvent::Quote(quote) => execution.on_quote(quote),
                 MarketEvent::Tick(tick) => {
                     let produced = candles.lock().await.process_tick(tick);
-                    let mut window = indicators.lock().await;
+                    let mut windows = indicators.lock().await;
                     let mut analytics_changed = false;
 
                     for candle in produced {
-                        analytics_changed |= window.accept(&candle);
+                        if let Some(window) = windows.get_mut(&candle.instrument) {
+                            analytics_changed |= window.accept(&candle);
+                        }
                         if let Ok(json) = serde_json::to_string(&MarketEvent::Candle(candle)) {
                             let _ = market_broadcast.send(json);
                         }
@@ -152,14 +182,16 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // Recomputed only when the analysed timeframe moved, rather
                     // than on every tick: the whole window is walked each time.
                     if analytics_changed {
-                        let snapshot = window.analyse(&indicator_instrument);
-                        if let Ok(json) =
-                            serde_json::to_string(&IndicatorEvent::Indicators(snapshot))
-                        {
-                            let _ = market_broadcast.send(json);
+                        if let Some(window) = windows.get(&tick.instrument) {
+                            let snapshot = window.analyse(&tick.instrument);
+                            if let Ok(json) =
+                                serde_json::to_string(&IndicatorEvent::Indicators(snapshot))
+                            {
+                                let _ = market_broadcast.send(json);
+                            }
                         }
                     }
-                    drop(window);
+                    drop(windows);
 
                     execution.on_tick(tick)
                 }
@@ -178,7 +210,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command_execution = sim_engine.clone();
     let order_counter = AtomicU64::new(0);
     let command_feed = feed_running.clone();
-    let feed_symbol = InstrumentId::new(&symbol);
+    let feed_symbols: Vec<InstrumentId> = symbols.iter().map(|s| InstrumentId::new(s)).collect();
     let feed_clock = clock.clone();
 
     tokio::spawn(async move {
@@ -222,18 +254,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
                     // Echo the state so the button reflects the engine rather
                     // than what the client hoped for.
-                    let status = MarketEvent::Status(MarketStatus {
-                        mode: MarketDataMode::Synthetic,
-                        active_symbol: feed_symbol.clone(),
-                        connected: true,
-                        feed_running: running,
-                        events_received: 0,
-                        events_lost: 0,
-                        estimated_delay_ms: 0,
-                        last_timestamp: feed_clock.now(),
-                    });
-                    if let Ok(json) = serde_json::to_string(&status) {
-                        let _ = command_broadcast.send(json);
+                    for instrument in &feed_symbols {
+                        let status = MarketEvent::Status(MarketStatus {
+                            mode: MarketDataMode::Synthetic,
+                            active_symbol: instrument.clone(),
+                            connected: true,
+                            feed_running: running,
+                            events_received: 0,
+                            events_lost: 0,
+                            estimated_delay_ms: 0,
+                            last_timestamp: feed_clock.now(),
+                        });
+                        if let Ok(json) = serde_json::to_string(&status) {
+                            let _ = command_broadcast.send(json);
+                        }
                     }
                     Vec::new()
                 }
