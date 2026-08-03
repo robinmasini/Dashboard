@@ -30,10 +30,33 @@ impl IbkrMarketData {
         Self { config, clock }
     }
 
+    /// Teaches the client the timezone names a localised Gateway reports.
+    ///
+    /// A French Gateway announces "heure normale d'Europe centrale" rather than
+    /// an IANA name, which the protocol layer rejects outright — the connection
+    /// fails with a message about timezones that reads like a network fault.
+    fn register_localised_timezones() {
+        // Names as the Gateway spells them, per locale.
+        const ALIASES: [(&str, &str); 6] = [
+            ("heure normale d’Europe centrale", "Europe/Paris"),
+            ("heure d’été d’Europe centrale", "Europe/Paris"),
+            ("heure normale d'Europe centrale", "Europe/Paris"),
+            ("heure d'été d'Europe centrale", "Europe/Paris"),
+            ("Mitteleuropäische Zeit", "Europe/Berlin"),
+            ("hora estándar de Europa central", "Europe/Madrid"),
+        ];
+
+        for (reported, iana) in ALIASES {
+            ibapi::register_timezone_alias(reported, iana);
+        }
+    }
+
     /// Opens the session, turning the library's failures into errors that name
     /// the likely cause: a bare "connection refused" sends people hunting in
     /// the wrong place.
     pub async fn connect(&self) -> Result<Client> {
+        Self::register_localised_timezones();
+
         if let Some(hint) = self.config.port_hint() {
             return Err(TradeViewError::MarketData(format!(
                 "{} ({})",
