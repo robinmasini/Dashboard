@@ -7,6 +7,8 @@ use tokio::sync::{broadcast, mpsc, Mutex};
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use tradeview_api::{create_router, AppState, ClientWsCommand};
+use tradeview_broker_core::MarketDataProvider;
+use tradeview_broker_ibkr::{IbkrConfig, IbkrMarketData};
 use tradeview_candle_engine::CandleEngine;
 use tradeview_clock::{SystemClock, TradingClock};
 use tradeview_domain::{
@@ -45,6 +47,25 @@ fn indicator_timeframe() -> Timeframe {
 const INDICATOR_WINDOW: usize = 240;
 /// Grid density; 1 is the coarsest, matching the reference layout.
 const INDICATOR_DENSITY: u32 = 1;
+
+/// Where prices come from. Selecting this wrongly is the difference between a
+/// demonstration and a trading screen, so it is explicit rather than inferred.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum MarketSource {
+    Synthetic,
+    Ibkr,
+}
+
+fn market_source() -> MarketSource {
+    match std::env::var("TRADEVIEW_MARKET_SOURCE")
+        .unwrap_or_default()
+        .to_uppercase()
+        .as_str()
+    {
+        "IBKR" => MarketSource::Ibkr,
+        _ => MarketSource::Synthetic,
+    }
+}
 
 fn symbols() -> Vec<String> {
     std::env::var("TRADEVIEW_SYMBOLS")
@@ -135,16 +156,61 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     )));
 
     // The market starts halted: arriving on the screen should not silently set
-    // a feed running, and in SIM a running feed means fills.
+    // a feed running, and a running feed means fills.
     let feed_running = Arc::new(AtomicBool::new(false));
-    for (offset, symbol) in symbols.iter().enumerate() {
-        let profile = InstrumentProfile::for_symbol(symbol).unwrap_or_default();
-        // A distinct seed per instrument, still derived from the session seed:
-        // sharing one would make the two indices move in lockstep.
-        let seed = MARKET_DATA_SEED.wrapping_add(offset as u64 * 1_000);
-        SyntheticMarketGenerator::with_profile(symbol, seed, profile, clock.clone())
-            .spawn_gated(event_tx.clone(), feed_running.clone());
+
+    match market_source() {
+        MarketSource::Synthetic => {
+            info!("market source: SYNTHETIC — invented prices, unrelated to any exchange");
+            for (offset, symbol) in symbols.iter().enumerate() {
+                let profile = InstrumentProfile::for_symbol(symbol).unwrap_or_default();
+                // A distinct seed per instrument, still derived from the session
+                // seed: sharing one would make both indices move in lockstep.
+                let seed = MARKET_DATA_SEED.wrapping_add(offset as u64 * 1_000);
+                SyntheticMarketGenerator::with_profile(symbol, seed, profile, clock.clone())
+                    .spawn_gated(event_tx.clone(), feed_running.clone());
+            }
+        }
+        MarketSource::Ibkr => {
+            let config = IbkrConfig::from_env().map_err(|error| error.to_string())?;
+            info!(
+                address = %config.address(),
+                endpoint = %config
+                    .endpoint()
+                    .map(|e| e.to_string())
+                    .unwrap_or_else(|| "unknown port".into()),
+                "market source: INTERACTIVE BROKERS"
+            );
+
+            let provider = IbkrMarketData::new(config, clock.clone());
+            let instruments: Vec<InstrumentId> =
+                symbols.iter().map(|s| InstrumentId::new(s)).collect();
+
+            // Failing here is fatal on purpose: falling back to synthetic prices
+            // would silently hand the operator invented data on a screen they
+            // believe is live.
+            let mut feed = provider
+                .subscribe(&instruments)
+                .await
+                .map_err(|error| error.to_string())?;
+
+            let forward_tx = event_tx.clone();
+            let forward_running = feed_running.clone();
+            tokio::spawn(async move {
+                while let Some(event) = feed.recv().await {
+                    // Gating the forwarder, not the socket: the engine only ever
+                    // acts on what reaches it, so a halted market cannot fill.
+                    if !forward_running.load(Ordering::Relaxed) {
+                        continue;
+                    }
+                    if forward_tx.send(event).await.is_err() {
+                        break;
+                    }
+                }
+            });
+        }
     }
+
     drop(event_tx);
     info!("market feed halted — waiting for the operator to start it");
 

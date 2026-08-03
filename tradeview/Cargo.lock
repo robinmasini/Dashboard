@@ -1927,6 +1927,8 @@ dependencies = [
  "tracing",
  "tracing-subscriber",
  "tradeview-api",
+ "tradeview-broker-core",
+ "tradeview-broker-ibkr",
  "tradeview-candle-engine",
  "tradeview-clock",
  "tradeview-domain",
