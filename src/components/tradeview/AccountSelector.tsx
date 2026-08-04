@@ -10,44 +10,34 @@ export interface AccountOption {
   badge?: string
 }
 
+/// The real Interactive Brokers accounts, with the ports their Gateway listens
+/// on. LIVE and DEMO are separate accounts and never share a number: labelling
+/// one with the other's identifier is how a test order reaches real money.
 const DEFAULT_ACCOUNTS: AccountOption[] = [
   {
-    id: 'live-ibkr-U15525670',
-    label: 'live-ibkr-U15525670',
+    id: 'live-ibkr-U27457555',
+    label: 'live-ibkr-U27457555',
     kind: 'LIVE',
     broker: 'ibkr',
-    port: 7006,
+    port: 4001,
+    // Kept unselectable on purpose: nothing in this project trades live yet.
     disabled: true,
     badge: 'NON DISPONIBLE',
   },
   {
-    id: 'demo-ibkr-DUA545090',
-    label: 'demo-ibkr-DUA545090',
+    id: 'demo-ibkr-DUR611871',
+    label: 'demo-ibkr-DUR611871',
     kind: 'DEMO',
     broker: 'ibkr',
-    port: 7985,
+    port: 4002,
     disabled: false,
   },
   {
-    id: 'sim-pltr-2026-01-01',
-    label: 'sim-pltr-2026-01-01',
+    id: 'sim-synthetic',
+    label: 'sim-synthetic',
     kind: 'SIM',
     broker: 'paper',
-    badge: 'in-process',
-  },
-  {
-    id: 'demo-paper-cytest',
-    label: 'demo-paper-cytest',
-    kind: 'SIM',
-    broker: 'paper',
-    badge: 'in-process',
-  },
-  {
-    id: 'sim-blockfade-nvda-0713',
-    label: 'sim-blockfade-nvda-0713',
-    kind: 'SIM',
-    broker: 'paper',
-    badge: 'in-process',
+    badge: 'prix simulés',
   },
 ]
 

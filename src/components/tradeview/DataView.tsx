@@ -7,21 +7,17 @@ interface AccountRow {
   status: 'ACTIVE' | 'INACTIF' | 'HAS RUNNED' | 'READY TO RUN'
 }
 
+// The accounts that actually exist. Listing brokers we have no relationship
+// with reads as capability the platform does not have.
 const ACCOUNTS_DATA: AccountRow[] = [
-  { name: 'live-ibkr-U15525670', kind: 'LIVE', broker: 'ibkr', status: 'ACTIVE' },
-  { name: 'demo-ibkr-DUA545090', kind: 'DEMO', broker: 'ibkr', status: 'ACTIVE' },
-  { name: 'demo-paper-200k', kind: 'DEMO', broker: 'paper', status: 'ACTIVE' },
-  { name: 'demo-ctrader-47460733', kind: 'DEMO', broker: 'ctrader', status: 'INACTIF' },
-  { name: 'demo-paper-10k', kind: 'DEMO', broker: 'paper', status: 'INACTIF' },
-  { name: 'demo-alpaca-PA37WDUXJFP4', kind: 'DEMO', broker: 'alpaca', status: 'INACTIF' },
-  { name: 'sim-pltr-2026-01-01_2026-06-20', kind: 'SIM', broker: 'paper', status: 'HAS RUNNED' },
-  { name: 'demo-paper-cytest', kind: 'SIM', broker: 'paper', status: 'READY TO RUN' },
-  { name: 'sim-blockfade-nvda-0713', kind: 'SIM', broker: 'paper', status: 'HAS RUNNED' },
+  { name: 'live-ibkr-U27457555', kind: 'LIVE', broker: 'ibkr', status: 'INACTIF' },
+  { name: 'demo-ibkr-DUR611871', kind: 'DEMO', broker: 'ibkr', status: 'ACTIVE' },
+  { name: 'sim-synthetic', kind: 'SIM', broker: 'paper', status: 'READY TO RUN' },
 ]
 
 export default function DataView() {
   const [activeCategory, setActiveCategory] = useState<'Account' | 'Symbol' | 'Tick' | 'Candle'>('Account')
-  const [selectedRow, setSelectedRow] = useState<AccountRow>(ACCOUNTS_DATA[3])
+  const [selectedRow, setSelectedRow] = useState<AccountRow>(ACCOUNTS_DATA[1])
   const [search] = useState('')
 
   const filtered = ACCOUNTS_DATA.filter((a) =>
