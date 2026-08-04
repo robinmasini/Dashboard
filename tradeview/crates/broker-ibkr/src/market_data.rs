@@ -1,5 +1,6 @@
-use crate::config::IbkrConfig;
+use crate::config::{FeedKind, IbkrConfig};
 use crate::contract::front_quarter;
+use ibapi::contracts::tick_types::TickType;
 use ibapi::contracts::Contract;
 use ibapi::prelude::*;
 use rust_decimal::Decimal;
@@ -102,6 +103,133 @@ impl IbkrMarketData {
     }
 }
 
+impl IbkrMarketData {
+    /// Streams the free delayed feed, assembling quotes from the separate bid
+    /// and ask ticks IBKR sends. Delayed ticks carry their own type codes, so
+    /// real-time codes are ignored here rather than silently mixed in.
+    async fn subscribe_delayed(
+        &self,
+        client: Arc<Client>,
+        instruments: &[InstrumentId],
+        tx: mpsc::Sender<MarketEvent>,
+    ) -> Result<()> {
+        client
+            .switch_market_data_type(ibapi::market_data::MarketDataType::Delayed)
+            .await
+            .map_err(|error| {
+                TradeViewError::MarketData(format!("could not switch to delayed data: {error}"))
+            })?;
+
+        for instrument in instruments {
+            let contract = self.futures_contract(instrument.as_str());
+            let instrument = instrument.clone();
+            let clock = self.clock.clone();
+            let tx = tx.clone();
+            let connection = client.clone();
+
+            let subscription =
+                client
+                    .market_data(&contract)
+                    .subscribe()
+                    .await
+                    .map_err(|error| {
+                        TradeViewError::MarketData(format!(
+                            "{instrument} refused by Interactive Brokers: {error}"
+                        ))
+                    })?;
+
+            tokio::spawn(async move {
+                // Holds the socket open for as long as this stream is read.
+                let _connection = connection;
+                let mut stream = subscription.filter_data();
+                let mut builder = QuoteBuilder::default();
+                let mut sequence: u64 = 0;
+
+                while let Some(update) = stream.next().await {
+                    let tick = match update {
+                        Ok(tick) => tick,
+                        Err(error) => {
+                            tracing::warn!(%instrument, %error, "delayed feed error");
+                            continue;
+                        }
+                    };
+
+                    // Both families are accepted: with delayed data switched
+                    // on, IBKR sometimes answers with the plain Bid/Ask codes
+                    // rather than the delayed ones, and dropping those would
+                    // leave the feed looking dead.
+                    match tick {
+                        TickTypes::Price(price) => match price.tick_type {
+                            TickType::DelayedBid | TickType::Bid => builder.bid = Some(price.price),
+                            TickType::DelayedAsk | TickType::Ask => builder.ask = Some(price.price),
+                            other => {
+                                tracing::debug!(%instrument, ?other, price = price.price, "price tick ignored");
+                                continue;
+                            }
+                        },
+                        TickTypes::Size(size) => {
+                            match size.tick_type {
+                                TickType::DelayedBidSize | TickType::BidSize => {
+                                    builder.bid_size = size.size
+                                }
+                                TickType::DelayedAskSize | TickType::AskSize => {
+                                    builder.ask_size = size.size
+                                }
+                                _ => {}
+                            }
+                            continue;
+                        }
+                        // IBKR mostly sends price and size together rather than
+                        // as separate ticks; handling only the split form left
+                        // the whole feed on the floor.
+                        TickTypes::PriceSize(both) => match both.price_tick_type {
+                            TickType::DelayedBid | TickType::Bid => {
+                                builder.bid = Some(both.price);
+                                builder.bid_size = both.size;
+                            }
+                            TickType::DelayedAsk | TickType::Ask => {
+                                builder.ask = Some(both.price);
+                                builder.ask_size = both.size;
+                            }
+                            _ => continue,
+                        },
+                        other => {
+                            tracing::debug!(%instrument, ?other, "non-price tick ignored");
+                            continue;
+                        }
+                    }
+
+                    let Some((bid, ask)) = builder.ready() else {
+                        continue;
+                    };
+                    let (Ok(bid_price), Ok(ask_price)) =
+                        (to_price(bid, "bid_price"), to_price(ask, "ask_price"))
+                    else {
+                        continue;
+                    };
+
+                    sequence += 1;
+                    let event = MarketEvent::Quote(Quote {
+                        sequence_number: SequenceNumber::new(sequence),
+                        instrument: instrument.clone(),
+                        bid_price,
+                        bid_size: to_quantity(builder.bid_size),
+                        ask_price,
+                        ask_size: to_quantity(builder.ask_size),
+                        timestamp: clock.now(),
+                    });
+
+                    if tx.send(event).await.is_err() {
+                        break;
+                    }
+                }
+            });
+        }
+
+        Ok(())
+    }
+}
+
 fn to_price(value: f64, field: &'static str) -> Result<Price> {
     let decimal = Decimal::try_from(value)
         .map_err(|_| TradeViewError::invalid(field, format!("unrepresentable price {value}")))?;
@@ -117,10 +245,33 @@ fn to_quantity(value: f64) -> Quantity {
         .unwrap_or(Quantity::ZERO)
 }
 
+/// Half-built quote: IBKR sends each side as its own tick, so a quote is only
+/// publishable once both are known. Emitting a one-sided quote would show a
+/// spread against a stale or absent counterpart.
+#[derive(Default)]
+struct QuoteBuilder {
+    bid: Option<f64>,
+    ask: Option<f64>,
+    bid_size: f64,
+    ask_size: f64,
+}
+
+impl QuoteBuilder {
+    fn ready(&self) -> Option<(f64, f64)> {
+        match (self.bid, self.ask) {
+            (Some(bid), Some(ask)) if ask >= bid => Some((bid, ask)),
+            _ => None,
+        }
+    }
+}
+
 #[async_trait::async_trait]
 impl tradeview_broker_core::MarketDataProvider for IbkrMarketData {
     fn mode(&self) -> MarketDataMode {
-        MarketDataMode::Realtime
+        match self.config.feed_kind {
+            FeedKind::Realtime => MarketDataMode::Realtime,
+            FeedKind::Delayed => MarketDataMode::Delayed,
+        }
     }
 
     fn max_subscriptions(&self) -> Option<usize> {
@@ -145,6 +296,11 @@ impl tradeview_broker_core::MarketDataProvider for IbkrMarketData {
         let client = Arc::new(self.connect().await?);
         let (tx, rx) = mpsc::channel::<MarketEvent>(1024);
 
+        if self.config.feed_kind == FeedKind::Delayed {
+            self.subscribe_delayed(client, instruments, tx).await?;
+            return Ok(rx);
+        }
+
         for instrument in instruments {
             let contract = self.futures_contract(instrument.as_str());
             let client = client.clone();
@@ -165,6 +321,10 @@ impl tradeview_broker_core::MarketDataProvider for IbkrMarketData {
                 })?;
 
             tokio::spawn(async move {
+                // The connection lives as long as anything reads from it.
+                // Without this the Arc drops when `subscribe` returns, the
+                // socket closes, and the feed looks dead for want of data.
+                let _connection = client;
                 let mut stream = subscription.filter_data();
                 let mut sequence: u64 = 0;
 

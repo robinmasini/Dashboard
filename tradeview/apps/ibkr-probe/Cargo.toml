@@ -9,3 +9,5 @@ tradeview-broker-core = { path = "../../crates/broker-core" }
 tradeview-clock = { path = "../../crates/clock" }
 tradeview-domain = { path = "../../crates/domain" }
 tokio = { workspace = true }
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing = { workspace = true }

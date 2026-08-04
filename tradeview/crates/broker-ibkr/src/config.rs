@@ -39,6 +39,25 @@ impl fmt::Display for Endpoint {
     }
 }
 
+/// Which feed to ask Interactive Brokers for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum FeedKind {
+    /// Tick-by-tick, requires a paid market data subscription.
+    Realtime,
+    /// Free, roughly ten minutes behind. Useful to prove the pipeline works,
+    /// useless to trade on — which is why it is never selected implicitly.
+    Delayed,
+}
+
+impl fmt::Display for FeedKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Self::Realtime => write!(f, "temps réel"),
+            Self::Delayed => write!(f, "DIFFÉRÉ (~10 min)"),
+        }
+    }
+}
+
 /// Connection settings. Nothing here is hardcoded: every field comes from the
 /// environment so the same binary runs locally, in ECS, or on EC2 with values
 /// supplied by Secrets Manager.
@@ -52,6 +71,7 @@ pub struct IbkrConfig {
     pub connect_timeout_secs: u64,
     /// Seconds without any tick before the feed is declared stale.
     pub stale_after_secs: u64,
+    pub feed_kind: FeedKind,
 }
 
 impl Default for IbkrConfig {
@@ -62,6 +82,9 @@ impl Default for IbkrConfig {
             client_id: 1,
             connect_timeout_secs: 10,
             stale_after_secs: 30,
+            // Real time by default: delayed prices must be asked for, never
+            // inherited by accident.
+            feed_kind: FeedKind::Realtime,
         }
     }
 }
@@ -88,6 +111,20 @@ impl IbkrConfig {
         let connect_timeout_secs =
             parse_var("IB_CONNECT_TIMEOUT_SECS", defaults.connect_timeout_secs)?;
         let stale_after_secs = parse_var("IB_STALE_AFTER_SECS", defaults.stale_after_secs)?;
+        let feed_kind = match std::env::var("IB_FEED_KIND")
+            .unwrap_or_default()
+            .to_uppercase()
+            .as_str()
+        {
+            "DELAYED" => FeedKind::Delayed,
+            "" | "REALTIME" => FeedKind::Realtime,
+            other => {
+                return Err(TradeViewError::invalid(
+                    "IB_FEED_KIND",
+                    format!("expected REALTIME or DELAYED, got {other:?}"),
+                ))
+            }
+        };
 
         if host.trim().is_empty() {
             return Err(TradeViewError::invalid("IB_HOST", "must not be empty"));
@@ -105,6 +142,7 @@ impl IbkrConfig {
             client_id,
             connect_timeout_secs,
             stale_after_secs,
+            feed_kind,
         })
     }
 
@@ -172,6 +210,17 @@ mod tests {
     #[test]
     fn a_known_port_needs_no_hint() {
         assert!(IbkrConfig::default().port_hint().is_none());
+    }
+
+    #[test]
+    fn the_default_feed_is_real_time() {
+        assert_eq!(IbkrConfig::default().feed_kind, FeedKind::Realtime);
+    }
+
+    #[test]
+    fn the_delayed_feed_names_itself_unmistakably() {
+        // This string reaches the operator; it must not read as normal.
+        assert!(FeedKind::Delayed.to_string().contains("DIFFÉRÉ"));
     }
 
     #[test]

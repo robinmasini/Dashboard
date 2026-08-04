@@ -13,6 +13,14 @@ const RULE: &str = "==============================";
 
 #[tokio::main]
 async fn main() {
+    // Diagnostics on demand: RUST_LOG=debug shows every tick the feed delivers,
+    // which is the difference between "no data" and "data we did not decode".
+    tracing_subscriber::fmt()
+        .with_env_filter(
+            tracing_subscriber::EnvFilter::try_from_default_env().unwrap_or_else(|_| "warn".into()),
+        )
+        .init();
+
     if let Err(error) = run().await {
         eprintln!("\n{RULE}\n  ÉCHEC\n{RULE}\n  {error}\n{RULE}\n");
         std::process::exit(1);
