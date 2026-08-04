@@ -159,8 +159,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // a feed running, and a running feed means fills.
     let feed_running = Arc::new(AtomicBool::new(false));
 
+    let data_mode;
+
     match market_source() {
         MarketSource::Synthetic => {
+            data_mode = MarketDataMode::Synthetic;
             info!("market source: SYNTHETIC — invented prices, unrelated to any exchange");
             for (offset, symbol) in symbols.iter().enumerate() {
                 let profile = InstrumentProfile::for_symbol(symbol).unwrap_or_default();
@@ -183,6 +186,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             );
 
             let provider = IbkrMarketData::new(config, clock.clone());
+            data_mode = provider.mode();
+            info!(mode = ?data_mode, "market data mode");
             let instruments: Vec<InstrumentId> =
                 symbols.iter().map(|s| InstrumentId::new(s)).collect();
 
@@ -213,6 +218,24 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     drop(event_tx);
     info!("market feed halted — waiting for the operator to start it");
+
+    // Announced immediately: the screen must know whether it is showing live,
+    // delayed or invented prices before it draws the first of them.
+    for symbol in &symbols {
+        let status = MarketEvent::Status(MarketStatus {
+            mode: data_mode,
+            active_symbol: InstrumentId::new(symbol),
+            connected: true,
+            feed_running: false,
+            events_received: 0,
+            events_lost: 0,
+            estimated_delay_ms: 0,
+            last_timestamp: clock.now(),
+        });
+        if let Ok(json) = serde_json::to_string(&status) {
+            let _ = broadcast_tx.send(json);
+        }
+    }
 
     let market_broadcast = broadcast_tx.clone();
     let store = event_store.clone();
@@ -276,6 +299,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let command_execution = sim_engine.clone();
     let order_counter = AtomicU64::new(0);
     let command_feed = feed_running.clone();
+    let feed_mode = data_mode;
     let feed_symbols: Vec<InstrumentId> = symbols.iter().map(|s| InstrumentId::new(s)).collect();
     let feed_clock = clock.clone();
 
@@ -322,7 +346,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     // than what the client hoped for.
                     for instrument in &feed_symbols {
                         let status = MarketEvent::Status(MarketStatus {
-                            mode: MarketDataMode::Synthetic,
+                            mode: feed_mode,
                             active_symbol: instrument.clone(),
                             connected: true,
                             feed_running: running,

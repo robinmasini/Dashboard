@@ -334,6 +334,41 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             boxSizing: 'border-box',
           }}
         >
+          {/* Anything that is not live prices says so, loudly. A scalping
+              screen showing ten-minute-old or invented quotes without saying
+              it is worse than a screen showing nothing. */}
+          {tradeState.dataMode !== 'REALTIME' && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 24,
+                right: 24,
+                zIndex: 6,
+                pointerEvents: 'none',
+              }}
+            >
+              <span
+                style={{
+                  padding: '6px 14px',
+                  borderRadius: 8,
+                  backgroundColor: tradeState.dataMode === 'DELAYED' ? '#4A2A00' : tv.card,
+                  border: `1px solid ${tradeState.dataMode === 'DELAYED' ? '#FFA23A' : tv.borderStrong}`,
+                  color: tradeState.dataMode === 'DELAYED' ? '#FFA23A' : tv.textMuted,
+                  fontSize: '0.72rem',
+                  fontWeight: 800,
+                  fontFamily: tv.mono,
+                  letterSpacing: '0.04em',
+                }}
+              >
+                {tradeState.dataMode === 'DELAYED'
+                  ? '⚠ DONNÉES DIFFÉRÉES ~10 MIN — NE PAS TRADER'
+                  : tradeState.dataMode === 'SYNTHETIC'
+                    ? '⚠ PRIX SIMULÉS — AUCUN LIEN AVEC LE MARCHÉ'
+                    : `⚠ ${tradeState.dataMode}`}
+              </span>
+            </div>
+          )}
+
           {!tradeState.feedRunning && (
             <div
               style={{
