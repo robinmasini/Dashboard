@@ -8,7 +8,7 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use tradeview_api::{create_router, AppState, ClientWsCommand};
 use tradeview_broker_core::MarketDataProvider;
-use tradeview_broker_ibkr::{IbkrConfig, IbkrMarketData};
+use tradeview_broker_ibkr::{spawn_news_stream, IbkrConfig, IbkrMarketData, NewsEvent};
 use tradeview_candle_engine::CandleEngine;
 use tradeview_clock::{SystemClock, TradingClock};
 use tradeview_domain::{
@@ -198,6 +198,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .subscribe(&instruments)
                 .await
                 .map_err(|error| error.to_string())?;
+
+            // Bulletins ride the same broadcast as everything else, so the
+            // newsletter needs no second connection of its own.
+            match provider.connect().await {
+                Ok(news_client) => {
+                    let (news_tx, mut news_rx) = mpsc::channel::<NewsEvent>(64);
+                    spawn_news_stream(Arc::new(news_client), clock.clone(), news_tx);
+
+                    let news_broadcast = broadcast_tx.clone();
+                    tokio::spawn(async move {
+                        while let Some(event) = news_rx.recv().await {
+                            if let Ok(json) = serde_json::to_string(&event) {
+                                let _ = news_broadcast.send(json);
+                            }
+                        }
+                    });
+                }
+                // News is a convenience: losing it must not cost the price feed.
+                Err(error) => tracing::warn!(%error, "news stream unavailable"),
+            }
 
             let forward_tx = event_tx.clone();
             let forward_running = feed_running.clone();

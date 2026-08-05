@@ -1807,6 +1807,7 @@ dependencies = [
  "chrono",
  "ibapi",
  "rust_decimal",
+ "serde",
  "tokio",
  "tokio-stream",
  "tracing",

@@ -27,7 +27,37 @@ async fn main() {
     }
 }
 
+/// Lists the news sources this account may actually read. Subscriptions differ
+/// per account, so the answer is only ever knowable by asking the broker.
+async fn list_news_providers() -> Result<(), String> {
+    let config = IbkrConfig::from_env().map_err(|error| error.to_string())?;
+    let clock: Arc<dyn TradingClock> = Arc::new(SystemClock::new());
+    let provider = IbkrMarketData::new(config.clone(), clock);
+
+    println!("\n{RULE}\n  FOURNISSEURS D'ACTUALITÉS\n{RULE}");
+    println!("  Cible : {}\n", config.address());
+
+    let client = provider.connect().await.map_err(|e| e.to_string())?;
+    let providers = client
+        .news_providers()
+        .await
+        .map_err(|error| format!("requête refusée : {error}"))?;
+
+    if providers.is_empty() {
+        println!("  Aucun fournisseur accessible sur ce compte.");
+    }
+    for item in &providers {
+        println!("  {:<10} {}", item.code, item.name);
+    }
+    println!("{RULE}\n");
+    Ok(())
+}
+
 async fn run() -> Result<(), String> {
+    if std::env::args().any(|arg| arg == "--news") {
+        return list_news_providers().await;
+    }
+
     let symbol = std::env::var("IB_SYMBOL").unwrap_or_else(|_| MICRO_ES.to_string());
     let config = IbkrConfig::from_env().map_err(|error| error.to_string())?;
 

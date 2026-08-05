@@ -1,0 +1,107 @@
+{
+  "generatedAt": "2026-08-05T16:08:40.730Z",
+  "entries": [
+    {
+      "id": "f2290b4",
+      "date": "2026-08-04T16:13:34+02:00",
+      "title": "Say on screen when prices are delayed or invented",
+      "body": "The engine announced SYNTHETIC whatever the source, so a screen fed by\nInteractive Brokers still claimed to be simulated — and, worse, a screen fed\nby ten-minute-old prices looked exactly like a live one. The real mode is now\ncarried through and broadcast the moment the engine starts, before a single\nprice is drawn.\n\nAnything that is not live carries a banner naming it: delayed prices read\n\"DONNÉES DIFFÉRÉES ~10 MIN — NE PAS TRADER\" in amber, invented ones \"PRIX\nSIMULÉS — AUCUN LIEN AVEC LE MARCHÉ\". Only a genuinely live feed shows\nnothing, so silence means live and never the reverse.\n\nThis is the same failure that had the platform showing a random walk under an\nS&P 500 heading for days. The label is not decoration."
+    },
+    {
+      "id": "e7ccc30",
+      "date": "2026-08-04T15:34:09+02:00",
+      "title": "Read real CME prices, and stop closing the socket before they arrive",
+      "body": "Three faults stood between the engine and Interactive Brokers, each hiding\nthe next.\n\nThe connection was dropped the moment `subscribe` returned. Only that\nfunction held the client, so the socket closed before a single tick landed\nand the feed looked dead. The reading tasks now hold it for as long as they\nread.\n\nIBKR sends price and size in one combined tick far more often than as the\nseparate ticks the decoder expected, so the whole feed was discarded as\nunrecognised. Both shapes are handled.\n\nThe probe had no log output at all, which is why \"connected but silent\" could\nnot be told apart from \"connected, streaming, and decoded into nothing\".\nRUST_LOG now reveals every tick, and that is what identified the combined\nform within one run.\n\nAlso adds the free delayed feed under IB_FEED_KIND, defaulting to REALTIME so\ndelayed prices are always asked for and never inherited. It names itself\n\"DIFFÉRÉ (~10 min)\" wherever it surfaces: prices ten minutes old on a\nscalping screen must be impossible to mistake for live ones.\n\nMES now reads 7657.75 / 7658.25 from CME, with real book sizes."
+    },
+    {
+      "id": "740ab39",
+      "date": "2026-08-04T14:44:56+02:00",
+      "title": "Name the Interactive Brokers accounts that actually exist",
+      "body": "The account list was invented: DUA545090, U15525670 and a set of ctrader,\nalpaca and paper entries corresponded to nothing, yet one carried a LIVE\nbadge. It read as a broker connection the platform did not have, and sent us\nlooking for a paper account that was never created.\n\nIt now names the real pair — U27457555 live, DUR611871 paper — with the ports\neach Gateway listens on. They stay separate entries: live and paper are\ndifferent accounts and never share a number, and labelling one with the\nother's identifier is how a test order reaches real money. The live entry is\ndeliberately unselectable, since nothing here trades live."
+    },
+    {
+      "id": "568cc7f",
+      "date": "2026-08-03T22:37:33+02:00",
+      "title": "Accept the timezone names a localised IB Gateway reports",
+      "body": "A French Gateway announces \"heure normale d'Europe centrale\" instead of an\nIANA name. The protocol layer rejects it and the connection fails with a\nmessage about timezones surfaced as a refused connection — unreadable as the\nlocale problem it is, and it cost a debugging round on a setup that was\notherwise correct.\n\nThe known localised spellings are registered before connecting, so a French,\nGerman or Spanish Gateway works with no environment variable to remember."
+    },
+    {
+      "id": "279f4b7",
+      "date": "2026-08-03T21:13:28+02:00",
+      "title": "Let the engine take its prices from Interactive Brokers",
+      "body": "The IBKR adapter existed but only a standalone console probe used it. The\nrunning platform drew every price from the synthetic generator, so the screen\nlabelled S&P 500 showed a seeded random walk with no relation to any exchange\n— the operator's instinct caught this before the SYNTHETIC badge did.\n\nTRADEVIEW_MARKET_SOURCE now selects the source, defaulting to SYNTHETIC so\nnothing reaches a broker by accident. Under IBKR the engine subscribes\nthrough the existing MarketDataProvider port, meaning the switch touches no\nstrategy, risk or execution code.\n\nA failed connection is fatal rather than a fallback. Quietly reverting to\ninvented prices on a screen the operator believes is live is the worst\noutcome available, so the engine refuses to start and says why.\n\nPausing gates the forwarder rather than the socket. The engine only acts on\nwhat reaches it, so a halted market still cannot fill, without tearing down\nand rebuilding a broker subscription on every toggle."
+    },
+    {
+      "id": "297db2c",
+      "date": "2026-08-02T12:13:06+02:00",
+      "title": "Run the S&P 500 and the Nasdaq side by side",
+      "body": "The platform simulated one instrument end to end. It now streams MES and MNQ\ntogether, each with its own price profile: the Nasdaq sits near 25,000 and\nmoves three ticks a print against the S&P's one, so the two series no longer\nlook like the same index under different names. Seeds are derived per\ninstrument rather than shared, which would have made both indices move in\nlockstep.\n\nEvery instrument gets its own analysis window. Blocks and steps describe a\nsingle series, and pooling two would invent structure present in neither.\n\nThe front held a single symbol, a single price and a single analysis, so the\nsecond stream silently overwrote the first. State is now keyed by instrument,\nwith the selected one exposed under the previous flat names so each view\nstays explicit about which series it draws. Candles are filtered by\ninstrument as well as timeframe — the chart was already at risk of drawing\nbars from a contract it was not labelled with.\n\nOrders follow the instrument on screen, so a click cannot land on a series\nthe operator is not looking at.\n\nSymbols come from TRADEVIEW_SYMBOLS; adding a third contract needs no code."
+    },
+    {
+      "id": "0634e40",
+      "date": "2026-08-01T04:13:05+02:00",
+      "title": "Make the market play/pause control actually stop the feed, halted by default",
+      "body": "The button only swapped its own icon. Data kept arriving whether it showed\nplay or pause, so a control that looked functional cut nothing — worse than\nhaving no control, because it invites trust it does not earn.\n\nPausing now halts the generator at the source rather than freezing the\ndisplay. Freezing only the chart would leave the engine filling orders at\nprices the operator cannot see, which is exactly the divergence this project\nis built to avoid.\n\nThe feed starts halted. Opening the Market screen should not set a market\nrunning by itself, and in SIM a running feed means fills.\n\nMarketStatus carries feed_running, distinct from connected: the source is\nreachable, it is simply not being consumed. The engine echoes the state after\neach command so the button reflects what is actually running rather than what\nthe click hoped for, and the chart says plainly when the market is stopped.\n\nCovered by tests asserting a halted feed delivers nothing and that resuming\nrestores it."
+    },
+    {
+      "id": "1d459cf",
+      "date": "2026-07-31T15:20:12+02:00",
+      "title": "Draw the block and step analytics on the chart, and make it zoomable",
+      "body": "The analytics existed but nothing consumed them: the engine computed blocks\nand steps and then dropped them on the floor. They are now broadcast as an\nIndicators event in the same tagged shape as the market and execution\nstreams, and drawn — runs as shaded rectangles behind the bars, swings as a\npolyline whose legs are labelled with their size in grid steps. Live runs and\nunconfirmed pivots are dashed, since neither is settled yet.\n\nOverlays are positioned by mapping each timestamp back to a bar index rather\nthan by assuming an offset, so an overlay cannot drift from the candles\nbeneath it.\n\nThree defects surfaced while wiring this up:\n\n- The chart stacked every timeframe at once. The engine emits candles for all\n  five, and the front drew the lot, so 1-second bars sat on top of 5-minute\n  ones. It now draws the timeframe the analytics declare.\n- Worse, the front capped candles at 200 across all timeframes together. The\n  1-second stream arrives five times more often and evicted the slower series\n  the chart was drawing. The cap is now per timeframe.\n- The synthetic feed moved up to six ticks per print, producing 15-second\n  bars spanning 40 points. Real MES covers a point or two. One tick per print\n  brings the step grid back from 25 points to 1.\n\nAnalysis runs on S15 by default rather than M5: a fresh session shows a\nsingle M5 bar for its first five minutes, leaving nothing to analyse.\nConfigurable with TRADEVIEW_INDICATOR_TIMEFRAME.\n\nZoom is by wheel or by the +/- controls, and sets how many bars share the\ncanvas width."
+    },
+    {
+      "id": "bc406ed",
+      "date": "2026-07-31T14:07:18+02:00",
+      "title": "Run the platform on the S&P 500 alone, replacing the NVDA placeholder",
+      "body": "The engine simulated NVDA while the product targets the S&P 500. Switching\nthe ticker alone would not have been enough: the synthetic feed walked a $211\nshare in cent increments with a $0.02 spread, which is not an index at 6,800\npoints however it is labelled, and every derived figure — spread, block\nheight, step grid — inherited those scales.\n\nThe price behaviour now lives in an InstrumentProfile, with a Micro E-mini\npreset: quarter-point ticks, a one-tick spread, and moves drawn in whole\nticks. A real book never prints between ticks, and a sub-tick walk would hand\nthe indicators a precision that cannot exist.\n\nThe symbol is configuration (TRADEVIEW_SYMBOL), not a constant, and the\nfront-end reads the instrument the engine announces instead of naming one.\nThe order path previously sent \"NVDA\" hardcoded, so an order would have been\nplaced on an instrument the engine was not running."
+    },
+    {
+      "id": "f0a9b9d",
+      "date": "2026-07-31T13:02:30+02:00",
+      "title": "Add an Interactive Brokers market data adapter and a connection probe",
+      "body": "First brick of the IBKR integration: a broker-ibkr crate implementing the\nexisting MarketDataProvider port, plus an ibkr-probe binary that proves the\nengine can reach IBKR and read a live feed. No orders are placed.\n\nThe adapter goes behind the port defined in Phase 1 rather than into a new\nparallel tree, so the engine still names no broker and swapping IBKR out\ntouches nothing else.\n\nThree traps this encodes rather than leaves to be discovered at runtime:\n\n- Gateway and TWS listen on different ports (4002/4001 versus 7497/7496).\n  An unrecognised port is refused with both pairs named, instead of hanging\n  until a timeout that says nothing.\n- The contract month is resolved from the injected clock on the CME\n  quarterly cycle. The library's own front_month() helper reads the wall\n  clock and returns the next calendar month, which in July asks for an\n  August MES — a contract that does not exist.\n- A connected socket that never delivers is a distinct failure from a\n  refused one, and is reported as such: outside CME hours, or without a\n  data subscription, silence is what you get.\n\nQuotes IBKR cannot express as a positive price are dropped with a warning\nrather than forwarded, where they would poison the spread. Sizes fall back\nto zero, since a bad size should not cost the quote.\n\nConfiguration is entirely environmental, documented in .env.example, so the\nsame binary runs locally or from Secrets Manager on AWS later."
+    },
+    {
+      "id": "a64cb10",
+      "date": "2026-07-31T11:35:53+02:00",
+      "title": "Add block and step analytics as an engine crate",
+      "body": "Blocks (runs of same-direction candles) and steps (grid-quantised swings) are\nstrategy primitives, not chart decoration — an account named \"blockfade\"\ntrades the very runs the chart draws. Computing them in the engine keeps what\nthe operator sees and what a strategy would act on from drifting apart, and\nrespects the rule that no critical logic lives in TypeScript.\n\nA step is modelled as a Decimal rather than a Price: it is a difference, and\nPrice rejects non-positive values by design. Likewise a block's range may\nlegitimately be zero.\n\nTwo behaviours worth stating, both covered by tests: a doji extends the run in\nprogress instead of splitting it, and a bar that sets a new extreme cannot\nalso confirm the reversal against that same extreme — otherwise one wide\ncandle would pivot against itself.\n\nThe step ladder reproduces the reference pairing, where a finest step of 0.63\nat density 1 resolves to 0.50."
+    },
+    {
+      "id": "e3d7ba0",
+      "date": "2026-07-30T23:30:46+02:00",
+      "title": "Let the month recap collapse, and measure inception from the funded capital",
+      "body": "The calendar can now be folded to its header, keeping the cards, chart and\nwin rate on one screen with no scrolling; the choice persists across reloads.\n\n\"Depuis le début\" was measured against the first sample the page happened to\nobserve, so a reload reported +$0.00 while the balance clearly stood above\nthe funded amount. That period now comes from the engine's own figures —\nfunded capital and lifetime counters — which do not depend on how long the\nbrowser has been watching. The shorter periods still derive from observed\nsamples, which is all that exists until the event store persists history."
+    },
+    {
+      "id": "6a743d8",
+      "date": "2026-07-30T15:31:44+02:00",
+      "title": "Fund the SIM account from configuration instead of a hardcoded $100,000",
+      "body": "The starting capital was written into the server as 100_000, which did not\nmatch the account being modelled. It now defaults to 39,000 and can be set\nwith TRADEVIEW_INITIAL_CAPITAL; a value that is not a positive number aborts\nstartup rather than quietly reverting to a default, since a wrong balance\nsilently distorts every percentage on the dashboard.\n\nThe account id no longer embeds the amount, the reset button label reads the\nfigure from the engine rather than repeating it, and the front-end placeholder\nshown before the first account message matches."
+    },
+    {
+      "id": "9c8eb89",
+      "date": "2026-07-30T14:43:01+02:00",
+      "title": "Make dashboard period filters real, and keep the calendar clear of the chart",
+      "body": "The week/month/year/all buttons only trimmed the chart before; every other\nfigure still covered the whole session. Each period now derives its own\nmetrics by differencing the cumulative counters against the last sample\ntaken before the window opens, so result, return, win rate, average per day\nand traded days all follow the selection. The calendar dims days outside the\nactive period rather than showing an unrelated month.\n\n\"This week\" now means since Monday, not the last seven days — likewise month\nand year are calendar periods, which is what the labels claim.\n\nThe top band (capital and result cards, chart, stats) is given a fixed\nminimum height and cannot shrink, so the calendar sits strictly below it and\nis reached by scrolling instead of crowding the chart.\n\nAxis labels were rounding to the same value: a $10 move on a $100k account\nprinted \"$100.1k\" three ticks in a row. Decimal places are now chosen from\nthe span on screen."
+    },
+    {
+      "id": "40be2e0",
+      "date": "2026-07-30T02:16:12+02:00",
+      "title": "TradeView dashboard: capital curve, daily PnL calendar, brand colours",
+      "body": "Adds the SILO-style capital curve (Recharts area chart, right-hand axis,\ncurrent-value marker) and a month calendar of daily results below it, so\nscrolling down shows previous days' profit. Both read only real engine\ndata: days without executions stay visibly empty rather than being filled\nwith invented figures, since the event store is still in-memory and holds\nno history until Phase 3 adds persistence.\n\nColours now come from the logo, sampled from tv.png: blue #789CFC for a\ngain, violet #A854FC for a loss, applied to the dashboard, the header PnL\nbadge and the Market candles. Status colours (LIVE/DEMO/SIM, connection,\nACTIVE) are left alone — they signal environment, not direction.\n\nHover detail gives exact figures rather than k-rounded ones, on the curve,\nthe capital and result cards, and every calendar day.\n\nTwo defects fixed along the way:\n\n- Orders placed from the UI never reached the engine. The hook stacked\n  WebSockets on React re-mounts and stale reconnect timers, so `wsRef`\n  often pointed at a CONNECTING socket while `placeOrder` dropped the\n  send in silence. Connections are now deduplicated, intentional closes\n  no longer trigger a reconnect, and a send that cannot go out surfaces\n  as an error. The engine side also logs malformed commands instead of\n  discarding them.\n\n- The sidebar is position:fixed, so the workspace started at x=0 and slid\n  underneath it, hiding 280px of every view — including the Market order\n  panel."
+    },
+    {
+      "id": "05b9d47",
+      "date": "2026-07-29T15:09:20+02:00",
+      "title": "Add 'tradeview/' from commit '28abaa2a6c5416600cc8cce5e4d2dc6f696d9c97'",
+      "body": "git-subtree-dir: tradeview\ngit-subtree-mainline: 1d8a206c1eadd72870a4368694e6ccbf9d123afd\ngit-subtree-split: 28abaa2a6c5416600cc8cce5e4d2dc6f696d9c97"
+    },
+    {
+      "id": "1d8a206",
+      "date": "2026-07-29T15:09:12+02:00",
+      "title": "Add TradeView front-end components, WebSocket hook and env template",
+      "body": "These files existed only on disk and had never been committed: the five\nTradeView views (header, account selector, dashboard, market, data), the\nuseTradeViewWebSocket hook, and the .env.example template documenting the\nSupabase and Rust engine variables.\n\nAlso includes the in-progress App.tsx and TradeViewPage.tsx changes and a\n.claude/launch.json describing how to start the dev server."
+    }
+  ]
+}

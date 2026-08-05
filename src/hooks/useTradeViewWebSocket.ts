@@ -130,6 +130,13 @@ export interface IndicatorSnapshot {
   steps: { finest_step: string; step: string; density: number; legs: Leg[] }
 }
 
+export interface NewsItem {
+  provider: string
+  article_id: string
+  headline: string
+  timestamp: string
+}
+
 export type MarketEvent =
   | { type: 'Tick'; payload: TradeTick }
   | { type: 'Quote'; payload: Quote }
@@ -140,6 +147,7 @@ export type MarketEvent =
   | { type: 'ExecutionOccurred'; payload: ExecutionRecord }
   | { type: 'OrderRejected'; payload: { client_order_id: string; decision: RiskDecision } }
   | { type: 'Indicators'; payload: IndicatorSnapshot }
+  | { type: 'News'; payload: NewsItem }
 
 export type RiskDecision =
   | { decision: 'ACCEPTED' }
@@ -182,6 +190,8 @@ export interface TradeViewState {
   equityCurve: EquityPoint[]
   /** One analysis per instrument: merging two series would invent structure. */
   indicators: Record<string, IndicatorSnapshot>
+  /** Newest first, capped: a newsletter is read, not accumulated forever. */
+  news: NewsItem[]
   /** Mirrors the engine, not the click: the button shows what is really running. */
   feedRunning: boolean
   lastError: string | null
@@ -220,6 +230,7 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
     executions: [],
     equityCurve: [],
     indicators: {},
+    news: [],
     feedRunning: false,
     lastError: null,
   })
@@ -386,6 +397,12 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
             setState((prev) => ({
               ...prev,
               indicators: { ...prev.indicators, [instrument]: snapshot },
+            }))
+          } else if (parsed.type === 'News') {
+            const item = parsed.payload
+            setState((prev) => ({
+              ...prev,
+              news: [item, ...prev.news].slice(0, 200),
             }))
           } else if (parsed.type === 'OrderRejected') {
             const { decision } = parsed.payload

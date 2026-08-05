@@ -5,6 +5,7 @@ import HeaderGlobal from '../components/tradeview/HeaderGlobal'
 import MarketView from '../components/tradeview/MarketView'
 import DashboardView from '../components/tradeview/DashboardView'
 import DataView from '../components/tradeview/DataView'
+import NewsletterView from '../components/tradeview/NewsletterView'
 import { useTradeViewWebSocket } from '../hooks/useTradeViewWebSocket'
 
 import tvLogo from '../assets/tv.png'
@@ -13,7 +14,9 @@ import '../shared/components/Sidebar.css'
 
 export default function TradeViewPage() {
   const navigate = useNavigate()
-  const [activeTab, setActiveTab] = useState<'Dashboard' | 'Market' | 'Data'>('Market')
+  const [activeTab, setActiveTab] = useState<'Dashboard' | 'Market' | 'Data' | 'Newsletter'>(
+    'Market'
+  )
   const [pageLoading, setPageLoading] = useState(true)
 
   // WebSocket Hook connected to Rust backend (defaults to ws://localhost:8080/ws)
@@ -72,6 +75,7 @@ export default function TradeViewPage() {
     { id: 'Dashboard', label: 'Dashboard', icon: '📊' },
     { id: 'Market', label: 'Market', icon: '📈' },
     { id: 'Data', label: 'Data', icon: '⚡' },
+    { id: 'Newsletter', label: 'Newsletter', icon: '📚' },
   ]
 
   return (
@@ -167,6 +171,7 @@ export default function TradeViewPage() {
         {activeTab === 'Market' && <MarketView tradeState={tradeState} />}
         {activeTab === 'Dashboard' && <DashboardView tradeState={tradeState} />}
         {activeTab === 'Data' && <DataView />}
+        {activeTab === 'Newsletter' && <NewsletterView tradeState={tradeState} />}
       </div>
     </div>
   )
