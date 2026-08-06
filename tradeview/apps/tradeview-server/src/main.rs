@@ -266,23 +266,34 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     drop(event_tx);
     info!("market feed halted — waiting for the operator to start it");
 
-    // Announced immediately: the screen must know whether it is showing live,
-    // delayed or invented prices before it draws the first of them.
-    for symbol in &symbols {
-        let status = MarketEvent::Status(MarketStatus {
-            mode: data_mode,
-            active_symbol: InstrumentId::new(symbol),
-            connected: true,
-            feed_running: false,
-            events_received: 0,
-            events_lost: 0,
-            estimated_delay_ms: 0,
-            last_timestamp: clock.now(),
-        });
-        if let Ok(json) = serde_json::to_string(&status) {
-            let _ = broadcast_tx.send(json);
+    // Repeated rather than announced once: a browser that connects later would
+    // otherwise keep showing its default label, which is how a screen fed by
+    // Interactive Brokers came to describe itself as simulated.
+    let status_broadcast = broadcast_tx.clone();
+    let status_symbols: Vec<InstrumentId> = symbols.iter().map(|s| InstrumentId::new(s)).collect();
+    let status_clock = clock.clone();
+    let status_feed = feed_running.clone();
+    tokio::spawn(async move {
+        loop {
+            let running = status_feed.load(Ordering::Relaxed);
+            for instrument in &status_symbols {
+                let status = MarketEvent::Status(MarketStatus {
+                    mode: data_mode,
+                    active_symbol: instrument.clone(),
+                    connected: true,
+                    feed_running: running,
+                    events_received: 0,
+                    events_lost: 0,
+                    estimated_delay_ms: 0,
+                    last_timestamp: status_clock.now(),
+                });
+                if let Ok(json) = serde_json::to_string(&status) {
+                    let _ = status_broadcast.send(json);
+                }
+            }
+            tokio::time::sleep(std::time::Duration::from_secs(3)).await;
         }
-    }
+    });
 
     let market_broadcast = broadcast_tx.clone();
     let store = event_store.clone();
