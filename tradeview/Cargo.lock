@@ -1808,6 +1808,7 @@ dependencies = [
  "ibapi",
  "rust_decimal",
  "serde",
+ "time",
  "tokio",
  "tokio-stream",
  "tracing",

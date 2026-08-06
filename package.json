@@ -5,7 +5,6 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "newsletter": "node scripts/build-newsletter.mjs",
     "start": "lsof -ti:5173 | xargs kill -9 2>/dev/null; vite > dev-server.log 2>&1 & echo $! > dev-server.pid && echo 'Dashboard Client démarré sur http://localhost:5173'",
     "stop": "test -f dev-server.pid && kill $(cat dev-server.pid) 2>/dev/null && rm dev-server.pid && echo 'Dashboard Client arrêté' || echo 'Aucun processus à arrêter'",
     "restart": "npm run stop && sleep 1 && npm run start",

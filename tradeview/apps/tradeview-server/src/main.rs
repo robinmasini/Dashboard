@@ -8,7 +8,10 @@ use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
 use tradeview_api::{create_router, AppState, ClientWsCommand};
 use tradeview_broker_core::MarketDataProvider;
-use tradeview_broker_ibkr::{spawn_news_stream, IbkrConfig, IbkrMarketData, NewsEvent};
+use tradeview_broker_ibkr::{
+    load_todays_headlines, spawn_news_stream, spawn_provider_streams, IbkrConfig, IbkrMarketData,
+    NewsEvent,
+};
 use tradeview_candle_engine::CandleEngine;
 use tradeview_clock::{SystemClock, TradingClock};
 use tradeview_domain::{
@@ -185,6 +188,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 "market source: INTERACTIVE BROKERS"
             );
 
+            // Interactive Brokers allows one connection per client id, so the
+            // news session takes its own. Sharing one silently drops the second
+            // connection with an unexplained "early eof".
+            let mut news_config = config.clone();
+            news_config.client_id = config.client_id.wrapping_add(1);
+
             let provider = IbkrMarketData::new(config, clock.clone());
             data_mode = provider.mode();
             info!(mode = ?data_mode, "market data mode");
@@ -201,10 +210,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             // Bulletins ride the same broadcast as everything else, so the
             // newsletter needs no second connection of its own.
-            match provider.connect().await {
+            let news_provider = IbkrMarketData::new(news_config, clock.clone());
+            match news_provider.connect().await {
                 Ok(news_client) => {
-                    let (news_tx, mut news_rx) = mpsc::channel::<NewsEvent>(64);
-                    spawn_news_stream(Arc::new(news_client), clock.clone(), news_tx);
+                    let news_client = Arc::new(news_client);
+                    let (news_tx, mut news_rx) = mpsc::channel::<NewsEvent>(256);
+
+                    // Backfill first: an empty newsletter on open is useless to
+                    // someone who wants the day's context before trading.
+                    let contract = provider.futures_contract(&symbols[0]);
+                    let history = load_todays_headlines(&news_client, &contract, &clock, 40).await;
+                    info!(count = history.len(), "headlines loaded");
+                    for item in history {
+                        if let Ok(json) = serde_json::to_string(&NewsEvent::News(item)) {
+                            let _ = broadcast_tx.send(json);
+                        }
+                    }
+
+                    let feeds =
+                        spawn_provider_streams(news_client.clone(), clock.clone(), news_tx.clone())
+                            .await;
+                    info!(?feeds, "news feeds subscribed");
+                    spawn_news_stream(news_client, clock.clone(), news_tx);
 
                     let news_broadcast = broadcast_tx.clone();
                     tokio::spawn(async move {
