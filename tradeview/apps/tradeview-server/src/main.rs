@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-use tradeview_api::{create_router, AppState, ClientWsCommand, ReplayBuffer};
+use tradeview_api::{create_router, ApiToken, AppState, ClientWsCommand, ReplayBuffer};
 use tradeview_broker_core::MarketDataProvider;
 use tradeview_broker_ibkr::{
     load_todays_headlines, spawn_news_stream, spawn_provider_streams, IbkrConfig, IbkrMarketData,
@@ -112,6 +112,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     info!("Starting TradeView engine (SIM mode)");
+    let token = ApiToken::from_env();
 
     let clock: Arc<dyn TradingClock> = Arc::new(SystemClock::new());
     let symbols = symbols();
@@ -473,9 +474,27 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         tx: broadcast_tx,
         cmd_tx,
         replay: news_replay,
+        token: token.clone(),
     });
 
-    let addr = SocketAddr::from(([127, 0, 0, 1], 8080));
+    let addr: SocketAddr = std::env::var("TRADEVIEW_BIND")
+        .unwrap_or_else(|_| "127.0.0.1:8080".to_string())
+        .parse()
+        .map_err(|_| "TRADEVIEW_BIND must look like 0.0.0.0:8080")?;
+
+    // Fail closed. This socket accepts orders, so binding it beyond loopback
+    // without a shared secret hands the account to whoever finds the address.
+    if !addr.ip().is_loopback() && !token.is_set() {
+        return Err(format!(
+            "refusing to listen on {addr} without TRADEVIEW_API_TOKEN: this socket \
+             accepts orders and would be open to anyone who reaches it"
+        )
+        .into());
+    }
+    if !addr.ip().is_loopback() {
+        info!("listening beyond loopback — token required for every client");
+    }
+
     info!("listening on http://{addr}");
 
     let listener = tokio::net::TcpListener::bind(addr).await?;

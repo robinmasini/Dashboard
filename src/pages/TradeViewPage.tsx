@@ -19,8 +19,14 @@ export default function TradeViewPage() {
   )
   const [pageLoading, setPageLoading] = useState(true)
 
-  // WebSocket Hook connected to Rust backend (defaults to ws://localhost:8080/ws)
-  const tradeState = useTradeViewWebSocket('ws://localhost:8080/ws')
+  // The engine's address is configuration, not a constant: hosted, it is no
+  // longer on this machine. The token is appended here rather than stored in
+  // the hook so the URL stays the single place the endpoint is described.
+  const engineUrl = import.meta.env.VITE_TRADEVIEW_WS_URL ?? 'ws://localhost:8080/ws'
+  const engineToken = import.meta.env.VITE_TRADEVIEW_API_TOKEN
+  const tradeState = useTradeViewWebSocket(
+    engineToken ? `${engineUrl}?token=${encodeURIComponent(engineToken)}` : engineUrl
+  )
 
   useEffect(() => {
     document.title = 'TradeView - Interactive Brokers Scalping Robot'

@@ -1,8 +1,11 @@
 use axum::{
+    extract::Query,
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
         State,
     },
+    http::StatusCode,
+    response::Response,
     response::{IntoResponse, Json},
     routing::get,
     Router,
@@ -72,11 +75,56 @@ impl ReplayBuffer {
     }
 }
 
+/// Shared secret required to open the socket.
+///
+/// The socket accepts orders, so anyone who can reach it can trade the account.
+/// On loopback that is the operator alone; the moment it is exposed, it is
+/// whoever finds the address.
+#[derive(Clone, Default)]
+pub struct ApiToken(Option<Arc<String>>);
+
+impl ApiToken {
+    pub fn from_env() -> Self {
+        Self(
+            std::env::var("TRADEVIEW_API_TOKEN")
+                .ok()
+                .map(|value| value.trim().to_string())
+                .filter(|value| !value.is_empty())
+                .map(Arc::new),
+        )
+    }
+
+    pub fn is_set(&self) -> bool {
+        self.0.is_some()
+    }
+
+    /// Compared in constant time: a byte-by-byte early exit leaks the secret
+    /// one character at a time to anyone willing to measure.
+    pub fn accepts(&self, presented: Option<&str>) -> bool {
+        let Some(expected) = self.0.as_deref() else {
+            return true;
+        };
+        let Some(presented) = presented else {
+            return false;
+        };
+        if presented.len() != expected.len() {
+            return false;
+        }
+        expected
+            .as_bytes()
+            .iter()
+            .zip(presented.as_bytes())
+            .fold(0u8, |acc, (a, b)| acc | (a ^ b))
+            == 0
+    }
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub tx: broadcast::Sender<String>,
     pub cmd_tx: mpsc::Sender<ClientWsCommand>,
     pub replay: ReplayBuffer,
+    pub token: ApiToken,
 }
 
 pub fn create_router(state: AppState) -> Router {
@@ -101,7 +149,20 @@ async fn health_handler() -> impl IntoResponse {
     }))
 }
 
-async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl IntoResponse {
+#[derive(Deserialize)]
+pub struct WsAuth {
+    token: Option<String>,
+}
+
+async fn ws_handler(
+    ws: WebSocketUpgrade,
+    Query(auth): Query<WsAuth>,
+    State(state): State<AppState>,
+) -> Response {
+    if !state.token.accepts(auth.token.as_deref()) {
+        warn!("rejected an unauthenticated websocket connection");
+        return (StatusCode::UNAUTHORIZED, "invalid or missing token").into_response();
+    }
     ws.on_upgrade(|socket| handle_websocket(socket, state))
 }
 
