@@ -134,6 +134,8 @@ export interface NewsItem {
   provider: string
   article_id: string
   headline: string
+  /** Absent when the feed omits a link; the CTA is hidden rather than dead. */
+  url?: string
   timestamp: string
 }
 

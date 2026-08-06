@@ -129,15 +129,48 @@ export default function NewsletterView({ tradeState }: NewsletterViewProps) {
                       <div style={{ fontSize: '0.88rem', fontWeight: 600, lineHeight: 1.45 }}>
                         {item.headline}
                       </div>
+
                       <div
                         style={{
-                          marginTop: 4,
-                          fontSize: '0.66rem',
-                          fontFamily: tv.mono,
-                          color: tv.accent,
+                          marginTop: 8,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 10,
+                          flexWrap: 'wrap',
                         }}
                       >
-                        {item.provider}
+                        {item.url ? (
+                          <a
+                            href={item.url}
+                            target="_blank"
+                            // Opened in a new tab without handing the source a
+                            // reference back to this window.
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: '0.7rem',
+                              fontFamily: tv.mono,
+                              fontWeight: 700,
+                              color: tv.accent,
+                              textDecoration: 'none',
+                              padding: '3px 10px',
+                              borderRadius: 8,
+                              border: `1px solid ${tv.accent}`,
+                              backgroundColor: tv.accentSoft,
+                            }}
+                          >
+                            En savoir plus →
+                          </a>
+                        ) : null}
+
+                        <span
+                          style={{
+                            fontSize: '0.64rem',
+                            fontFamily: tv.mono,
+                            color: tv.textFaint,
+                          }}
+                        >
+                          {item.provider}
+                        </span>
                       </div>
                     </div>
                   </article>

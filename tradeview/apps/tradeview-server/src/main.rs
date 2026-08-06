@@ -295,6 +295,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                         "provider": headline.provider,
                         "article_id": headline.id,
                         "headline": headline.title,
+                        "url": headline.url,
                         "timestamp": headline.published,
                     }
                 })

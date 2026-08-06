@@ -48,6 +48,13 @@ pub fn default_sources() -> Vec<FeedSource> {
             "http://feeds.marketwatch.com/marketwatch/topstories/",
         ),
         FeedSource::new("Investing.com", "https://www.investing.com/rss/news.rss"),
+        // Le Monde restricts its feeds to "usage strictement personnel, non
+        // professionnel et non collectif". Fine on an operator's own machine;
+        // publishing this once the platform is hosted would need their consent.
+        FeedSource::new(
+            "Le Monde · Amériques",
+            "https://www.lemonde.fr/ameriques/rss_full.xml",
+        ),
     ]
 }
 
@@ -84,6 +91,8 @@ pub struct Headline {
     pub provider: String,
     pub id: String,
     pub title: String,
+    /// Where to read the article. Empty when the feed omits it.
+    pub url: String,
     /// Publication time as the feed states it, falling back to now when absent
     /// or unparseable — an item with no date still deserves to be seen.
     pub published: String,
@@ -145,6 +154,7 @@ pub fn spawn_feed_poller(
                         provider: source.label.clone(),
                         id: key,
                         title: item.title,
+                        url: item.link.clone(),
                         published: if item.published.is_empty() {
                             clock.now().as_datetime().to_rfc3339()
                         } else {
@@ -171,6 +181,12 @@ pub fn spawn_feed_poller(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn the_americas_desk_is_covered() {
+        let labels: Vec<String> = default_sources().into_iter().map(|s| s.label).collect();
+        assert!(labels.iter().any(|label| label.contains("Amériques")));
+    }
 
     #[test]
     fn the_defaults_exclude_the_feeds_that_return_nothing() {
