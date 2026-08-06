@@ -12,6 +12,7 @@ members = [
     "crates/candle-engine",
     "crates/indicators",
     "crates/broker-ibkr",
+    "crates/news-feed",
     "crates/event-store",
     "crates/api",
     "apps/tradeview-server",

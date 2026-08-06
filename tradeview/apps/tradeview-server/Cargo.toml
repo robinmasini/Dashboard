@@ -20,3 +20,4 @@ tracing-subscriber.workspace = true
 tradeview-indicators = { path = "../../crates/indicators" }
 tradeview-broker-ibkr = { path = "../../crates/broker-ibkr" }
 tradeview-broker-core = { path = "../../crates/broker-core" }
+tradeview-news-feed = { path = "../../crates/news-feed" }

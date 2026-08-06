@@ -6,7 +6,7 @@ use std::sync::Arc;
 use tokio::sync::{broadcast, mpsc, Mutex};
 use tracing::{info, Level};
 use tracing_subscriber::FmtSubscriber;
-use tradeview_api::{create_router, AppState, ClientWsCommand};
+use tradeview_api::{create_router, AppState, ClientWsCommand, ReplayBuffer};
 use tradeview_broker_core::MarketDataProvider;
 use tradeview_broker_ibkr::{
     load_todays_headlines, spawn_news_stream, spawn_provider_streams, IbkrConfig, IbkrMarketData,
@@ -22,6 +22,7 @@ use tradeview_event_store::LocalEventStore;
 use tradeview_execution_sim::SimExecutionEngine;
 use tradeview_indicators::{IndicatorEvent, IndicatorWindow};
 use tradeview_market_data::{InstrumentProfile, SyntheticMarketGenerator};
+use tradeview_news_feed::{sources_from_env, spawn_feed_poller};
 
 /// Micro E-mini S&P 500 and Micro E-mini Nasdaq-100.
 const DEFAULT_SYMBOLS: &str = "MES,MNQ";
@@ -122,6 +123,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let (event_tx, mut event_rx) = mpsc::channel::<MarketEvent>(1000);
     let (cmd_tx, mut cmd_rx) = mpsc::channel::<ClientWsCommand>(100);
     let (broadcast_tx, _) = broadcast::channel::<String>(1000);
+    // Headlines only: prices replay themselves with the next tick.
+    let news_replay = ReplayBuffer::new(200);
 
     let event_store = Arc::new(LocalEventStore::new(
         &format!("session-{}", symbols.join("-").to_lowercase()),
@@ -234,9 +237,11 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     spawn_news_stream(news_client, clock.clone(), news_tx);
 
                     let news_broadcast = broadcast_tx.clone();
+                    let ibkr_replay = news_replay.clone();
                     tokio::spawn(async move {
                         while let Some(event) = news_rx.recv().await {
                             if let Ok(json) = serde_json::to_string(&event) {
+                                ibkr_replay.push(json.clone());
                                 let _ = news_broadcast.send(json);
                             }
                         }
@@ -265,6 +270,40 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     drop(event_tx);
     info!("market feed halted — waiting for the operator to start it");
+
+    // Public market feeds run whatever the price source: daily world coverage
+    // is what a trader reads before the session, and Interactive Brokers only
+    // carries what the account is entitled to.
+    {
+        let sources = sources_from_env();
+        info!(count = sources.len(), "market news feeds");
+        let (headline_tx, mut headline_rx) = mpsc::channel(256);
+        spawn_feed_poller(
+            sources,
+            clock.clone(),
+            std::time::Duration::from_secs(180),
+            headline_tx,
+        );
+
+        let news_broadcast = broadcast_tx.clone();
+        let feed_replay = news_replay.clone();
+        tokio::spawn(async move {
+            while let Some(headline) = headline_rx.recv().await {
+                let payload = serde_json::json!({
+                    "type": "News",
+                    "payload": {
+                        "provider": headline.provider,
+                        "article_id": headline.id,
+                        "headline": headline.title,
+                        "timestamp": headline.published,
+                    }
+                })
+                .to_string();
+                feed_replay.push(payload.clone());
+                let _ = news_broadcast.send(payload);
+            }
+        });
+    }
 
     // Repeated rather than announced once: a browser that connects later would
     // otherwise keep showing its default label, which is how a screen fed by
@@ -432,6 +471,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = create_router(AppState {
         tx: broadcast_tx,
         cmd_tx,
+        replay: news_replay,
     });
 
     let addr = SocketAddr::from(([127, 0, 0, 1], 8080));

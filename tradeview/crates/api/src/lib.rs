@@ -10,6 +10,8 @@ use axum::{
 use futures_util::{SinkExt, StreamExt};
 use serde::{Deserialize, Serialize};
 use serde_json::json;
+use std::collections::VecDeque;
+use std::sync::{Arc, Mutex};
 use tokio::sync::{broadcast, mpsc};
 use tower_http::cors::{Any, CorsLayer};
 use tracing::{info, warn};
@@ -24,10 +26,57 @@ pub enum ClientWsCommand {
     SetMarketFeed { running: bool },
 }
 
+/// Messages worth replaying to a client that connects late.
+///
+/// Prices are a stream — missing the last tick costs nothing, another follows.
+/// Headlines are not: they arrive in bursts minutes apart, so a browser opening
+/// between two polls would show an empty newsletter for minutes while the
+/// engine holds the very articles it wants.
+#[derive(Clone, Default)]
+pub struct ReplayBuffer {
+    inner: Arc<Mutex<VecDeque<String>>>,
+    capacity: usize,
+}
+
+impl ReplayBuffer {
+    pub fn new(capacity: usize) -> Self {
+        Self {
+            inner: Arc::new(Mutex::new(VecDeque::new())),
+            capacity: capacity.max(1),
+        }
+    }
+
+    pub fn push(&self, message: String) {
+        let mut buffer = self.inner.lock().expect("replay buffer poisoned");
+        if buffer.len() == self.capacity {
+            buffer.pop_front();
+        }
+        buffer.push_back(message);
+    }
+
+    pub fn snapshot(&self) -> Vec<String> {
+        self.inner
+            .lock()
+            .expect("replay buffer poisoned")
+            .iter()
+            .cloned()
+            .collect()
+    }
+
+    pub fn len(&self) -> usize {
+        self.inner.lock().expect("replay buffer poisoned").len()
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub tx: broadcast::Sender<String>,
     pub cmd_tx: mpsc::Sender<ClientWsCommand>,
+    pub replay: ReplayBuffer,
 }
 
 pub fn create_router(state: AppState) -> Router {
@@ -58,12 +107,21 @@ async fn ws_handler(ws: WebSocketUpgrade, State(state): State<AppState>) -> impl
 
 async fn handle_websocket(stream: WebSocket, state: AppState) {
     let (mut sender, mut receiver) = stream.split();
+    // Subscribed before the replay is sent, so nothing published in between is
+    // lost between the snapshot and the live stream.
     let mut rx = state.tx.subscribe();
+    let backlog = state.replay.snapshot();
     let cmd_tx = state.cmd_tx.clone();
 
-    info!("New WebSocket client connected");
+    info!(replayed = backlog.len(), "New WebSocket client connected");
 
     let mut send_task = tokio::spawn(async move {
+        for msg in backlog {
+            if sender.send(Message::Text(msg)).await.is_err() {
+                return;
+            }
+        }
+
         while let Ok(msg) = rx.recv().await {
             if sender.send(Message::Text(msg)).await.is_err() {
                 break;
