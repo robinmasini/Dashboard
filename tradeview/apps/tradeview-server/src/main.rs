@@ -162,9 +162,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clock.clone(),
     )));
 
-    // The market starts halted: arriving on the screen should not silently set
-    // a feed running, and a running feed means fills.
-    let feed_running = Arc::new(AtomicBool::new(false));
+    // The feed runs from the start. The operator asked to always have candles,
+    // including outside session hours: a chart that only fills once someone
+    // presses play is empty exactly when it is opened to be read. The pause
+    // control still stops it on demand.
+    let autostart = std::env::var("TRADEVIEW_FEED_AUTOSTART")
+        .map(|value| !matches!(value.trim().to_lowercase().as_str(), "0" | "false" | "no"))
+        .unwrap_or(true);
+    let feed_running = Arc::new(AtomicBool::new(autostart));
+    info!(autostart, "market feed");
 
     let data_mode;
 
@@ -270,7 +276,9 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     drop(event_tx);
-    info!("market feed halted — waiting for the operator to start it");
+    if !autostart {
+        info!("market feed halted — waiting for the operator to start it");
+    }
 
     // Public market feeds run whatever the price source: daily world coverage
     // is what a trader reads before the session, and Interactive Brokers only

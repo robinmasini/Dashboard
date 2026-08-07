@@ -10,7 +10,8 @@ use tokio_stream::StreamExt;
 use tradeview_clock::TradingClock;
 use tradeview_common::{Result, TradeViewError};
 use tradeview_domain::{
-    InstrumentId, MarketDataMode, MarketEvent, Price, Quantity, Quote, SequenceNumber,
+    InstrumentId, MarketDataMode, MarketEvent, OrderSide, Price, Quantity, Quote, SequenceNumber,
+    TradeTick,
 };
 
 /// Interactive Brokers caps how many instruments may stream at once. The
@@ -191,6 +192,28 @@ impl IbkrMarketData {
                                 builder.ask = Some(both.price);
                                 builder.ask_size = both.size;
                             }
+                            // A trade, not a quote. Candles are built from
+                            // these: without them the chart stays empty however
+                            // many quotes arrive.
+                            TickType::DelayedLast | TickType::Last => {
+                                if let Ok(price) = to_price(both.price, "last_price") {
+                                    sequence += 1;
+                                    let now = clock.now();
+                                    let trade = MarketEvent::Tick(TradeTick {
+                                        sequence_number: SequenceNumber::new(sequence),
+                                        instrument: instrument.clone(),
+                                        price,
+                                        quantity: to_quantity(both.size),
+                                        side: builder.side_of(both.price),
+                                        source_timestamp: now,
+                                        received_timestamp: now,
+                                    });
+                                    if tx.send(trade).await.is_err() {
+                                        break;
+                                    }
+                                }
+                                continue;
+                            }
                             _ => continue,
                         },
                         other => {
@@ -257,6 +280,21 @@ struct QuoteBuilder {
 }
 
 impl QuoteBuilder {
+    /// Which side lifted the market, inferred from where the trade printed.
+    ///
+    /// The feed does not say who was the aggressor, so the standard reading is
+    /// used: at or above the ask is a buy, at or below the bid a sell. Inside
+    /// the spread is genuinely ambiguous and is called a buy rather than
+    /// dropped — the side only tints the bar, while losing the print would cost
+    /// a candle.
+    fn side_of(&self, price: f64) -> OrderSide {
+        match (self.bid, self.ask) {
+            (_, Some(ask)) if price >= ask => OrderSide::Buy,
+            (Some(bid), _) if price <= bid => OrderSide::Sell,
+            _ => OrderSide::Buy,
+        }
+    }
+
     fn ready(&self) -> Option<(f64, f64)> {
         match (self.bid, self.ask) {
             (Some(bid), Some(ask)) if ask >= bid => Some((bid, ask)),
@@ -319,6 +357,64 @@ impl tradeview_broker_core::MarketDataProvider for IbkrMarketData {
                          may have rolled"
                     ))
                 })?;
+
+            // Quotes alone draw no chart: candles are built from trades, and
+            // bid/ask is a separate request from the tape.
+            let trades = client
+                .tick_by_tick(&contract, 0)
+                .all_last()
+                .await
+                .map_err(|error| {
+                    TradeViewError::MarketData(format!(
+                        "{instrument}: trade tape refused by Interactive Brokers: {error}"
+                    ))
+                })?;
+
+            {
+                let instrument = instrument.clone();
+                let clock = self.clock.clone();
+                let tx = tx.clone();
+                let connection = client.clone();
+
+                tokio::spawn(async move {
+                    let _connection = connection;
+                    let mut stream = trades.filter_data();
+                    let mut sequence: u64 = 0;
+
+                    while let Some(update) = stream.next().await {
+                        let trade = match update {
+                            Ok(trade) => trade,
+                            Err(error) => {
+                                tracing::warn!(%instrument, %error, "trade tape error");
+                                continue;
+                            }
+                        };
+
+                        let Ok(price) = to_price(trade.price, "trade_price") else {
+                            continue;
+                        };
+
+                        sequence += 1;
+                        let now = clock.now();
+                        let event = MarketEvent::Tick(TradeTick {
+                            sequence_number: SequenceNumber::new(sequence),
+                            instrument: instrument.clone(),
+                            price,
+                            quantity: to_quantity(trade.size),
+                            // The tape does not name the aggressor; the bar only
+                            // needs a tint, and dropping the print would cost a
+                            // candle.
+                            side: OrderSide::Buy,
+                            source_timestamp: now,
+                            received_timestamp: now,
+                        });
+
+                        if tx.send(event).await.is_err() {
+                            break;
+                        }
+                    }
+                });
+            }
 
             tokio::spawn(async move {
                 // The connection lives as long as anything reads from it.
