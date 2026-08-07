@@ -196,26 +196,83 @@ export interface TradeViewState {
   news: NewsItem[]
   /** Mirrors the engine, not the click: the button shows what is really running. */
   feedRunning: boolean
+  /** When the shown data was last confirmed live. Null once the engine speaks. */
+  frozenSince: string | null
   lastError: string | null
 }
 
 /** Bars retained per timeframe, independently of the other series. */
 const CANDLES_PER_TIMEFRAME = 300
 
+const CACHE_KEY = 'tradeview.lastSession.v1'
+
+/** A week of world news is what a trader reads; older is weight without value. */
+const NEWS_RETENTION_DAYS = 7
+
+/**
+ * Drops headlines past the retention window.
+ *
+ * Applied on both read and write: the engine already filters at the source, but
+ * a cache written days ago would otherwise keep resurfacing what it holds, and
+ * grow without bound across sessions.
+ */
+function withinRetention(items: NewsItem[]): NewsItem[] {
+  const cutoff = Date.now() - NEWS_RETENTION_DAYS * 86_400_000
+  return items.filter((item) => {
+    const published = Date.parse(item.timestamp)
+    // An unreadable date is kept: feeds that omit it are not publishing old
+    // news, and discarding them would silently lose whole sources.
+    return Number.isNaN(published) || published >= cutoff
+  })
+}
+
+/** What survives the engine being stopped, and when it was last true. */
+interface CachedSession {
+  savedAt: string
+  news: NewsItem[]
+  candles: Candle[]
+  indicators: Record<string, IndicatorSnapshot>
+  bySymbol: Record<string, SymbolQuote>
+  symbols: string[]
+  dataMode: TradeViewState['dataMode']
+}
+
+function readCache(): CachedSession | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    const session = JSON.parse(raw) as CachedSession
+    return { ...session, news: withinRetention(session.news ?? []) }
+  } catch {
+    // A corrupt cache must never stop the app from starting.
+    return null
+  }
+}
+
+function writeCache(session: CachedSession) {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(session))
+  } catch {
+    // Quota exceeded or storage disabled: the live session is unaffected.
+  }
+}
+
 const num = (value: string | number) =>
   typeof value === 'string' ? parseFloat(value) : value
 
 export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
-  const [state, setState] = useState<TradeViewState>({
-    connected: false,
-    dataMode: 'SYNTHETIC',
-    // Placeholder only: the engine announces the instruments it is running.
-    symbols: [],
-    selectedSymbol: 'MES',
-    bySymbol: {},
-    candles: [],
-    recentTicks: [],
-    marketStatus: null,
+  const [state, setState] = useState<TradeViewState>(() => {
+    const cached = readCache()
+    return {
+      connected: false,
+      dataMode: cached?.dataMode ?? 'SYNTHETIC',
+      // Placeholder only: the engine announces the instruments it is running.
+      symbols: cached?.symbols ?? [],
+      selectedSymbol: cached?.symbols?.[0] ?? 'MES',
+      bySymbol: cached?.bySymbol ?? {},
+      candles: cached?.candles ?? [],
+      recentTicks: [],
+      marketStatus: null,
     account: {
       account_id: 'demo-paper-100k',
       // Placeholder until the engine reports; it owns the real funding amount.
@@ -228,13 +285,16 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
       winning_trades_count: 0,
       losing_trades_count: 0,
     },
-    positions: [],
-    executions: [],
-    equityCurve: [],
-    indicators: {},
-    news: [],
-    feedRunning: false,
-    lastError: null,
+      positions: [],
+      executions: [],
+      equityCurve: [],
+      indicators: cached?.indicators ?? {},
+      news: cached?.news ?? [],
+      feedRunning: false,
+      // Anything restored is frozen until the engine speaks again.
+      frozenSince: cached?.savedAt ?? null,
+      lastError: null,
+    }
   })
 
   const wsRef = useRef<WebSocket | null>(null)
@@ -267,7 +327,8 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
 
       ws.onopen = () => {
         clearReconnect()
-        setState((prev) => ({ ...prev, connected: true }))
+        // Live again: what is on screen is no longer a snapshot.
+        setState((prev) => ({ ...prev, connected: true, frozenSince: null }))
       }
 
       ws.onmessage = (event) => {
@@ -404,7 +465,7 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
             const item = parsed.payload
             setState((prev) => ({
               ...prev,
-              news: [item, ...prev.news].slice(0, 200),
+              news: withinRetention([item, ...prev.news]).slice(0, 200),
             }))
           } else if (parsed.type === 'OrderRejected') {
             const { decision } = parsed.payload
@@ -421,7 +482,12 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
 
       ws.onclose = () => {
         if (wsRef.current === ws) wsRef.current = null
-        setState((prev) => ({ ...prev, connected: false }))
+        setState((prev) => ({
+          ...prev,
+          connected: false,
+          // Dated from now: this is when the figures stopped being true.
+          frozenSince: prev.frozenSince ?? new Date().toISOString(),
+        }))
         if (intentionalCloseRef.current) return
         clearReconnect()
         reconnectTimerRef.current = setTimeout(connect, 3000)
@@ -498,6 +564,38 @@ export function useTradeViewWebSocket(url: string = 'ws://localhost:8080/ws') {
   const resetAccount = useCallback(() => {
     send({ action: 'ResetAccount', payload: {} }, 'Réinitialisation du compte')
   }, [send])
+
+  // Kept in a ref so the saver reads the latest state without restarting its
+  // timer on every tick.
+  const stateRef = useRef(state)
+  stateRef.current = state
+
+  useEffect(() => {
+    const save = () => {
+      const current = stateRef.current
+      // Nothing worth restoring yet, and an empty write would erase a good
+      // snapshot from an earlier session.
+      if (current.news.length === 0 && current.candles.length === 0) return
+
+      writeCache({
+        savedAt: new Date().toISOString(),
+        news: withinRetention(current.news),
+        candles: current.candles,
+        indicators: current.indicators,
+        bySymbol: current.bySymbol,
+        symbols: current.symbols,
+        dataMode: current.dataMode,
+      })
+    }
+
+    const timer = setInterval(save, 10_000)
+    window.addEventListener('beforeunload', save)
+    return () => {
+      clearInterval(timer)
+      window.removeEventListener('beforeunload', save)
+      save()
+    }
+  }, [])
 
   useEffect(() => {
     connect()

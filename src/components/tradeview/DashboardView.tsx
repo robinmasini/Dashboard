@@ -5,6 +5,7 @@ import DailyPnlCalendar from './DailyPnlCalendar'
 import StatsPanel from './StatsPanel'
 import type { RangeKey } from './dailyPnl'
 import { deriveDailyStats, rangeMetrics, rangeStart } from './dailyPnl'
+import FrozenBanner from './FrozenBanner'
 import { exactMoney, money, pnlColor, signedPct, tv } from './theme'
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
@@ -87,6 +88,10 @@ export default function DashboardView({ tradeState }: DashboardViewProps) {
         boxSizing: 'border-box',
       }}
     >
+      {!tradeState.connected && tradeState.frozenSince && (
+        <FrozenBanner since={tradeState.frozenSince} />
+      )}
+
       <div
         style={{
           display: 'flex',

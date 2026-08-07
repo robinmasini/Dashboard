@@ -85,6 +85,36 @@ pub fn sources_from_env() -> Vec<FeedSource> {
     }
 }
 
+/// How far back a headline is worth carrying. Older ones are dropped at the
+/// source rather than stored and filtered later: a week of world news is what a
+/// trader reads, and everything before it is weight without value.
+pub const RETENTION_DAYS: i64 = 7;
+
+/// Reads the publication date a feed states, in either of the two forms used in
+/// practice: RFC 2822 for RSS, RFC 3339 for Atom.
+pub fn parse_published(raw: &str) -> Option<chrono::DateTime<chrono::Utc>> {
+    let raw = raw.trim();
+    if raw.is_empty() {
+        return None;
+    }
+    chrono::DateTime::parse_from_rfc2822(raw)
+        .or_else(|_| chrono::DateTime::parse_from_rfc3339(raw))
+        .ok()
+        .map(|dt| dt.with_timezone(&chrono::Utc))
+}
+
+/// True when the item is recent enough to keep.
+///
+/// An unreadable or absent date counts as recent: feeds that omit it are not
+/// therefore publishing old news, and discarding those items would silently
+/// lose whole sources.
+pub fn is_within_retention(published: &str, now: chrono::DateTime<chrono::Utc>, days: i64) -> bool {
+    match parse_published(published) {
+        Some(date) => now.signed_duration_since(date).num_days() < days,
+        None => true,
+    }
+}
+
 /// A headline ready to broadcast.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Headline {
@@ -140,7 +170,12 @@ pub fn spawn_feed_poller(
                     }
                 };
 
+                let now = clock.now().as_datetime();
+
                 for item in parse_rss(&body) {
+                    if !is_within_retention(&item.published, now, RETENTION_DAYS) {
+                        continue;
+                    }
                     let key = if item.link.is_empty() {
                         format!("{}::{}", source.label, item.title)
                     } else {
@@ -181,6 +216,71 @@ pub fn spawn_feed_poller(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    fn at(iso: &str) -> chrono::DateTime<chrono::Utc> {
+        chrono::DateTime::parse_from_rfc3339(iso)
+            .expect("valid test instant")
+            .with_timezone(&chrono::Utc)
+    }
+
+    #[test]
+    fn an_article_from_today_is_kept() {
+        let now = at("2026-08-07T12:00:00Z");
+        assert!(is_within_retention(
+            "Fri, 07 Aug 2026 09:00:00 GMT",
+            now,
+            RETENTION_DAYS
+        ));
+    }
+
+    #[test]
+    fn an_article_from_last_month_is_dropped() {
+        let now = at("2026-08-07T12:00:00Z");
+        assert!(!is_within_retention(
+            "Wed, 15 Jul 2026 09:00:00 GMT",
+            now,
+            RETENTION_DAYS
+        ));
+    }
+
+    #[test]
+    fn the_boundary_falls_on_the_seventh_day() {
+        let now = at("2026-08-07T12:00:00Z");
+        // Six days old: kept. Eight: gone.
+        assert!(is_within_retention(
+            "2026-08-01T12:00:00Z",
+            now,
+            RETENTION_DAYS
+        ));
+        assert!(!is_within_retention(
+            "2026-07-30T12:00:00Z",
+            now,
+            RETENTION_DAYS
+        ));
+    }
+
+    #[test]
+    fn atom_timestamps_are_understood_too() {
+        let now = at("2026-08-07T12:00:00Z");
+        assert!(is_within_retention(
+            "2026-08-06T18:00:00Z",
+            now,
+            RETENTION_DAYS
+        ));
+        assert!(!is_within_retention(
+            "2026-06-01T18:00:00Z",
+            now,
+            RETENTION_DAYS
+        ));
+    }
+
+    #[test]
+    fn an_item_without_a_readable_date_is_kept_rather_than_lost() {
+        // Dropping these would silently discard whole feeds that omit the field.
+        let now = at("2026-08-07T12:00:00Z");
+        assert!(is_within_retention("", now, RETENTION_DAYS));
+        assert!(is_within_retention("hier matin", now, RETENTION_DAYS));
+    }
 
     #[test]
     fn the_americas_desk_is_covered() {

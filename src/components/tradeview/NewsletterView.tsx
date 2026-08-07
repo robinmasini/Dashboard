@@ -1,5 +1,6 @@
 import { useMemo } from 'react'
 import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
+import FrozenBanner from './FrozenBanner'
 import { tv } from './theme'
 
 type TradeViewState = ReturnType<typeof useTradeViewWebSocket>
@@ -50,6 +51,12 @@ export default function NewsletterView({ tradeState }: NewsletterViewProps) {
         boxSizing: 'border-box',
       }}
     >
+      {!tradeState.connected && tradeState.frozenSince && (
+        <div style={{ maxWidth: 900 }}>
+          <FrozenBanner since={tradeState.frozenSince} />
+        </div>
+      )}
+
       <div
         style={{
           display: 'flex',
@@ -79,8 +86,8 @@ export default function NewsletterView({ tradeState }: NewsletterViewProps) {
           }}
         >
           {tradeState.connected
-            ? "Aucune dépêche reçue. Les fils dépendent des abonnements du compte IBKR — ce compte lit Briefing.com et Dow Jones Newsletters."
-            : 'Moteur déconnecté — aucune dépêche ne peut arriver.'}
+            ? 'Aucune dépêche reçue. Le moteur relève les fils toutes les 3 minutes.'
+            : "Moteur déconnecté, et aucune dépêche mémorisée d'une session précédente."}
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 24, maxWidth: 900 }}>

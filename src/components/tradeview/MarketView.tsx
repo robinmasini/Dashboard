@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { useTradeViewWebSocket } from '../../hooks/useTradeViewWebSocket'
+import FrozenBanner from './FrozenBanner'
 import { tv } from './theme'
 
 const MIN_VISIBLE_CANDLES = 12
@@ -334,10 +335,29 @@ export default function MarketView({ tradeState }: MarketViewProps) {
             boxSizing: 'border-box',
           }}
         >
+          {/* A stopped engine outranks every other label: the figures below are
+              a snapshot, whatever mode produced them. */}
+          {!tradeState.connected && tradeState.frozenSince && (
+            <div
+              style={{
+                position: 'absolute',
+                top: 24,
+                left: 20,
+                right: 20,
+                zIndex: 7,
+                display: 'flex',
+                justifyContent: 'center',
+                pointerEvents: 'none',
+              }}
+            >
+              <FrozenBanner since={tradeState.frozenSince} />
+            </div>
+          )}
+
           {/* Anything that is not live prices says so, loudly. A scalping
               screen showing ten-minute-old or invented quotes without saying
               it is worse than a screen showing nothing. */}
-          {tradeState.dataMode !== 'REALTIME' && (
+          {tradeState.connected && tradeState.dataMode !== 'REALTIME' && (
             <div
               style={{
                 position: 'absolute',
