@@ -34,3 +34,9 @@ dist
 
 .vercel
 .env*.local
+
+# Terraform state holds the infrastructure, and can contain secrets.
+tradeview/deploy/terraform/.terraform/
+tradeview/deploy/terraform/*.tfstate
+tradeview/deploy/terraform/*.tfstate.*
+tradeview/deploy/terraform/*.tfvars

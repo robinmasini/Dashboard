@@ -1,0 +1,40 @@
+[Unit]
+Description=IB Gateway, kept logged in by IBC
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tradeview
+EnvironmentFile=/opt/tradeview/ibc.env
+
+# A screen the Gateway can draw on, since it is a desktop application with no
+# desktop here.
+Environment=DISPLAY=:1
+ExecStartPre=/usr/bin/pkill -f "Xvfb :1" ; /bin/true
+ExecStartPre=/bin/sh -c '/usr/bin/Xvfb :1 -screen 0 1280x1024x24 & sleep 2'
+
+ExecStart=/opt/ibc/scripts/ibcstart.sh "1030" \
+  --gateway \
+  --mode=${IB_TRADING_MODE} \
+  --user=${IB_LOGIN_ID} \
+  --pw=${IB_PASSWORD} \
+  --tws-path=/opt/ibgateway \
+  --ibc-path=/opt/ibc
+
+# IBKR drops the session once a day; restarting is the normal path, not a
+# failure. The engine reconnects on its own once the Gateway is back.
+Restart=always
+RestartSec=30
+
+StandardOutput=append:/var/log/tradeview/ibgateway.log
+StandardError=append:/var/log/tradeview/ibgateway.log
+
+# The Gateway needs nothing outside its own directories.
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/ibgateway /opt/ibc /opt/tradeview /var/log/tradeview /home/tradeview
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,28 @@
+[Unit]
+Description=TradeView engine
+# Started after the Gateway, though it does not depend on it: the engine
+# refuses to run without a market feed and will be restarted until one answers,
+# which is the behaviour we want rather than silently inventing prices.
+After=ibgateway.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=tradeview
+EnvironmentFile=/opt/tradeview/engine.env
+ExecStart=/opt/tradeview/bin/tradeview-server
+
+Restart=always
+RestartSec=15
+
+StandardOutput=append:/var/log/tradeview/engine.log
+StandardError=append:/var/log/tradeview/engine.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/tradeview /var/log/tradeview
+
+[Install]
+WantedBy=multi-user.target
