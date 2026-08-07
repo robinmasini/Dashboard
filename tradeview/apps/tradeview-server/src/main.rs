@@ -9,8 +9,8 @@ use tracing_subscriber::FmtSubscriber;
 use tradeview_api::{create_router, ApiToken, AppState, ClientWsCommand, ReplayBuffer};
 use tradeview_broker_core::MarketDataProvider;
 use tradeview_broker_ibkr::{
-    load_todays_headlines, spawn_news_stream, spawn_provider_streams, IbkrConfig, IbkrMarketData,
-    NewsEvent,
+    load_todays_headlines, spawn_news_stream, spawn_provider_streams, FeedKind, IbkrConfig,
+    IbkrMarketData, NewsEvent,
 };
 use tradeview_candle_engine::CandleEngine;
 use tradeview_clock::{SystemClock, TradingClock};
@@ -133,7 +133,28 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         clock.clone(),
     ));
     let candle_engine = Arc::new(Mutex::new(CandleEngine::new()));
-    let analysis_timeframe = indicator_timeframe();
+
+    // Decided before anything reads it: the timeframe depends on how sparse the
+    // feed is, and the screen must be told which kind of prices it shows.
+    let data_mode = match market_source() {
+        MarketSource::Synthetic => MarketDataMode::Synthetic,
+        MarketSource::Ibkr => match IbkrConfig::from_env() {
+            Ok(config) => match config.feed_kind {
+                FeedKind::Realtime => MarketDataMode::Realtime,
+                FeedKind::Delayed => MarketDataMode::Delayed,
+            },
+            Err(_) => MarketDataMode::Unknown,
+        },
+    };
+
+    // Delayed data prints roughly once every five seconds, so a 15-second bar
+    // aggregates one to three trades and draws no wick worth reading. A minute
+    // bar gathers around a dozen, which is the difference between a candle and
+    // a dash — and order blocks are read from the wicks.
+    let analysis_timeframe = match (std::env::var("TRADEVIEW_INDICATOR_TIMEFRAME"), data_mode) {
+        (Err(_), MarketDataMode::Delayed) => Timeframe::M1,
+        _ => indicator_timeframe(),
+    };
     info!(timeframe = ?analysis_timeframe, "indicator timeframe");
 
     // One analysis window per instrument: blocks and steps describe a single
@@ -172,11 +193,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let feed_running = Arc::new(AtomicBool::new(autostart));
     info!(autostart, "market feed");
 
-    let data_mode;
-
     match market_source() {
         MarketSource::Synthetic => {
-            data_mode = MarketDataMode::Synthetic;
             info!("market source: SYNTHETIC — invented prices, unrelated to any exchange");
             for (offset, symbol) in symbols.iter().enumerate() {
                 let profile = InstrumentProfile::for_symbol(symbol).unwrap_or_default();
@@ -205,7 +223,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             news_config.client_id = config.client_id.wrapping_add(1);
 
             let provider = IbkrMarketData::new(config, clock.clone());
-            data_mode = provider.mode();
             info!(mode = ?data_mode, "market data mode");
             let instruments: Vec<InstrumentId> =
                 symbols.iter().map(|s| InstrumentId::new(s)).collect();

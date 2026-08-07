@@ -31,11 +31,16 @@ export default function MarketView({ tradeState }: MarketViewProps) {
         tradeState.symbol
   )
 
-  // Zoom is how many bars are on screen; the spacing follows from the width so
-  // the series always fills the canvas.
-  const [visibleCandles, setVisibleCandles] = useState(40)
+  // The view is a window over the series, described by how many bars it shows
+  // and where its right edge sits. Holding a right edge rather than always
+  // showing the last bar is what lets the chart be scrolled back through
+  // history — and what lets a zoom keep the bar under the cursor in place.
+  const [viewCount, setViewCount] = useState(60)
+  // Bars hidden beyond the right edge. Zero means pinned to the latest.
+  const [viewOffset, setViewOffset] = useState(0)
   const chartRef = useRef<HTMLDivElement>(null)
   const [chartWidth, setChartWidth] = useState(900)
+  const dragRef = useRef<{ x: number; offset: number } | null>(null)
 
   useEffect(() => {
     const element = chartRef.current
@@ -47,12 +52,37 @@ export default function MarketView({ tradeState }: MarketViewProps) {
     return () => observer.disconnect()
   }, [])
 
-  const zoom = (delta: number) =>
-    setVisibleCandles((current) =>
-      Math.min(MAX_VISIBLE_CANDLES, Math.max(MIN_VISIBLE_CANDLES, current + delta))
-    )
+  const total = timeframeCandles.length
+  const clampOffset = (offset: number, count: number) =>
+    Math.max(0, Math.min(offset, Math.max(0, total - count)))
 
-  const activeCandles = timeframeCandles.slice(-visibleCandles)
+  const visibleCandles = Math.min(viewCount, Math.max(1, total))
+  const offset = clampOffset(viewOffset, visibleCandles)
+  const end = total - offset
+  const activeCandles = timeframeCandles.slice(Math.max(0, end - visibleCandles), end)
+
+  /**
+   * Zooms about a point, the way a chart is expected to behave: the bar under
+   * the pointer stays under the pointer. Changing the count alone would slide
+   * the series sideways under a stationary cursor.
+   */
+  const zoomAt = (factor: number, anchorRatio: number) => {
+    const nextCount = Math.round(
+      Math.min(MAX_VISIBLE_CANDLES, Math.max(MIN_VISIBLE_CANDLES, visibleCandles * factor))
+    )
+    if (nextCount === visibleCandles) return
+
+    // Index, counted from the right edge, of the bar under the pointer.
+    const fromRight = (1 - anchorRatio) * visibleCandles
+    const nextFromRight = (1 - anchorRatio) * nextCount
+    const nextOffset = Math.round(offset + (fromRight - nextFromRight))
+
+    setViewCount(nextCount)
+    setViewOffset(clampOffset(nextOffset, nextCount))
+  }
+
+  const zoom = (delta: number) =>
+    zoomAt(delta > 0 ? 1.25 : 0.8, 0.5)
   const maxPrice = Math.max(...activeCandles.map((c) => parseFloat(String(c.high))), tradeState.lastPrice + 1)
   const minPrice = Math.min(...activeCandles.map((c) => parseFloat(String(c.low))), tradeState.lastPrice - 1)
   const priceRange = Math.max(0.5, maxPrice - minPrice)
@@ -325,7 +355,33 @@ export default function MarketView({ tradeState }: MarketViewProps) {
           ref={chartRef}
           onWheel={(event) => {
             event.preventDefault()
-            zoom(event.deltaY > 0 ? 4 : -4)
+            const box = chartRef.current?.getBoundingClientRect()
+            // Where the pointer sits across the plot, 0 at the left edge.
+            const ratio = box
+              ? Math.min(
+                  1,
+                  Math.max(0, (event.clientX - box.left - leftGutter) / plotWidth)
+                )
+              : 0.5
+            zoomAt(event.deltaY > 0 ? 1.15 : 0.87, ratio)
+          }}
+          onPointerDown={(event) => {
+            dragRef.current = { x: event.clientX, offset }
+            event.currentTarget.setPointerCapture(event.pointerId)
+          }}
+          onPointerMove={(event) => {
+            const drag = dragRef.current
+            if (!drag) return
+            // Dragging right walks back through history, as on any chart.
+            const barsMoved = Math.round((event.clientX - drag.x) / Math.max(1, spacing))
+            setViewOffset(clampOffset(drag.offset + barsMoved, visibleCandles))
+          }}
+          onPointerUp={(event) => {
+            dragRef.current = null
+            event.currentTarget.releasePointerCapture(event.pointerId)
+          }}
+          onPointerLeave={() => {
+            dragRef.current = null
           }}
           style={{
             flex: 1,
