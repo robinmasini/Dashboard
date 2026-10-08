@@ -26,13 +26,7 @@ import FreelanceClients from './freelance/pages/Clients'
 import FreelancePerformance from './freelance/pages/performance'
 import FreelanceTimeTracking from './freelance/pages/time-tracking'
 
-// Import CRM
-import CRMLayout from './layouts/CRMLayout'
-import CRMDashboard from './freelance/pages/crm/CRMDashboard'
-import CRMEntreprises from './freelance/pages/crm/CRMEntreprises'
-import CRMContacts from './freelance/pages/crm/CRMContacts'
-import CRMTemplates from './freelance/pages/crm/CRMTemplates'
-import CRMSettings from './freelance/pages/crm/CRMSettings'
+import FreelanceComptabilite from './freelance/pages/comptabilite'
 
 // Note: L'accès admin est non-référencé publiquement mais accessible via /admin
 // La protection se fait via l'authentification Supabase (login freelance requis)
@@ -89,15 +83,9 @@ function AppRoutes() {
                 <Route path="planning" element={<FreelancePlanning />} />
                 <Route path="clients" element={<FreelanceClients />} />
 
-                {/* Le CRM est intégré sous DashboardLayout */}
-                <Route path="crm/*" element={<CRMLayout />}>
-                  <Route index element={<Navigate to="dashboard" replace />} />
-                  <Route path="dashboard" element={<CRMDashboard />} />
-                  <Route path="entreprises" element={<CRMEntreprises />} />
-                  <Route path="contacts" element={<CRMContacts />} />
-                  <Route path="templates" element={<CRMTemplates />} />
-                  <Route path="settings" element={<CRMSettings />} />
-                </Route>
+                <Route path="comptabilite" element={<FreelanceComptabilite />} />
+                {/* Ancien Personal CRM remplacé par la Comptabilité */}
+                <Route path="crm/*" element={<Navigate to="/admin/comptabilite" replace />} />
               </Routes>
             </DashboardLayout>
           </ProtectedRoute>

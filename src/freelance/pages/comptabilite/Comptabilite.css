@@ -1,0 +1,102 @@
+.compta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+}
+
+.compta-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.compta-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.compta-form__row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.compta-form input {
+  font-variant-numeric: tabular-nums;
+}
+
+.compta-reset {
+  align-self: flex-start;
+}
+
+.compta-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 0;
+}
+
+.compta-lines > div {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+}
+
+.compta-lines dt {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+}
+
+.compta-lines dd {
+  margin: 0;
+  color: #fff;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.compta-lines .is-positive {
+  color: #10b981;
+}
+
+.compta-lines .is-muted dd,
+.compta-lines .is-muted dt {
+  opacity: 0.6;
+  font-weight: 400;
+}
+
+.compta-lines__sep {
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.compta-total {
+  margin-top: auto;
+  padding: 20px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(104, 35, 255, 0.18), rgba(59, 79, 255, 0.12));
+  border: 1px solid rgba(104, 35, 255, 0.35);
+}
+
+.compta-total p {
+  margin: 0 0 6px;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #c4b5fd;
+}
+
+.compta-total strong {
+  font-size: 2rem;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 768px) {
+  .compta-grid,
+  .compta-form__row {
+    grid-template-columns: 1fr;
+  }
+}
