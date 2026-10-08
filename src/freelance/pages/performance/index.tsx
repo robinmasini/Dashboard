@@ -7,7 +7,7 @@ import welcomeBg from '../../../assets/braden-collum-CBcS51cGoSw-unsplash.jpg'
 import tvIllustration from '../../../assets/TV-illustration.png'
 import ForecastPanel from '../../components/ForecastPanel'
 import SustainabilityPanel from '../../components/SustainabilityPanel'
-import { walletSummary } from '../../../data/dashboard'
+import { walletSummary, currentBalance } from '../../../data/dashboard'
 import { useInvoices, useClients, useAppointments } from '../../../shared'
 const formatCurrency = (amount: number) => {
   return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount)
@@ -57,17 +57,12 @@ const OverviewContent = () => {
   }, [clients])
 
   const totalPaidAmount = useMemo(() => {
-    // Solde de référence fixe (Shine 8 094,76 € + Stripe 3 753,19 € = 11 847,95 €)
-    const baseBalance = 11847.95
+    // Solde de référence relevé à la main (cf. data/dashboard.ts > currentBalance)
+    const baseBalance = currentBalance.amount
 
-    // Additionner uniquement les nouvelles transactions créées par l'utilisateur via la modale
+    // Additionner uniquement les transactions payées signalées après ce relevé
     const newTransactionsSum = invoices
-      .filter(inv => {
-        if (inv.status !== 'Payée') return false
-        // Exclure les anciens éléments de test ou les entrées par défaut
-        if (inv.id === 'STRIPE-001' || inv.id === 'AC-001' || inv.id === 'INV-001') return false
-        return inv.notes === 'Transaction signalée via Performance' || (inv.created_at && inv.created_at > '2026-07-27T11:50:00Z')
-      })
+      .filter(inv => inv.status === 'Payée' && !!inv.created_at && inv.created_at > currentBalance.asOf)
       .reduce((acc, inv) => {
         const amt = parseFloat(inv.amount.replace(/[^0-9,-]+/g, "").replace(',', '.'))
         return acc + (isNaN(amt) ? 0 : amt)

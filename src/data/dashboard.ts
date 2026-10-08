@@ -162,8 +162,15 @@ export const navConfig: Record<DashboardNavKey, SectionConfig> = {
   },
 }
 
+// Solde réel relevé à la main : à mettre à jour ici quand il change.
+// Seules les transactions signalées après `asOf` s'y ajoutent dans le Dashboard.
+export const currentBalance = {
+  amount: 14243.93,
+  asOf: '2026-10-08T22:20:00Z',
+}
+
 export const walletSummary = {
-  amount: '+8 094,76€',
+  amount: '+14 243,93€',
   objective: 'En attente de paiement',
   provider: 'SHINE',
 }

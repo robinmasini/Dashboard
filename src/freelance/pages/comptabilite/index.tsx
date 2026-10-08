@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
+import { currentBalance } from '../../../data/dashboard'
 import './Comptabilite.css'
 
 // Coefficient appliqué au montant HT (part restante après prélèvements)
 const DEFAULT_COEFFICIENT = 0.788
-// Dernier solde Shine connu (cf. data/dashboard.ts > walletSummary)
-const DEFAULT_SHINE_BALANCE = 8094.76
+// Dernier solde relevé (cf. data/dashboard.ts > currentBalance)
+const DEFAULT_SHINE_BALANCE = currentBalance.amount
 const SHINE_BALANCE_STORAGE_KEY = 'rm_compta_shine_balance'
 
 const formatCurrency = (amount: number) =>
@@ -17,11 +18,16 @@ const parseAmount = (raw: string): number => {
   return isNaN(value) ? 0 : value
 }
 
+const DEFAULT_SHINE_BALANCE_TEXT = String(DEFAULT_SHINE_BALANCE).replace('.', ',')
+
+// La valeur saisie n'est reprise que si elle a été faite sur le relevé actuel :
+// un nouveau relevé dans data/dashboard.ts écrase les anciennes saisies.
 const readStoredBalance = (): string => {
   try {
-    return localStorage.getItem(SHINE_BALANCE_STORAGE_KEY) ?? String(DEFAULT_SHINE_BALANCE).replace('.', ',')
+    const stored = JSON.parse(localStorage.getItem(SHINE_BALANCE_STORAGE_KEY) ?? 'null')
+    return stored?.asOf === currentBalance.asOf ? stored.value : DEFAULT_SHINE_BALANCE_TEXT
   } catch {
-    return String(DEFAULT_SHINE_BALANCE).replace('.', ',')
+    return DEFAULT_SHINE_BALANCE_TEXT
   }
 }
 
@@ -32,7 +38,7 @@ export default function Comptabilite() {
 
   useEffect(() => {
     try {
-      localStorage.setItem(SHINE_BALANCE_STORAGE_KEY, shineBalance)
+      localStorage.setItem(SHINE_BALANCE_STORAGE_KEY, JSON.stringify({ value: shineBalance, asOf: currentBalance.asOf }))
     } catch {
       // stockage indisponible (navigation privée) : on garde la valeur en mémoire
     }
@@ -93,7 +99,7 @@ export default function Comptabilite() {
                 />
               </label>
               <label className="modal-field">
-                <span>Solde actuel Shine (€)</span>
+                <span>Solde actuel (€)</span>
                 <input
                   type="text"
                   inputMode="decimal"
@@ -129,7 +135,7 @@ export default function Comptabilite() {
               <dd>− {formatCurrency(retenue)}</dd>
             </div>
             <div className="compta-lines__sep">
-              <dt>Solde actuel Shine</dt>
+              <dt>Solde actuel</dt>
               <dd>{formatCurrency(balance)}</dd>
             </div>
             <div>
