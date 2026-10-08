@@ -7,6 +7,7 @@ const DEFAULT_COEFFICIENT = 0.788
 // Dernier solde relevé (cf. data/dashboard.ts > currentBalance)
 const DEFAULT_SHINE_BALANCE = currentBalance.amount
 const SHINE_BALANCE_STORAGE_KEY = 'rm_compta_shine_balance'
+const PERSONAL_CHARGES_STORAGE_KEY = 'rm_compta_personal_charges'
 
 const formatCurrency = (amount: number) =>
   new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR' }).format(amount)
@@ -31,10 +32,23 @@ const readStoredBalance = (): string => {
   }
 }
 
+type PersonalCharges = { enabled: boolean; amount: string }
+
+const readStoredCharges = (): PersonalCharges => {
+  try {
+    const stored = JSON.parse(localStorage.getItem(PERSONAL_CHARGES_STORAGE_KEY) ?? 'null')
+    if (stored && typeof stored.enabled === 'boolean' && typeof stored.amount === 'string') return stored
+  } catch {
+    // valeur absente ou illisible : on repart de zéro
+  }
+  return { enabled: false, amount: '' }
+}
+
 export default function Comptabilite() {
   const [amountHT, setAmountHT] = useState('')
   const [coefficient, setCoefficient] = useState(String(DEFAULT_COEFFICIENT).replace('.', ','))
   const [shineBalance, setShineBalance] = useState(readStoredBalance)
+  const [personalCharges, setPersonalCharges] = useState(readStoredCharges)
 
   useEffect(() => {
     try {
@@ -44,19 +58,29 @@ export default function Comptabilite() {
     }
   }, [shineBalance])
 
-  const { ht, net, retenue, balance, balanceAfter } = useMemo(() => {
+  useEffect(() => {
+    try {
+      localStorage.setItem(PERSONAL_CHARGES_STORAGE_KEY, JSON.stringify(personalCharges))
+    } catch {
+      // stockage indisponible (navigation privée) : on garde la valeur en mémoire
+    }
+  }, [personalCharges])
+
+  const { ht, net, retenue, balance, charges, balanceAfter } = useMemo(() => {
     const ht = parseAmount(amountHT)
     const coef = parseAmount(coefficient)
     const net = Math.round(ht * coef * 100) / 100
     const balance = parseAmount(shineBalance)
+    const charges = personalCharges.enabled ? parseAmount(personalCharges.amount) : 0
     return {
       ht,
       net,
       retenue: Math.round((ht - net) * 100) / 100,
       balance,
-      balanceAfter: Math.round((balance + net) * 100) / 100,
+      charges,
+      balanceAfter: Math.round((balance + net - charges) * 100) / 100,
     }
-  }, [amountHT, coefficient, shineBalance])
+  }, [amountHT, coefficient, shineBalance, personalCharges])
 
   return (
     <div className="workspace__content">
@@ -109,6 +133,28 @@ export default function Comptabilite() {
               </label>
             </div>
 
+            <div className="compta-charges">
+              <label className="compta-charges__toggle">
+                <input
+                  type="checkbox"
+                  checked={personalCharges.enabled}
+                  onChange={(e) => setPersonalCharges((prev) => ({ ...prev, enabled: e.target.checked }))}
+                />
+                <span>Charges compte Personnel</span>
+              </label>
+              <label className="modal-field">
+                <span>Montant des charges (€)</span>
+                <input
+                  type="text"
+                  inputMode="decimal"
+                  value={personalCharges.amount}
+                  placeholder="ex : 1 200"
+                  disabled={!personalCharges.enabled}
+                  onChange={(e) => setPersonalCharges((prev) => ({ ...prev, amount: e.target.value }))}
+                />
+              </label>
+            </div>
+
             {amountHT && (
               <button type="button" className="ghost-button compta-reset" onClick={() => setAmountHT('')}>
                 Effacer le montant
@@ -142,6 +188,12 @@ export default function Comptabilite() {
               <dt>+ Résultat du calcul</dt>
               <dd className="is-positive">+ {formatCurrency(net)}</dd>
             </div>
+            {personalCharges.enabled && (
+              <div>
+                <dt>− Charges compte Personnel</dt>
+                <dd className="is-negative">− {formatCurrency(charges)}</dd>
+              </div>
+            )}
           </dl>
 
           <div className="compta-total">

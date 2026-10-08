@@ -27,6 +27,37 @@
   font-variant-numeric: tabular-nums;
 }
 
+.compta-charges {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.compta-charges__toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.compta-charges__toggle input {
+  width: 18px;
+  height: 18px;
+  accent-color: #6823ff;
+  cursor: pointer;
+}
+
+.compta-charges input:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .compta-reset {
   align-self: flex-start;
 }
@@ -59,6 +90,10 @@
 
 .compta-lines .is-positive {
   color: #10b981;
+}
+
+.compta-lines .is-negative {
+  color: #f87171;
 }
 
 .compta-lines .is-muted dd,
